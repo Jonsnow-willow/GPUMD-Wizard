@@ -732,10 +732,15 @@ class MaterialCalculator():
         optimizer.run(fmax=0.02, steps=500)
         energies = [image.get_potential_energy() for image in images]
         migration_energy = max(energies) - min(energies)
+        energies -= min(energies)
         for image in images:
             dump_xyz('MaterialProperties.xyz', image, comment=f' config_type = {self.symbol} Migration Energy Vacancy')  
         with open('MaterialProperties.out', 'a') as f:
             print(f'{self.symbol:^4}   Migration_Energy_Vacancy: {migration_energy:.4f} eV', file=f)
+        plt.plot(np.linspace(0, 1, len(energies)), energies, marker='o', label=f'{self.symbol}')  
+        plt.legend()
+        plt.savefig(f'migration_vacancy.png')
+        plt.close()
         return energies
     
     def formation_energy_sia(self, vector, relax_required = True, relax_params = None):
@@ -772,11 +777,50 @@ class MaterialCalculator():
                 relax(atoms)
         formation_energy = atoms.get_potential_energy() - atom_energy * len(atoms)
 
-        dump_xyz('MaterialProperties.xyz', atoms, comment=f' config_type = {self.symbol} {config_type}')
+        dump_xyz('MaterialProperties.xyz', atoms, comment=f' config_type = {self.symbol} {config_type} intersitial')
         with open('MaterialProperties.out', 'a') as f:
             print(f'{self.symbol:^4}   {config_type} Formation_Energy: {formation_energy:.4f} eV', file=f)
         return formation_energy
-         
+    
+    def migration_energy_interstitial(self, symbol, fractional_position, config_type):
+        atoms = self.atoms.copy() * (4, 5, 6)
+        position0 = np.dot(fractional_position[0], self.atoms.get_cell())
+        position1 = np.dot(fractional_position[1], self.atoms.get_cell())
+        insert_atom1 = Atom(symbol[0], position0)
+        insert_atom2 = Atom(symbol[1], position1)
+        initial = atoms.copy()
+        initial.append(insert_atom1)
+        final = atoms.copy()
+        final.append(insert_atom2)
+
+        initial.calc = self.calc
+        relax(initial)
+        relax_cell = initial.get_cell()
+        final.set_cell(relax_cell)
+        final.calc = self.calc
+        relax(final, cell=False)
+
+        images = [initial] + [initial.copy() for i in range(11)] + [final]
+        for i in images:
+            i.calc = self.calc
+        neb = NEB(images, allow_shared_calculator=True)
+        neb.interpolate()
+        
+        optimizer = FIRE(neb)
+        optimizer.run(fmax=0.02, steps=500)
+        energies = [image.get_potential_energy() for image in images]
+        migration_energy = max(energies) - min(energies)
+        energies -= min(energies)
+        for image in images:
+            dump_xyz('MaterialProperties.xyz', image, comment=f' config_type = {config_type} interstitial Migration Energy')  
+        with open('MaterialProperties.out', 'a') as f:
+            print(f'{self.symbol:^4}   Migration_Energy_{config_type}: {migration_energy:.4f} eV', file=f)
+        plt.plot(np.linspace(0, 1, len(energies)), energies, marker='o', label=f'{config_type}')  
+        plt.legend()
+        plt.savefig(f'migration_{config_type}.png')
+        plt.close()
+        return energies
+
     def stacking_fault(self, a, b, distance):
         '''
         ---------------------------------------------------------------------------------------------------
@@ -838,7 +882,9 @@ class MaterialCalculator():
 
         with open('MaterialProperties.out', 'a') as f:
             print(f'{self.symbol:^4}    {a} Stacking_Fault: {max(energies) * 1000:.4f} meV/A^2', file=f)
-        plt.plot(energies)
+
+        plt.plot(np.linspace(0, 1, len(energies)), energies, marker='o', label=f'{self.symbol}')  
+        plt.legend()
         plt.savefig(f'stacking_fault{b}.png')
         plt.close()
         return energies
