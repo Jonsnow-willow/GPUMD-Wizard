@@ -42,17 +42,19 @@ from pynep.calculate import NEP
 
 
 def main():
-    
+    # Create calculator object 
     calc = NEP('nep.txt')
     # calc = DP('dp.pb')
     # cmds = ["pair_style eam/alloy",
-            "pair_coeff * * W.eam.alloy W]
+    #         "pair_coeff * * W.eam.alloy W]
     # calc = LAMMPSlib(lmpcmds=cmds, log_file='log.' + symbol_info.symbol, keep_alive=True)
 
+    # Set properties-related parameters
     millers = [(1,1,0),(0,0,1),(1,1,1),(1,1,2)]
     sia_vectors = [(1/2,1/2,1/2),(1,0,0),(1,1,0)]
     nths = [1,2,3]
 
+    # Generate bulk atoms and calculate properties
     symbol_info = SymbolInfo('W', 'bcc', 3.185)    
     atoms = symbol_info.create_bulk_atoms()
     material_calculator = MaterialCalculator(atoms, calc, symbol_info.symbol, symbol_info.structure)
