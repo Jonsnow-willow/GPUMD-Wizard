@@ -1,5 +1,5 @@
 # GPUMD-Wizard
-Material structure processing software based on ASE (Atomic Simulation Environment).  It provides automation capabilities for calculating various properties of metals.
+Material structure processing software based on [ASE](https://wiki.fysik.dtu.dk/ase/index.html) (Atomic Simulation Environment).  It provides automation capabilities for calculating various properties of metals.
 
 ## Features
 * Based on the ASE package, MetalProperties-Automator supports different calculators such as [PyNEP](https://github.com/bigd4/PyNEP), [DP](https://github.com/deepmodeling/deepmd-kit), and [LAMMPS](https://www.lammps.org/).
