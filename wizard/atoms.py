@@ -651,7 +651,7 @@ class MaterialCalculator():
         calc = self.calc
         phono_calc = PhonoCalc(calc)
         phono_calc.calculate(atoms, ['band'])    
-        os.rename('phono.png', f'phonon_{self.symbol}.png')
+        os.rename('phonon.png', f'phonon_{self.symbol}.png')
        
     def formation_energy_surface(self, miller, relax_required = True, relax_params = None):
         atoms = self.atoms.copy()
