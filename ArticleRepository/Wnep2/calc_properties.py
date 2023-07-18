@@ -4,7 +4,8 @@ from pynep.calculate import NEP
 def main():
     symbol_info = SymbolInfo('W', 'bcc', 3.185)
     calc = NEP('nep.txt')
-    millers = [(1,1,0),(0,0,1),(1,1,1),(1,1,2)]
+    millers = [(1,1,0),(0,0,1),(1,1,1),(1,1,2),(2,1,0),
+               (2,2,1),(3,1,1),(3,1,0),(3,2,1),(3,2,0)]
     sia_vectors = [(1/2,1/2,1/2),(1,0,0),(1,1,0)]
     nths = [1,2,3]
     atoms = symbol_info.create_bulk_atoms()
