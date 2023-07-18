@@ -636,9 +636,10 @@ class MaterialCalculator():
             dump_xyz('MaterialProperties.xyz', atoms, comment=f' config_type = {self.symbol} EOS Curve')
             
         fig, ax = plt.subplots()
+        font_size = 15
         ax.plot(volumes, energies, '-o')
-        ax.set_xlabel('Volume(A^3)')
-        ax.set_ylabel('Energy (eV/atom)')
+        ax.set_xlabel('Volume(A^3)', fontsize=font_size)
+        ax.set_ylabel('Energy (eV/atom)', fontsize=font_size)
         fig.savefig(os.path.join('eos_curve_png',f'{self.symbol}_eos_curve.png'))
         plt.close()
         with open(os.path.join('eos_curve_out',f'{self.symbol}_eos_curve.out'), 'w') as f:
@@ -652,6 +653,7 @@ class MaterialCalculator():
         phono_calc = PhonoCalc(calc)
         phono_calc.calculate(atoms, ['band'])    
         os.rename('phono.png', f'phonon_{self.symbol}.png')
+        plt.close()
        
     def formation_energy_surface(self, miller, relax_required = True, relax_params = None):
         atoms = self.atoms.copy()
@@ -821,7 +823,7 @@ class MaterialCalculator():
         plt.close()
         return energies
 
-    def stacking_fault(self, a, b, distance):
+    def stacking_fault(self, a, b, miller, distance):
         '''
         ---------------------------------------------------------------------------------------------------
         For FCC-Al                  |   For BCC-Nb
@@ -881,11 +883,11 @@ class MaterialCalculator():
             dump_xyz('MaterialProperties.xyz', slab_shift, comment=f' config_type = {self.symbol} Stacking Fault')
 
         with open('MaterialProperties.out', 'a') as f:
-            print(f'{self.symbol:^4}    {a} Stacking_Fault: {max(energies) * 1000:.4f} meV/A^2', file=f)
+            print(f'{self.symbol:^4}    {miller} Stacking_Fault: {max(energies) * 1000:.4f} meV/A^2', file=f)
 
         plt.plot(np.linspace(0, 1, len(energies)), energies, marker='o', label=f'{self.symbol}')  
         plt.legend()
-        plt.savefig(f'stacking_fault{b}.png')
+        plt.savefig(f'stacking_fault{miller}.png')
         plt.close()
         return energies
     
