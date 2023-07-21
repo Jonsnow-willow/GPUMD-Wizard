@@ -4,8 +4,9 @@ from wizard.atoms import Morph
 import os
 
 def mkdir_relax(atoms):
-    if not os.path.exists('relax'):
-        os.makedirs('relax')
+    if os.path.exists('relax'):
+        raise FileExistsError('Directory "relax" already exists')
+    os.makedirs('relax')
     original_directory = os.getcwd()
     os.chdir('relax')
     dump_xyz('model.xyz', atoms)

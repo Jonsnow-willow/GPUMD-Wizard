@@ -7,8 +7,9 @@ import shutil
 
 # main_dir{potential.txt radiation0{generator_hea.py relax cascade}} 
 def mkdir_relax(atoms):
-    if not os.path.exists('relax'):
-        os.makedirs('relax')
+    if os.path.exists('relax'):
+        raise FileExistsError('Directory "relax" already exists')
+    os.makedirs('relax')
     original_directory = os.getcwd()
     os.chdir('relax')
     dump_xyz('model.xyz', atoms)
@@ -18,8 +19,9 @@ def mkdir_relax(atoms):
     os.chdir(original_directory)
 
 def mkdir_cascade(path, pka_energy, angle, index):
-    if not os.path.exists(path):
-        os.makedirs(path)
+    if os.path.exists(path):
+        raise FileExistsError('Directory already exists')
+    os.makedirs(path)
     original_directory = os.getcwd()
     os.chdir(path)
     set_pka('../relax/restart.xyz', pka_energy, angle, index, False)

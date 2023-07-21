@@ -3,8 +3,9 @@ from wizard.io import write_run, group_xyz, run_gpumd
 import os
 
 def mkdir_relax(atoms, height, symbol, Tm):
-    if not os.path.exists(f'relax_{symbol}'):
-        os.makedirs(f'relax_{symbol}')
+    if os.path.exists(f'relax_{symbol}'):
+        raise FileExistsError(f'Directory "relax_{symbol}" already exists')
+    os.makedirs(f'relax_{symbol}')
     original_directory = os.getcwd()
     Ti = Tm * 0.5
     Tcut = Tm - Ti
