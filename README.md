@@ -1,3 +1,5 @@
+![G-Wizard](G-Wizard.png)
+
 # GPUMD-Wizard
 Material structure processing software based on [ASE](https://wiki.fysik.dtu.dk/ase/index.html) (Atomic Simulation Environment).  It provides automation capabilities for calculating various properties of metals.
 
