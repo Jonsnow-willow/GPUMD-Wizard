@@ -13,6 +13,14 @@ class MultiMol():
             if all(i in symbols for i in s):
                 Train_set.append(atoms)
         return Train_set
+    
+    def Select_Train_set_by_symbol(self, symbols):
+        Train_set = []
+        for atoms in self.frames:
+            s = atoms.get_chemical_symbols()
+            if any(i in symbols for i in s):
+                Train_set.append(atoms)
+        return Train_set
 
     def Devide_Train_set_by_symbol_binary(self):
         Train_set = []
