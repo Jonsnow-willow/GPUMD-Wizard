@@ -19,7 +19,6 @@ popt, pcov = curve_fit(quadratic, r, y, p0=p0, bounds= bounds, maxfev=100000)
 
 print(popt)
 
-# 绘制拟合结果
 plt.scatter(r, y)
 plt.plot(r, quadratic(r, *popt), color='red')
 plt.show()
