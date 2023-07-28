@@ -815,12 +815,12 @@ class MaterialCalculator():
             print(f'{self.symbol:^4}   {miller} Surface_Energy: {formation_energy * 1000:.4f} meV/A^2', file=f)
         return formation_energy * 1000
 
-    def formation_energy_vacancy(self, relax_required = True, relax_params = None):
+    def formation_energy_vacancy(self, relax_required = True, relax_params = None, vac_index = 0):
         atoms = self.atoms.copy() * (4, 5, 6)
         atoms.calc = self.calc
         atom_energy = atoms.get_potential_energy() / len(atoms)
         defects = Morph(atoms)
-        defects.create_vacancy(1)
+        defects.create_vacancy(vac_index)
 
         if relax_required:
             if relax_params is not None:
