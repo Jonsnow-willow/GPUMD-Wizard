@@ -1059,11 +1059,11 @@ class MaterialCalculator():
         energies = [image.get_potential_energy() / 2  for image in images]
         energies -= min(energies)
         for image in images:
-            dump_xyz('MaterialProperties.xyz', image, comment=f' config_type = bcc dipole screw')  
+            dump_xyz('MaterialProperties.xyz', image, comment=f' config_type = {self.symbol} bcc dipole screw')  
 
         plt.plot(np.linspace(0, 1, len(energies)), energies, marker='o', label=f'{self.symbol}')
         plt.legend()
-        plt.savefig('screw_dipole_move.png')
+        plt.savefig(f'{self.symbol}_screw_dipole_move.png')
         plt.close()
         return energies
 
@@ -1098,11 +1098,11 @@ class MaterialCalculator():
         energies = [image.get_potential_energy() for image in images]
         energies -= min(energies)
         for image in images:
-            dump_xyz('MaterialProperties.xyz', image, comment=f' config_type = bcc one move screw')  
+            dump_xyz('MaterialProperties.xyz', image, comment=f' config_type = {self.symbol} bcc one move screw')  
 
         plt.plot(np.linspace(0, 1, len(energies)), energies, marker='o', label=f'{self.symbol}')
         plt.legend()
-        plt.savefig('screw_one_move.png')
+        plt.savefig(f'{self.symbol}_screw_one_move.png')
         plt.close()
         return energies
 
