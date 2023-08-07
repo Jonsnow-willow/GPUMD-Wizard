@@ -13,11 +13,11 @@ def mkdir_relax(atoms, height, symbol, Tm):
     group_xyz('model.xyz', atoms, [-10, -10, height], [10000000, 10000000, height])
     write_run(['potential ../nep.txt', f'velocity {Ti}', 'time_step 1', 
               f'ensemble npt_ber {Ti} {Ti} 200 0 0 0 0 0 0 500 500 500 500 500 500 2000', 
-              'dump_exyz 10000 0 0', 'run 100000',
+              'dump_exyz 10000 0 0', 'run 1000000',
               f'ensemble heat_lan {Tm} 200 {Tcut} 0 1',
-              'dump_exyz 10000 0 0','run 100000',
+              'dump_exyz 10000 0 0','run 1000000',
               f'ensemble npt_ber {Tm} {Tm} 1e20 0 0 0 0 0 0 500 500 500 500 500 500 2000', 
-              'dump_thermo 100', 'dump_exyz 10000 0 0', 'run 100000'])
+              'dump_thermo 100', 'dump_exyz 10000 0 0', 'run 1000000'])
     os.chdir(original_directory)
 
 def main():
