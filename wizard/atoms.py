@@ -1055,9 +1055,9 @@ class MaterialCalculator():
         neb = NEB(images, allow_shared_calculator=True)
         neb.interpolate()    
         optimizer = FIRE(neb)
-        optimizer.run(fmax=0.02)
+        optimizer.run(fmax=0.02, steps=300)
         energies = [image.get_potential_energy() / 2  for image in images]
-        energies -= min(energies)
+        energies = [energy - energies[0] for energy in energies]
         for image in images:
             dump_xyz('MaterialProperties.xyz', image, comment=f' config_type = {self.symbol} bcc dipole screw')  
 
