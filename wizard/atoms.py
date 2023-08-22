@@ -628,19 +628,28 @@ class Morph():
         atoms = self.atoms
         atoms.append(new_atom)
 
-    def create_self_interstitial_atom(self, vector, index = 0):
+    def create_self_interstitial_atom(self, vector, symbol = None, index = 0):
         atoms = self.atoms
-        atom = Atom(atoms[index].symbol, atoms[index].position - vector)
+        if symbol is not None:
+            atom = Atom(symbol, atoms[index].position - vector)
+        else:
+            atom = Atom(atoms[index].symbol, atoms[index].position - vector)
         atoms[index].position += vector
         atoms.append(atom)
 
-    def create_di_self_interstitial_atoms(self, vector1, vector2, index1 = 0, nth = 1):
+    def create_di_self_interstitial_atoms(self, vector1, vector2, symbol1 = None, symbol2 = None, index = 0, nth = 1):
         atoms = self.atoms
-        index2 = get_nth_nearest_neighbor_index(self.atoms, index1, nth)
-        atom1 = Atom(atoms[index1].symbol, atoms[index1].position - vector1)
-        atom2 = Atom(atoms[index2].symbol, atoms[index2].position - vector2)
-        atoms[index1].position += vector1
-        atoms[index2].position += vector2
+        index_neibor = get_nth_nearest_neighbor_index(self.atoms, index, nth)
+        if symbol1 is not None:
+            atom1 = Atom(symbol1, atoms[index].position - vector1)
+        else:
+            atom1 = Atom(atoms[index].symbol, atoms[index].position - vector1)
+        if symbol2 is not None:
+            atom2 = Atom(symbol2, atoms[index_neibor].position - vector2)
+        else:
+            atom2 = Atom(atoms[index_neibor].symbol, atoms[index_neibor].position - vector2)
+        atoms[index].position += vector1
+        atoms[index_neibor].position += vector2
         atoms.append(atom1)
         atoms.append(atom2)
 
@@ -717,7 +726,7 @@ class MaterialCalculator():
 
     def lattice_constant(self):
         atoms = self.atoms
-        atoms.calc = self.calc
+        atoms.calc = self.calc 
         relax(atoms)
         atom_energy = atoms.get_potential_energy() / len(atoms)
         cell_lengths = atoms.cell.cellpar()
@@ -731,8 +740,8 @@ class MaterialCalculator():
                         f"{'':<7}Coherent Energy: {atom_energy:.4f} eV\n")
         return atom_energy, cell_lengths
 
-    def elastic_constant(self):
-        atoms = self.atoms.copy() * (3, 3, 3)
+    def elastic_constant(self, supercell = (3, 3, 3)):
+        atoms = self.atoms.copy() * supercell
         atoms.calc = self.calc
         systems = get_elementary_deformations(atoms)
         C, B = get_elastic_tensor(atoms, systems)
@@ -744,8 +753,8 @@ class MaterialCalculator():
                     f"{'':<7}B: {(C[0] + 2 * C[1])/ 3:>7.2f} GPa\n")
         return (C[0] + 2 * C[1])/ 3
     
-    def young_modulus(self):
-        atoms = self.atoms.copy() 
+    def young_modulus(self, supercell = (3, 3, 3)):
+        atoms = self.atoms.copy() * supercell
         atoms.calc = self.calc
         relax(atoms)
         dump_xyz('MaterialProperties.xyz', atoms, comment=f' config_type = {self.symbol} Lattice Constants')
@@ -792,11 +801,11 @@ class MaterialCalculator():
         os.rename('phono.png', f'phonon_{self.symbol}.png')
         plt.close()
        
-    def formation_energy_surface(self, miller, relax_required = True, relax_params = None):
+    def formation_energy_surface(self, miller, supercell = (2, 2, 1), layers = 10, relax_required = True, relax_params = None):
         atoms = self.atoms.copy()
         atoms.calc = self.calc
         atom_energy = atoms.get_potential_energy() / len(atoms)
-        defects = surface(atoms, miller, layers = 10, vacuum=10) * (2, 2, 1)
+        defects = surface(atoms, miller, layers = layers, vacuum=10) * supercell
         defects.calc = atoms.calc
         
         if relax_required:
@@ -815,8 +824,8 @@ class MaterialCalculator():
             print(f'{self.symbol:^4}   {miller} Surface_Energy: {formation_energy * 1000:.4f} meV/A^2', file=f)
         return formation_energy * 1000
 
-    def formation_energy_vacancy(self, relax_required = True, relax_params = None, vac_index = 0):
-        atoms = self.atoms.copy() * (4, 5, 6)
+    def formation_energy_vacancy(self, vac_index = 0, supercell = (4, 5, 6), relax_required = True, relax_params = None):
+        atoms = self.atoms.copy() * supercell
         atoms.calc = self.calc
         atom_energy = atoms.get_potential_energy() / len(atoms)
         defects = Morph(atoms)
@@ -834,8 +843,8 @@ class MaterialCalculator():
             print(f'{self.symbol:^4}   Formation_Energy_Vacancy: {formation_energy:.4f} eV', file=f)
         return formation_energy
 
-    def formation_energy_divacancies(self, nth, relax_required = True, relax_params = None):
-        atoms = self.atoms.copy() * (4, 5, 6)
+    def formation_energy_divacancies(self, nth, supercell = (4, 5, 6), relax_required = True, relax_params = None):
+        atoms = self.atoms.copy() * supercell
         atoms.calc = self.calc
         atom_energy = atoms.get_potential_energy() / len(atoms)
         defects = Morph(atoms)
@@ -853,8 +862,8 @@ class MaterialCalculator():
             f.write(f"{self.symbol:^4}   {nth}th Formation_Energy_Divacancies: {formation_energy:.4f} eV\n")
         return formation_energy
 
-    def migration_energy_vacancy(self):
-        atoms = self.atoms.copy() * (4, 5, 6)
+    def migration_energy_vacancy(self, supercell = (4, 5, 6)):
+        atoms = self.atoms.copy() * supercell
         initial = atoms.copy()
         index = get_nth_nearest_neighbor_index(initial, 0, 1)
         del initial[0]
@@ -882,12 +891,12 @@ class MaterialCalculator():
         plt.close()
         return energies
     
-    def formation_energy_sia(self, vector, relax_required = True, relax_params = None):
-        atoms = self.atoms.copy() * (4, 5, 6)
+    def formation_energy_sia(self, vector, index = 0, supercell = (4, 5, 6), relax_required = True, relax_params = None):
+        atoms = self.atoms.copy() * supercell
         atoms.calc = self.calc
         atom_energy = atoms.get_potential_energy() / len(atoms)
         defects = Morph(atoms)
-        defects.create_self_interstitial_atom(vector)
+        defects.create_self_interstitial_atom(vector, index = index)
 
         if relax_required:
             if relax_params is not None:
@@ -901,8 +910,41 @@ class MaterialCalculator():
             print(f'{self.symbol:^4}   {vector} Formation_Energy_Sia: {formation_energy:.4} eV', file=f)
         return formation_energy
     
-    def formation_energy_interstitial_atom(self, symbol, fractional_position, config_type, relax_required = True, relax_params = None):
-        atoms = self.atoms.copy() * (4, 5, 6)
+    def migration_energy_sia(self, vector, config_type, supercell = (4, 5, 6)):
+        atoms = self.atoms.copy() * supercell
+        
+       
+
+        initial.calc = self.calc
+        relax(initial)
+        relax_cell = initial.get_cell()
+        final.set_cell(relax_cell)
+        final.calc = self.calc
+        relax(final, cell=False)
+
+        images = [initial] + [initial.copy() for i in range(11)] + [final]
+        for i in images:
+            i.calc = self.calc
+        neb = NEB(images, allow_shared_calculator=True)
+        neb.interpolate()
+        
+        optimizer = FIRE(neb)
+        optimizer.run(fmax=0.02, steps=500)
+        energies = [image.get_potential_energy() for image in images]
+        migration_energy = max(energies) - min(energies)
+        energies -= min(energies)
+        for image in images:
+            dump_xyz('MaterialProperties.xyz', image, comment=f' config_type = {config_type} interstitial Migration Energy')  
+        with open('MaterialProperties.out', 'a') as f:
+            print(f'{self.symbol:^4}   Migration_Energy_{config_type}: {migration_energy:.4f} eV', file=f)
+        plt.plot(np.linspace(0, 1, len(energies)), energies, marker='o', label=f'{config_type}')  
+        plt.legend()
+        plt.savefig(f'migration_{config_type}.png')
+        plt.close()
+        return energies
+    
+    def formation_energy_interstitial_atom(self, symbol, fractional_position, config_type, supercell = (4, 5, 6), relax_required = True, relax_params = None):
+        atoms = self.atoms.copy() * supercell
         atoms.calc = self.calc
         atom_energy = atoms.get_potential_energy() / len(atoms)
         position = np.dot(fractional_position, self.atoms.get_cell())
@@ -921,8 +963,8 @@ class MaterialCalculator():
             print(f'{self.symbol:^4}   {config_type} Formation_Energy: {formation_energy:.4f} eV', file=f)
         return formation_energy
     
-    def migration_energy_interstitial(self, symbol, fractional_position, config_type):
-        atoms = self.atoms.copy() * (4, 5, 6)
+    def migration_energy_interstitial(self, symbol, fractional_position, config_type, supercell = (4, 5, 6)):
+        atoms = self.atoms.copy() * supercell
         position0 = np.dot(fractional_position[0], self.atoms.get_cell())
         position1 = np.dot(fractional_position[1], self.atoms.get_cell())
         insert_atom1 = Atom(symbol[0], position0)
@@ -959,7 +1001,7 @@ class MaterialCalculator():
         plt.savefig(f'migration_{config_type}.png')
         plt.close()
         return energies
-
+    
     def stacking_fault(self, a, b, miller, distance):
         '''
         ---------------------------------------------------------------------------------------------------
