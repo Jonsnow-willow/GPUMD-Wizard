@@ -179,9 +179,11 @@ def set_pka(input_restart, energy, angle, num, is_group = True):
                 outstr +=  '  '.join(data['atom'][i]) + ' ' + ' '.join(str(i) for i in data['velocity'][i]) + ' ' + ' '.join(data['group'][i])         
         f.write(outstr)
 
-def plot_e(ed, er):
+def plot_e(ed, er, lim=None, symbol=None):
     fig = plt.figure()
     plt.title("NEP energy vs DFT energy", fontsize=16)
+    ed = ed - np.mean(ed)
+    er = er - np.mean(er)
     ax = plt.gca()
     ax.set_aspect(1)
     xmajorLocator = ticker.MaxNLocator(5)
@@ -210,6 +212,12 @@ def plot_e(ed, er):
     
     m1 = min(np.min(ed), np.min(er))
     m2 = max(np.max(ed), np.max(er))
+    if lim is not None:
+        m1 = lim[0]
+        m2 = lim[1]
+    ax.set_xlim(m1, m2)
+    ax.set_ylim(m1, m2)
+
     ax.set_xlim(m1, m2)
     ax.set_ylim(m1, m2)
 
@@ -217,10 +225,13 @@ def plot_e(ed, er):
     plt.text(np.min(ed) * 0.85 + np.max(ed) * 0.15, 
              np.min(er) * 0.15 + np.max(ed) * 0.85,
              "RMSE: {:.3f} eV/atom".format(rmse), fontsize=14)
-    plt.savefig('e.png')
+    if symbol is None:
+        plt.savefig('e.png')
+    else:
+        plt.savefig(f'{symbol}_e.png')
     return fig
 
-def plot_f(fd, fr):
+def plot_f(fd, fr, lim=None, symbol=None):
     fig = plt.figure()
     ax = plt.gca()
     plt.title("NEP forces vs DFT forces", fontsize=16)
@@ -254,6 +265,9 @@ def plot_f(fd, fr):
 
     m1 = min(np.min(fd), np.min(fr))
     m2 = max(np.max(fd), np.max(fr))
+    if lim is not None:
+        m1 = lim[0]
+        m2 = lim[1]
     ax.set_xlim(m1, m2)
     ax.set_ylim(m1, m2)
 
@@ -261,10 +275,13 @@ def plot_f(fd, fr):
     plt.text(np.min(fd) * 0.85 + np.max(fd) * 0.15, 
              np.min(fr) * 0.15 + np.max(fr) * 0.85,
              "RMSE: {:.3f} eV/A".format(rmse), fontsize=14)
-    plt.savefig('f.png')
+    if symbol is None:
+        plt.savefig('f.png')
+    else:
+        plt.savefig(f'{symbol}_f.png')
     return fig
 
-def plot_v(vd, vr):
+def plot_v(vd, vr, lim=None, symbol=None):
     fig = plt.figure()
     plt.title("NEP virial vs DFT virial", fontsize=16)
     ax = plt.gca()
@@ -295,6 +312,12 @@ def plot_v(vd, vr):
     
     m1 = min(np.min(vd), np.min(vr))
     m2 = max(np.max(vd), np.max(vr))
+    if lim is not None:
+        m1 = lim[0]
+        m2 = lim[1]
+
+    ax.set_xlim(m1, m2)
+    ax.set_ylim(m1, m2)
     ax.set_xlim(m1, m2)
     ax.set_ylim(m1, m2)
 
@@ -302,7 +325,10 @@ def plot_v(vd, vr):
     plt.text(np.min(vd) * 0.85 + np.max(vd) * 0.15, 
              np.min(vr) * 0.15 + np.max(vd) * 0.85,
              "RMSE: {:.3f} eV/atom".format(rmse), fontsize=14)
-    plt.savefig('v.png')
+    if symbol is None:
+        plt.savefig('v.png')
+    else:
+        plt.savefig(f'{symbol}_v.png')
     return fig
 
 def Prediction():
