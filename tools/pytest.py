@@ -99,9 +99,9 @@ def plot_f(fd, fr, lim=None):
 
 def main():
     #test_set = sys.argv[1]  # 获取命令行中传递的第一个参数
-    frames = load_nep('train_set/Fe/db_Fe.xyz', ftype = "exyz") 
+    frames = load_nep('train.xyz', ftype = "exyz") 
     print(len(frames))
-    calc = NEP('potential/Fe.txt')
+    calc = NEP('nep.txt')
     e_1, e_2, f_1, f_2 = [], [], [], []
     for atoms in frames:
         atoms.calc = calc
