@@ -9,7 +9,6 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker 
 
 def main():
-    #test_set = sys.argv[1]  # 获取命令行中传递的第一个参数
     frames = load_nep('train.xyz', ftype = "exyz") 
     print(len(frames))
     calc = NEP('nep.txt')
