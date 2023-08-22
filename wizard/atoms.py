@@ -828,15 +828,14 @@ class MaterialCalculator():
         atoms = self.atoms.copy() * supercell
         atoms.calc = self.calc
         atom_energy = atoms.get_potential_energy() / len(atoms)
-        defects = Morph(atoms)
-        defects.create_vacancy(vac_index)
+        Morph(atoms).create_vacancy(vac_index)
 
         if relax_required:
             if relax_params is not None:
-                defects.relax(**relax_params)
+                relax(atoms, **relax_params)
             else:
-                defects.relax()
-        formation_energy = defects.get_potential_energy() - atom_energy * len(atoms)
+                relax(atoms)
+        formation_energy = atoms.get_potential_energy() - atom_energy * len(atoms)
 
         dump_xyz('MaterialProperties.xyz', atoms, comment=f' config_type = {self.symbol} Vacancy')
         with open('MaterialProperties.out', 'a') as f:
@@ -847,15 +846,14 @@ class MaterialCalculator():
         atoms = self.atoms.copy() * supercell
         atoms.calc = self.calc
         atom_energy = atoms.get_potential_energy() / len(atoms)
-        defects = Morph(atoms)
-        defects.create_divacancies(nth = nth)
+        Morph(atoms).create_divacancies(nth = nth)
 
         if relax_required:
             if relax_params is not None:
-                defects.relax(**relax_params)
+                relax(atoms, **relax_params)
             else:
-                defects.relax()
-        formation_energy = defects.get_potential_energy() - atom_energy * len(atoms)
+                relax(atoms)
+        formation_energy = atoms.get_potential_energy() - atom_energy * len(atoms)
 
         dump_xyz('MaterialProperties.xyz', atoms, comment=f' config_type = {self.symbol} Divacancies')     
         with open('MaterialProperties.out', 'a') as f:
@@ -895,25 +893,26 @@ class MaterialCalculator():
         atoms = self.atoms.copy() * supercell
         atoms.calc = self.calc
         atom_energy = atoms.get_potential_energy() / len(atoms)
-        defects = Morph(atoms)
-        defects.create_self_interstitial_atom(vector, index = index)
-
+        Morph(atoms).create_self_interstitial_atom(vector, index = index)
         if relax_required:
             if relax_params is not None:
-                defects.relax(**relax_params)
+                relax(atoms, **relax_params)
             else:
-                defects.relax()
-        formation_energy = defects.get_potential_energy() - atom_energy * len(atoms)
+                relax(atoms)
+        formation_energy = atoms.get_potential_energy() - atom_energy * len(atoms)
 
         dump_xyz('MaterialProperties.xyz', atoms, comment=f' config_type = {self.symbol} {vector} SIA')
         with open('MaterialProperties.out', 'a') as f:
             print(f'{self.symbol:^4}   {vector} Formation_Energy_Sia: {formation_energy:.4} eV', file=f)
         return formation_energy
     
-    def migration_energy_sia(self, vector, config_type, supercell = (4, 5, 6)):
+    def migration_energy_sia(self, vector1, vector2, supercell = (4, 5, 6)):
         atoms = self.atoms.copy() * supercell
-        
-       
+        initial = atoms.copy()
+        final = atoms.copy()
+        index = get_nth_nearest_neighbor_index(initial, 0, 1)
+        Morph(initial).create_self_interstitial_atom(vector1, index = 0)
+        Morph(final).create_self_interstitial_atom(vector2, index = index)
 
         initial.calc = self.calc
         relax(initial)
@@ -934,12 +933,11 @@ class MaterialCalculator():
         migration_energy = max(energies) - min(energies)
         energies -= min(energies)
         for image in images:
-            dump_xyz('MaterialProperties.xyz', image, comment=f' config_type = {config_type} interstitial Migration Energy')  
+            dump_xyz('MaterialProperties.xyz', image, comment=f' config_type = SIA Migration Energy')  
         with open('MaterialProperties.out', 'a') as f:
-            print(f'{self.symbol:^4}   Migration_Energy_{config_type}: {migration_energy:.4f} eV', file=f)
-        plt.plot(np.linspace(0, 1, len(energies)), energies, marker='o', label=f'{config_type}')  
-        plt.legend()
-        plt.savefig(f'migration_{config_type}.png')
+            print(f'{self.symbol:^4}   Migration_Energy_SIA: {migration_energy:.4f} eV', file=f)
+        plt.plot(np.linspace(0, 1, len(energies)), energies, marker='o')  
+        plt.savefig(f'migration_SIA.png')
         plt.close()
         return energies
     
