@@ -13,4 +13,4 @@ for frame in range(pipeline.source.num_frames):
     data = pipeline.compute(frame)
     time = data.attributes['Time']
     vacancy_count = data.attributes['WignerSeitz.vacancy_count']
-    print("Frame %d: time = %f, vacancy count = %d" % (frame, time, vacancy_count))
+    print("Frame %d: time = %f, point defect count = %d" % (frame, time, vacancy_count))
