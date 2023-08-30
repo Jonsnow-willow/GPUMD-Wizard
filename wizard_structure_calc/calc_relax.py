@@ -19,11 +19,8 @@ def main():
     lc = 3.1854
     duplicate = 200
     atoms = bulk('W', 'bcc', lc, cubic = True) * (duplicate, duplicate, duplicate)
-    morph = Morph(atoms)
-    morph.prop_element_set(['V','Nb','Mo','Ta','W'])
-    hea = morph.get_atoms()
-    
-    mkdir_relax(hea)
+    Morph(atoms).prop_element_set(['V','Nb','Mo','Ta','W'])
+    mkdir_relax(atoms)
     run_gpumd('relax')
 
 if __name__ == '__main__':
