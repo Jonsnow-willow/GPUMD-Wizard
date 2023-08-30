@@ -10,7 +10,7 @@ def mkdir_deform(atoms):
     os.chdir(f'deform')
     dump_xyz('model.xyz', atoms)
     write_run(['potential ../nep.txt', 'velocity 300', 'time_step 1',
-               'ensemble npt_scr 300 300 100 0 0 0 100 100 100 1000','run 1000000', 
+               'ensemble npt_scr 300 300 100 0 0 0 100 100 100 1000','run 30000', 
                'ensemble npt_scr 300 300 100 0 0 0 100 100 100 1000',
                'deform 0.00001 1 0 0', 'dump_thermo 1000', 'dump_position 1000', 'run 1000000'])
     os.chdir(original_directory)
