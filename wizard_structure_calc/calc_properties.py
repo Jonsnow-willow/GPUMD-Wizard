@@ -39,8 +39,8 @@ def main():
             material_calculator.formation_energy_divacancies(nth)
         for miller in millers:
             material_calculator.formation_energy_surface(miller)
-        material_calculator.stacking_fault(a = (-1,1,1), b = (1,1,0), distance = symbol_info.lattice_constant[0] / 2)
-        material_calculator.stacking_fault(a = (1,1,-1), b = (1,1,2), distance = symbol_info.lattice_constant[0] / 2)
+        material_calculator.stacking_fault(a = (1,1,-1), b = (1,-1,0), miller = [1,1,2], distance = symbol_info.lattice_constant[0] / 2)
+        material_calculator.stacking_fault(a = (1,1,-1), b = (1,1,2), miller = [1,-1,0], distance = symbol_info.lattice_constant[0] / 2)
         material_calculator.pure_bcc_metal_screw_dipole_move()
         material_calculator.pure_bcc_metal_screw_one_move()
         for vector in sia_vectors:
