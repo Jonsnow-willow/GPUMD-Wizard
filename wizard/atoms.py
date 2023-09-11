@@ -1064,7 +1064,7 @@ class MaterialCalculator():
 
         plt.plot(np.linspace(0, 1, len(energies)), energies, marker='o', label=f'{self.symbol}')  
         plt.legend()
-        plt.savefig(f'stacking_fault{miller}.png')
+        plt.savefig(f'{self.symbol:^4}_stacking_fault{miller}.png')
         plt.close()
         return energies
     
