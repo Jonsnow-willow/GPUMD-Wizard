@@ -962,6 +962,7 @@ class MaterialCalculator():
         formation_energy = atoms.get_potential_energy() - atom_energy * len(atoms)
         
         cluster_num = len(atoms) - num
+        burger = tuple(x / x for x in burger)
         dump_xyz('MaterialProperties.xyz', atoms, comment=f' config_type = {self.symbol} {burger} {cluster_num} SIAs Cluster')
         with open('MaterialProperties.out', 'a') as f:
             print(f'{self.symbol:^4}   {burger} {cluster_num} sias Formation_Energy_Sias_Cluster: {formation_energy:.4} eV', file=f)
