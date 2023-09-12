@@ -941,7 +941,7 @@ class MaterialCalculator():
         plt.close()
         return energies
     
-    def formation_energy_sias_cluster(self, cut, thickness = 2, vector = (1, 0, 0), supercell = (20, 20, 20), relax_required = True, relax_params = {'f_max':0.1,'cell':'false','model':'lbfgs'}):
+    def formation_energy_sias_cluster(self, cut, thickness = 2, vector = (1, 0, 0), supercell = (10, 10, 10), relax_required = True, relax_params = {'f_max':0.1,'cell':'false','model':'lbfgs'}):
         atoms = self.atoms.copy() * supercell
         num = len(atoms)
         atoms.calc = self.calc
@@ -949,8 +949,8 @@ class MaterialCalculator():
         center = atoms.get_center_of_mass()
         
         for atom in atoms:
-            R = np.linalg.norm(atom.position - center) 
             b = atom.position - center
+            R = np.sqrt(np.linalg.norm(b) ** 2 - (b @ vector) ** 2)
             if  R < cut and abs(b @ vector) < thickness:
                 Morph(atoms).create_self_interstitial_atom(vector, index = atom.index)
         if relax_required:
