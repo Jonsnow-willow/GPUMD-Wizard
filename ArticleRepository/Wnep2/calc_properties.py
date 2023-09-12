@@ -28,6 +28,8 @@ def main():
         material_calculator.formation_energy_sia(vector)
     material_calculator.formation_energy_interstitial_atom('W',[0,0,1/2],'octahedral')
     material_calculator.formation_energy_interstitial_atom('W',[1/4,0,1/2],'tetrahedral')
+    for r in range(4,10):
+        material_calculator.formation_energy_sias_cluster(r)
 
 if __name__ == "__main__":
     main()
