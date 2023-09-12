@@ -13,7 +13,7 @@ def mkdir_relax(atoms, lc, duplicate):
     os.chdir('relax')
     group_xyz('model.xyz', atoms, [3 * lc, 3 * lc, -100000000], [(duplicate - 3) * lc, (duplicate - 3) * lc, 100000000])
     write_run(['potential ../../nep.txt', 'velocity 300', 'time_step 1', 
-              'ensemble npt_scr 300 300 200 0 500 2000', 
+              'ensemble npt_scr 300 300 200 0 0 0 500 500 500 2000', 
               'dump_thermo 1000', 'dump_restart 30000', 'run 30000'])
     os.chdir(original_directory)
 
