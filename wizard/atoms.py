@@ -941,7 +941,7 @@ class MaterialCalculator():
         plt.close()
         return energies
     
-    def formation_energy_sias_cluster(self, cut, thickness = 2, vector = (1, 0, 0), supercell = (10, 10, 10), relax_required = True, relax_params = {'f_max':0.1,'cell':'false','model':'lbfgs'}):
+    def formation_energy_sias_cluster(self, cut, thickness = 2, vector = (1, 0, 0), supercell = (20, 20, 20), relax_required = True, relax_params = {'f_max':0.1,'cell':'false','model':'lbfgs'}):
         atoms = self.atoms.copy() * supercell
         num = len(atoms)
         atoms.calc = self.calc
