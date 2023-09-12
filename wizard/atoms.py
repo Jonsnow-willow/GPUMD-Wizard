@@ -889,7 +889,7 @@ class MaterialCalculator():
         plt.close()
         return energies
     
-    def formation_energy_sia(self, vector, index = 0, supercell = (4, 5, 6), relax_required = True, relax_params = None):
+    def formation_energy_sia(self, vector = (1, 0, 0), index = 0, supercell = (4, 5, 6), relax_required = True, relax_params = None):
         atoms = self.atoms.copy() * supercell
         atoms.calc = self.calc
         atom_energy = atoms.get_potential_energy() / len(atoms)
@@ -941,6 +941,31 @@ class MaterialCalculator():
         plt.close()
         return energies
     
+    def formation_energy_sias_cluster(self, R_cut, thickness = 2, vector = (1, 0, 0), supercell = (10, 10, 10), relax_required = True, relax_params = None):
+        atoms = self.atoms.copy() * supercell
+        num = len(atoms)
+        atoms.calc = self.calc
+        atom_energy = atoms.get_potential_energy() / len(atoms)
+        center = atoms.get_center_of_mass()
+        
+        for atom in atoms:
+            R = np.linalg.norm(atom.position - center) 
+            b = atom.position - center
+            if  R < R_cut and abs(b @ vector) < thickness:
+                Morph(atoms).create_self_interstitial_atom(vector, index = atom.index)
+        if relax_required:
+            if relax_params is not None:
+                relax(atoms, **relax_params)
+            else:
+                relax(atoms)
+        formation_energy = atoms.get_potential_energy() - atom_energy * len(atoms)
+        
+        cluster_num = len(atoms) - num
+        dump_xyz('MaterialProperties.xyz', atoms, comment=f' config_type = {self.symbol} {vector} {cluster_num} SIAs Cluster')
+        with open('MaterialProperties.out', 'a') as f:
+            print(f'{self.symbol:^4} {vector} {cluster_num} Formation_Energy_Sias_Cluster: {formation_energy:.4} eV', file=f)
+        return formation_energy
+
     def formation_energy_interstitial_atom(self, symbol, fractional_position, config_type, supercell = (4, 5, 6), relax_required = True, relax_params = None):
         atoms = self.atoms.copy() * supercell
         atoms.calc = self.calc
