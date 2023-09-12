@@ -941,7 +941,7 @@ class MaterialCalculator():
         plt.close()
         return energies
     
-    def formation_energy_sias_cluster(self, cut, thickness = 2, vector = (1, 0, 0), supercell = (10, 10, 10), relax_required = True, relax_params = {'f_max':0.1,'cell':'false','model':'lbfgs'}):
+    def formation_energy_sias_cluster(self, cut, thickness = 2, burger = (1, 0, 0), supercell = (10, 10, 10), relax_required = True, relax_params = {'f_max':0.1,'cell':'false','model':'lbfgs'}):
         atoms = self.atoms.copy() * supercell
         num = len(atoms)
         atoms.calc = self.calc
@@ -949,11 +949,11 @@ class MaterialCalculator():
         center = atoms.get_center_of_mass()
         
         for atom in atoms:
-            b = atom.position - center
-            proj = b - np.dot(b, vector) / np.dot(vector, vector) * vector
-            R = np.linalg.norm(np.cross(b, proj)) / np.linalg.norm(proj)
-            if  R < cut and abs(b @ vector) < thickness:
-                Morph(atoms).create_self_interstitial_atom(vector, index = atom.index)
+            vector = atom.position - center
+            proj = abs(vector @ burger) / np.linalg.norm(burger)
+            R = np.sqrt(max(np.dot(vector, vector) - np.dot(proj, proj), 0))
+            if  R < cut and proj < thickness:
+                Morph(atoms).create_self_interstitial_atom(burger, index = atom.index)
         if relax_required:
             if relax_params is not None:
                 relax(atoms, **relax_params)
@@ -962,9 +962,9 @@ class MaterialCalculator():
         formation_energy = atoms.get_potential_energy() - atom_energy * len(atoms)
         
         cluster_num = len(atoms) - num
-        dump_xyz('MaterialProperties.xyz', atoms, comment=f' config_type = {self.symbol} {vector} {cluster_num} SIAs Cluster')
+        dump_xyz('MaterialProperties.xyz', atoms, comment=f' config_type = {self.symbol} {burger} {cluster_num} SIAs Cluster')
         with open('MaterialProperties.out', 'a') as f:
-            print(f'{self.symbol:^4}   {vector} {cluster_num} sias Formation_Energy_Sias_Cluster: {formation_energy:.4} eV', file=f)
+            print(f'{self.symbol:^4}   {burger} {cluster_num} sias Formation_Energy_Sias_Cluster: {formation_energy:.4} eV', file=f)
         return formation_energy
 
     def formation_energy_interstitial_atom(self, symbol, fractional_position, config_type, supercell = (4, 5, 6), relax_required = True, relax_params = None):
