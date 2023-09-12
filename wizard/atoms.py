@@ -950,7 +950,8 @@ class MaterialCalculator():
         
         for atom in atoms:
             b = atom.position - center
-            R = np.sqrt(np.linalg.norm(b) ** 2 - (b @ vector) ** 2)
+            proj = b - np.dot(b, vector) / np.dot(vector, vector) * vector
+            R = np.linalg.norm(np.cross(b, proj)) / np.linalg.norm(proj)
             if  R < cut and abs(b @ vector) < thickness:
                 Morph(atoms).create_self_interstitial_atom(vector, index = atom.index)
         if relax_required:
