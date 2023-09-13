@@ -21,6 +21,18 @@ def run_gpumd(dirname = './'):
     os.chdir(dirname)
     os.system('gpumd')
     os.chdir(original_directory)
+
+def mkdir_relax(atoms, run_in = ['potential ../nep.txt', 'velocity 300', 'time_step 1', 
+                                 'ensemble npt_scr 300 300 200 0 500 2000', 'dump_thermo 1000', 
+                                 'dump_restart 30000', 'run 30000']):
+    if os.path.exists('relax'):
+        raise FileExistsError('Directory "relax" already exists')
+    os.makedirs('relax')
+    original_directory = os.getcwd()
+    os.chdir('relax')
+    dump_xyz('model.xyz', atoms)
+    write_run(run_in)
+    os.chdir(original_directory)
     
 def run_lammps(filename):
     """
@@ -411,9 +423,16 @@ def relax(atoms, f_max=0.01, cell=True, model='qn', method='regular'):
     if model == 'qn':
         dyn = QuasiNewton(ucf)
     elif model == 'lbfgs':
-            dyn = LBFGS(ucf)
+        dyn = LBFGS(ucf)
     elif model == 'fire':
         dyn = FIRE(ucf)
+    elif model == 'gpumd':
+        mkdir_relax(atoms, run_in = ['potential ../nep.txt', 'ensemble nve', 'time_step 0',
+                                     'minimum fire 1.0e-5 1000','dump_position 1','run 1'])
+        run_gpumd('relax')
+        atoms = read_xyz('relax/movie.xyz')[-1]
+        os.system('rm -rf relax')
+        return
     else:
         raise ValueError('Invalid optimization model.')
     
