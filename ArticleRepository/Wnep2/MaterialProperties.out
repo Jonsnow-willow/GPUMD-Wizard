@@ -26,9 +26,3 @@
  W     (1, 1, 0) Formation_Energy_Sia: 11.09 eV
  W     octahedral Formation_Energy: 12.5045 eV
  W     tetrahedral Formation_Energy: 12.0035 eV
- W     (1, 0, 0) 8 sias Formation_Energy_Sias_Cluster: 57.39 eV
- W     (1, 0, 0) 16 sias Formation_Energy_Sias_Cluster: 92.06 eV
- W     (1, 0, 0) 22 sias Formation_Energy_Sias_Cluster: 117.6 eV
- W     (1, 0, 0) 30 sias Formation_Energy_Sias_Cluster: 140.8 eV
- W     (1, 0, 0) 40 sias Formation_Energy_Sias_Cluster: 172.3 eV
- W     (1, 0, 0) 48 sias Formation_Energy_Sias_Cluster: 195.0 eV
