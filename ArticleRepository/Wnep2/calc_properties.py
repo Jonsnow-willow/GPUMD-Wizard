@@ -6,7 +6,7 @@ def main():
     calc = NEP('nep.txt')
     millers = [(1,1,0),(0,0,1),(1,1,1),(1,1,2),(2,1,0),
                (2,2,1),(3,1,1),(3,1,0),(3,2,1),(3,2,0)]
-    sia_vectors = [(1/2,1/2,1/2),(1,0,0),(1,1,0)]
+    sia_vectors = [(1,1,1),(1,0,0),(1,1,0)]
     nths = [1,2,3]
     atoms = symbol_info.create_bulk_atoms()
     material_calculator = MaterialCalculator(atoms, calc, symbol_info.symbol, symbol_info.structure)
