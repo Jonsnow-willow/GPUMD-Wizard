@@ -433,6 +433,8 @@ def relax(atoms, f_max=0.01, cell=True, model='qn', method='regular'):
         atoms = read_xyz('relax/dump.xyz')[-1]
         os.system('rm -rf relax')
         return
+    elif model == 'no_opt':
+        return
     else:
         raise ValueError('Invalid optimization model.')
     
