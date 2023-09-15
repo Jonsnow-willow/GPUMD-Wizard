@@ -83,7 +83,7 @@ def read_xyz(filename):
                 pbc = [True if pbc_value == "T" else False for pbc_value in pbc_str.split()]
             else:
                 pbc = [True, True, True]
-            lattice_str = comment.split("Lattice=\"")[1].split("\" Properties=")[0].strip()
+            lattice_str = comment.split("Lattice=\"")[1].split("\" ")[0].strip()
             lattice = [list(map(float, row.split())) for row in lattice_str.split(" ")]
             cell = [lattice[0] + lattice[1] + lattice[2], lattice[3] + lattice[4] + lattice[5], lattice[6] + lattice[7] + lattice[8]]
             for _ in range(natoms):
@@ -428,9 +428,9 @@ def relax(atoms, f_max=0.01, cell=True, model='qn', method='regular'):
         dyn = FIRE(ucf)
     elif model == 'gpumd':
         mkdir_relax(atoms, run_in = ['potential ../nep.txt', 'ensemble nve', 'time_step 0',
-                                     'minimum fire 1.0e-5 1000','dump_position 1','run 1'])
+                                     'minimize fire 1.0e-5 1000','dump_exyz 1 0 0','run 1'])
         run_gpumd('relax')
-        atoms = read_xyz('relax/movie.xyz')[-1]
+        atoms = read_xyz('relax/dump.xyz')[-1]
         os.system('rm -rf relax')
         return
     else:
