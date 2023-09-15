@@ -781,7 +781,7 @@ class MaterialCalculator():
             atoms.set_cell(scale * origin_cell, scale_atoms = True)
             volumes.append(atoms.get_volume())
             energies.append(atoms.get_potential_energy() / len(atoms))
-            dump_xyz('MaterialProperties.xyz', atoms, comment=f' config_type = {self.symbol} {scale} strain')
+            dump_xyz('MaterialProperties.xyz', atoms, comment=f' config_type = {self.symbol} {scale:.2f} strain')
             
         fig, ax = plt.subplots()
         font_size = 15
@@ -944,10 +944,12 @@ class MaterialCalculator():
             print(f' {self.symbol:<7}{burger} {cluster_num} sias Formation_Energy_Sias_Cluster: {formation_energy:.4} eV', file=f)
         return formation_energy
 
-    def formation_energy_interstitial_atom(self, symbol, new_atom_e, fractional_position, config_type, supercell = (4, 5, 6), relax_params = {}):
+    def formation_energy_interstitial_atom(self, symbol, fractional_position, config_type, new_atom_e = 0, supercell = (4, 5, 6), relax_params = {}):
         atoms = self.atoms.copy() * supercell
         atoms.calc = self.calc
         atoms_energy = atoms.get_potential_energy()
+        if new_atom_e == 0:
+            new_atom_e = self.atom_energy
         position = np.dot(fractional_position, self.atoms.get_cell())
         insert_atom = Atom(symbol, position)
         atoms.append(insert_atom)
@@ -1062,7 +1064,7 @@ class MaterialCalculator():
 
         plt.plot(np.linspace(0, 1, len(energies)), energies, marker='o', label=f'{self.symbol}')  
         plt.legend()
-        plt.savefig(f'{self.symbol:^4}_stacking_fault{miller}.png')
+        plt.savefig(f'{self.symbol}_stacking_fault_{miller}.png')
         plt.close()
         return energies
     
