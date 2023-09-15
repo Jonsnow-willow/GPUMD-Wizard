@@ -585,6 +585,8 @@ class Morph():
             dyn = LBFGS(ucf)
         elif model == 'fire':
             dyn = FIRE(ucf)
+        elif model == 'no_opt':
+            return
         else:
             raise ValueError('Invalid optimization model.')
         dyn.run(fmax=f_max, steps=500)
@@ -711,6 +713,10 @@ class SymbolInfo:
     
 class MaterialCalculator():
     def __init__(self, atoms, calculator, symbol, structure):
+        atoms.calc = calculator
+        relax(atoms)
+        atom_energy = atoms.get_potential_energy() / len(atoms)
+        self.atom_energy = atom_energy
         self.atoms = atoms
         self.calc = calculator  
         self.symbol = symbol
@@ -719,25 +725,23 @@ class MaterialCalculator():
     def isolate_atom_energy(self):
         atoms = Atoms(symbols = [self.symbol], positions=[[0,0,0]])
         atoms.calc = self.calc
-        atom_energy = atoms.get_potential_energy()
+        iso_atom_energy = atoms.get_potential_energy()
         with open('MaterialProperties.out', "a") as f:
-            f.write(f"{self.symbol:^4}   Atom_Energy: {atom_energy:.4f} eV\n")
-        return atom_energy
+            f.write(f" {self.symbol:<7}Atom_Energy: {iso_atom_energy:.4f} eV\n")
+        return iso_atom_energy
 
     def lattice_constant(self):
         atoms = self.atoms
-        atoms.calc = self.calc 
-        relax(atoms)
-        atom_energy = atoms.get_potential_energy() / len(atoms)
+        atom_energy = self.atom_energy
         cell_lengths = atoms.cell.cellpar()
         dump_xyz('MaterialProperties.xyz', atoms, comment=f' config_type = {self.symbol} Lattice Constants')
         with open('MaterialProperties.out', "a") as f:
             if self.structure == 'hcp':
-                f.write(f"{self.symbol:^4}   Lattice_Constants: a: {cell_lengths[0]:.3f} A    c: {cell_lengths[2]:.3f} A\n" 
-                        f"{'':<7}Coherent Energy: {atom_energy:.4f} eV\n")
+                f.write(f" {self.symbol:<7}Lattice_Constants: a: {cell_lengths[0]:.4f} A    c: {cell_lengths[2]:.4f} A\n" 
+                        f"{'':<8}Coherent Energy: {atom_energy:.4f} eV\n")
             else:
-                f.write(f"{self.symbol:^4}   Lattice_Constants: {round(sum(cell_lengths[:3])/3, 3):.3f} A\n" 
-                        f"{'':<7}Coherent Energy: {atom_energy:.4f} eV\n")
+                f.write(f" {self.symbol:<7}Lattice_Constants: {round(sum(cell_lengths[:3])/3, 3):.4f} A\n" 
+                        f"{'':<8}Coherent Energy: {atom_energy:.4f} eV\n")
         return atom_energy, cell_lengths
 
     def elastic_constant(self, supercell = (3, 3, 3)):
@@ -747,17 +751,15 @@ class MaterialCalculator():
         C, B = get_elastic_tensor(atoms, systems)
         C = C * 160.21766208 # 1 eV/Å³ to GPa)
         with open('MaterialProperties.out', 'a') as f:
-            f.write(f"{self.symbol:^4}   C11: {C[0]:>7.2f} GPa\n"
-                    f"{'':<7}C12: {C[1]:>7.2f} GPa\n"
-                    f"{'':<7}C14: {C[2]:>7.2f} GPa\n"
-                    f"{'':<7}B: {(C[0] + 2 * C[1])/ 3:>7.2f} GPa\n")
+            f.write(f" {self.symbol:<7}C11: {C[0]:>7.2f} GPa\n"
+                    f"{'':<8}C12: {C[1]:>7.2f} GPa\n"
+                    f"{'':<8}C14: {C[2]:>7.2f} GPa\n"
+                    f"{'':<8}B:   {(C[0] + 2 * C[1])/ 3:>7.2f} GPa\n")
         return (C[0] + 2 * C[1])/ 3
     
     def young_modulus(self, supercell = (3, 3, 3)):
         atoms = self.atoms.copy() * supercell
         atoms.calc = self.calc
-        relax(atoms)
-        dump_xyz('MaterialProperties.xyz', atoms, comment=f' config_type = {self.symbol} Lattice Constants')
         systems = get_elementary_deformations(atoms)
         C, B = get_elastic_tensor(atoms, systems)
         C = C * 160.21766208 # 1 eV/Å³ to GPa)
@@ -765,7 +767,7 @@ class MaterialCalculator():
         shear_modulus = 1 / 5 *((C[0] - C[1]) + 3 * C[2])
         E = 9 * bulk_modulus * shear_modulus / (3 * bulk_modulus + shear_modulus)
         with open('MaterialProperties.out', 'a') as f:
-            f.write(f"{self.symbol:^4}   Young_Modulus: {E:>7.2f} GPa\n")
+            f.write(f" {self.symbol:<7}Young_Modulus: {E:>7.2f} GPa\n")
         return E
 
     def eos_curve(self):
@@ -779,7 +781,7 @@ class MaterialCalculator():
             atoms.set_cell(scale * origin_cell, scale_atoms = True)
             volumes.append(atoms.get_volume())
             energies.append(atoms.get_potential_energy() / len(atoms))
-            dump_xyz('MaterialProperties.xyz', atoms, comment=f' config_type = {self.symbol} EOS Curve')
+            dump_xyz('MaterialProperties.xyz', atoms, comment=f' config_type = {self.symbol} {scale} strain')
             
         fig, ax = plt.subplots()
         font_size = 15
@@ -801,63 +803,46 @@ class MaterialCalculator():
         os.rename('phono.png', f'phonon_{self.symbol}.png')
         plt.close()
        
-    def formation_energy_surface(self, miller, supercell = (2, 2, 1), layers = 10, relax_required = True, relax_params = None):
+    def formation_energy_surface(self, miller = (1, 0, 0), supercell = (2, 2, 10), relax_params = {}):
         atoms = self.atoms.copy()
-        atoms.calc = self.calc
-        atom_energy = atoms.get_potential_energy() / len(atoms)
-        defects = surface(atoms, miller, layers = layers, vacuum=10) * supercell
-        defects.calc = atoms.calc
-        
-        if relax_required:
-            if relax_params is not None:
-                relax(defects, **relax_params)
-            else:
-                relax(defects)
-        
-        box = defects.get_cell()
+        atom_energy = self.atom_energy
+        slab = surface(atoms, miller, layers = supercell[2], vacuum=10) *(supercell[0], supercell[1], 1)
+        slab.calc = self.calc
+        relax(slab, **relax_params)
+        box = slab.get_cell()
         S = (box[0][0] * box[1][1] - box[0][1] * box[1][0]) * 2
-        defects_energy = defects.get_potential_energy()
-        formation_energy = (defects_energy - atom_energy * len(defects)) / S
+        slab_energy = slab.get_potential_energy()
+        formation_energy = (slab_energy - atom_energy * len(slab)) / S
         
-        dump_xyz('MaterialProperties.xyz', defects, comment=f' config_type = {self.symbol} Surface_Energy')
+        dump_xyz('MaterialProperties.xyz', slab, comment=f' config_type = {self.symbol} {miller} Surface_Energy')
         with open('MaterialProperties.out', 'a') as f:
-            print(f'{self.symbol:^4}   {miller} Surface_Energy: {formation_energy * 1000:.4f} meV/A^2', file=f)
+            print(f' {self.symbol:<7}{miller} Surface_Energy: {formation_energy * 1000:.4f} meV/A^2', file=f)
         return formation_energy * 1000
 
-    def formation_energy_vacancy(self, vac_index = 0, supercell = (4, 5, 6), relax_required = True, relax_params = None):
+    def formation_energy_vacancy(self, vac_index = 0, supercell = (4, 5, 6), relax_params = {}):
         atoms = self.atoms.copy() * supercell
         atoms.calc = self.calc
-        atom_energy = atoms.get_potential_energy() / len(atoms)
+        atom_energy = self.atom_energy
         Morph(atoms).create_vacancy(vac_index)
-
-        if relax_required:
-            if relax_params is not None:
-                relax(atoms, **relax_params)
-            else:
-                relax(atoms)
+        relax(atoms, **relax_params)
         formation_energy = atoms.get_potential_energy() - atom_energy * len(atoms)
 
         dump_xyz('MaterialProperties.xyz', atoms, comment=f' config_type = {self.symbol} Vacancy')
         with open('MaterialProperties.out', 'a') as f:
-            print(f'{self.symbol:^4}   Formation_Energy_Vacancy: {formation_energy:.4f} eV', file=f)
+            print(f' {self.symbol:<7}Formation_Energy_Vacancy: {formation_energy:.4f} eV', file=f)
         return formation_energy
 
-    def formation_energy_divacancies(self, nth, supercell = (4, 5, 6), relax_required = True, relax_params = None):
+    def formation_energy_divacancies(self, nth = 1, supercell = (4, 5, 6), relax_params = {}):
         atoms = self.atoms.copy() * supercell
         atoms.calc = self.calc
-        atom_energy = atoms.get_potential_energy() / len(atoms)
+        atom_energy = self.atom_energy
         Morph(atoms).create_divacancies(nth = nth)
-
-        if relax_required:
-            if relax_params is not None:
-                relax(atoms, **relax_params)
-            else:
-                relax(atoms)
+        relax(atoms, **relax_params)
         formation_energy = atoms.get_potential_energy() - atom_energy * len(atoms)
 
         dump_xyz('MaterialProperties.xyz', atoms, comment=f' config_type = {self.symbol} Divacancies')     
         with open('MaterialProperties.out', 'a') as f:
-            f.write(f"{self.symbol:^4}   {nth}th Formation_Energy_Divacancies: {formation_energy:.4f} eV\n")
+            f.write(f' {self.symbol:<7}{nth}th Formation_Energy_Divacancies: {formation_energy:.4f} eV\n')
         return formation_energy
 
     def migration_energy_vacancy(self, supercell = (4, 5, 6)):
@@ -882,28 +867,24 @@ class MaterialCalculator():
         for image in images:
             dump_xyz('MaterialProperties.xyz', image, comment=f' config_type = {self.symbol} Migration Energy Vacancy')  
         with open('MaterialProperties.out', 'a') as f:
-            print(f'{self.symbol:^4}   Migration_Energy_Vacancy: {migration_energy:.4f} eV', file=f)
+            print(f' {self.symbol:<7}Migration_Energy_Vacancy: {migration_energy:.4f} eV', file=f)
         plt.plot(np.linspace(0, 1, len(energies)), energies, marker='o', label=f'{self.symbol}')  
         plt.legend()
         plt.savefig(f'migration_vacancy.png')
         plt.close()
         return energies
     
-    def formation_energy_sia(self, vector = (1, 0, 0), index = 0, supercell = (4, 5, 6), relax_required = True, relax_params = None):
+    def formation_energy_sia(self, vector = (1, 0, 0), index = 0, supercell = (4, 5, 6), relax_params = {}):
         atoms = self.atoms.copy() * supercell
         atoms.calc = self.calc
-        atom_energy = atoms.get_potential_energy() / len(atoms)
+        atom_energy = self.atom_energy
         Morph(atoms).create_self_interstitial_atom(vector, index = index)
-        if relax_required:
-            if relax_params is not None:
-                relax(atoms, **relax_params)
-            else:
-                relax(atoms)
+        relax(atoms, **relax_params)
         formation_energy = atoms.get_potential_energy() - atom_energy * len(atoms)
 
         dump_xyz('MaterialProperties.xyz', atoms, comment=f' config_type = {self.symbol} {vector} SIA')
         with open('MaterialProperties.out', 'a') as f:
-            print(f'{self.symbol:^4}   {vector} Formation_Energy_Sia: {formation_energy:.4} eV', file=f)
+            print(f' {self.symbol:<7}{vector} Formation_Energy_Sia: {formation_energy:.4} eV', file=f)
         return formation_energy
     
     def migration_energy_sia(self, vector1, vector2, supercell = (4, 5, 6)):
@@ -941,56 +922,41 @@ class MaterialCalculator():
         plt.close()
         return energies
     
-    def formation_energy_sias_cluster(self, cut, thickness = 2, burger = (1, 0, 0), supercell = (10, 10, 10), relax_required = True, relax_params = {'f_max':0.1,'cell':'false','model':'lbfgs'}):
-        atoms = self.atoms.copy() 
+    def formation_energy_sias_cluster(self, cut = 5, thickness = 2, burger = (1, 0, 0), supercell = (10, 10, 10), relax_params = {'f_max':0.1,'cell':'false','model':'lbfgs'}):
+        atoms = self.atoms.copy() * supercell
         atoms.calc = self.calc
-        atom_energy = atoms.get_potential_energy() / len(atoms)
-
-        atoms = atoms * supercell
-        atoms.calc = self.calc
+        atom_energy = self.atom_energy
         num = len(atoms)
         center = atoms.get_center_of_mass()
-        
         for atom in atoms:
             vector = atom.position - center
             proj = abs(vector @ burger) / np.linalg.norm(burger)
             R = np.sqrt(max(np.dot(vector, vector) - np.dot(proj, proj), 0))
             if  R < cut and proj < thickness:
                 Morph(atoms).create_self_interstitial_atom(burger, index = atom.index)
-        if relax_required:
-            if relax_params is not None:
-                relax(atoms, **relax_params)
-            else:
-                relax(atoms)
-
-        atoms.calc = self.calc
+        relax(atoms, **relax_params)
         formation_energy = atoms.get_potential_energy() - atom_energy * len(atoms)
-        
         cluster_num = len(atoms) - num
         burger = tuple(round(x) for x in burger)
+
         dump_xyz('MaterialProperties.xyz', atoms, comment=f' config_type = {self.symbol} {burger} {cluster_num} SIAs Cluster')
         with open('MaterialProperties.out', 'a') as f:
-            print(f'{self.symbol:^4}   {burger} {cluster_num} sias Formation_Energy_Sias_Cluster: {formation_energy:.4} eV', file=f)
+            print(f' {self.symbol:<7}{burger} {cluster_num} sias Formation_Energy_Sias_Cluster: {formation_energy:.4} eV', file=f)
         return formation_energy
 
-    def formation_energy_interstitial_atom(self, symbol, fractional_position, config_type, supercell = (4, 5, 6), relax_required = True, relax_params = None):
+    def formation_energy_interstitial_atom(self, symbol, new_atom_e, fractional_position, config_type, supercell = (4, 5, 6), relax_params = {}):
         atoms = self.atoms.copy() * supercell
         atoms.calc = self.calc
-        atom_energy = atoms.get_potential_energy() / len(atoms)
+        atoms_energy = atoms.get_potential_energy()
         position = np.dot(fractional_position, self.atoms.get_cell())
         insert_atom = Atom(symbol, position)
         atoms.append(insert_atom)
-
-        if relax_required:
-            if relax_params is not None:
-                relax(atoms, **relax_params)
-            else:
-                relax(atoms)
-        formation_energy = atoms.get_potential_energy() - atom_energy * len(atoms)
+        relax(atoms, **relax_params)
+        formation_energy = atoms.get_potential_energy() - atoms_energy - new_atom_e
 
         dump_xyz('MaterialProperties.xyz', atoms, comment=f' config_type = {self.symbol} {config_type} intersitial')
         with open('MaterialProperties.out', 'a') as f:
-            print(f'{self.symbol:^4}   {config_type} Formation_Energy: {formation_energy:.4f} eV', file=f)
+            print(f' {self.symbol:<7}{config_type} Formation_Energy: {formation_energy:.4f} eV', file=f)
         return formation_energy
     
     def migration_energy_interstitial(self, symbol, fractional_position, config_type, supercell = (4, 5, 6)):
@@ -1025,7 +991,7 @@ class MaterialCalculator():
         for image in images:
             dump_xyz('MaterialProperties.xyz', image, comment=f' config_type = {config_type} interstitial Migration Energy')  
         with open('MaterialProperties.out', 'a') as f:
-            print(f'{self.symbol:^4}   Migration_Energy_{config_type}: {migration_energy:.4f} eV', file=f)
+            print(f' {self.symbol:<7}   Migration_Energy_{config_type}: {migration_energy:.4f} eV', file=f)
         plt.plot(np.linspace(0, 1, len(energies)), energies, marker='o', label=f'{config_type}')  
         plt.legend()
         plt.savefig(f'migration_{config_type}.png')
@@ -1092,7 +1058,7 @@ class MaterialCalculator():
             dump_xyz('MaterialProperties.xyz', slab_shift, comment=f' config_type = {self.symbol} Stacking Fault')
 
         with open('MaterialProperties.out', 'a') as f:
-            print(f'{self.symbol:^4}    {miller} Stacking_Fault: {max(energies) * 1000:.4f} meV/A^2', file=f)
+            print(f' {self.symbol:<7}{miller} Stacking_Fault: {max(energies) * 1000:.4f} meV/A^2', file=f)
 
         plt.plot(np.linspace(0, 1, len(energies)), energies, marker='o', label=f'{self.symbol}')  
         plt.legend()
