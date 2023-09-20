@@ -31,7 +31,7 @@ def main():
     for r in range(4,15):
         material_calculator.formation_energy_sias_cluster(cut = r, burger = (1, 0, 0), supercell = (50, 50, 50), relax_params={'method': 'gpumd'})
     for r in range(4,15):
-        material_calculator.formation_energy_sias_cluster(cut = r, thickness= 2.1, burger = (0.7, -0.7, 0), supercell = (50, 50, 50), relax_params={'method': 'gpumd'})
+        material_calculator.formation_energy_sias_cluster(cut = r, burger = (0.7, -0.7, 0), supercell = (50, 50, 50), relax_params={'method': 'gpumd'})
     
 if __name__ == "__main__":
     main()
