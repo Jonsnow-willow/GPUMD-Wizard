@@ -92,7 +92,11 @@ def read_xyz(filename):
                 symbol = symbol.lower().capitalize()
                 symbols.append(symbol)
                 positions.append([float(x), float(y), float(z)])
-            frames.append(Atoms(symbols=symbols, positions=positions, cell = cell, pbc = pbc))
+            if "energy=" in comment:
+                energy = float(comment.split("energy=")[1].split()[0])
+                frames.append(Atoms(symbols=symbols, positions=positions, cell = cell, pbc = pbc, info={"energy": energy}))
+            else:
+                frames.append(Atoms(symbols=symbols, positions=positions, cell = cell, pbc = pbc))
     return frames
 
 def group_xyz(filename, atoms, min_xyz=[], max_xyz=[]):
