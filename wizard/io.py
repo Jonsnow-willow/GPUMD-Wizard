@@ -430,13 +430,6 @@ def relax(atoms, f_max=0.01, cell=True, model='qn', method='regular'):
         dyn = LBFGS(ucf)
     elif model == 'fire':
         dyn = FIRE(ucf)
-    elif model == 'gpumd':
-        mkdir_relax(atoms, run_in = ['potential ../nep.txt', 'ensemble nve', 'time_step 0',
-                                     'minimize fire 1.0e-5 1000','dump_exyz 1 0 0','run 1'])
-        run_gpumd('relax')
-        atoms = read_xyz('relax/dump.xyz')[-1]
-        os.system('rm -rf relax')
-        return
     elif model == 'no_opt':
         return
     else:
