@@ -25,7 +25,7 @@ def formation_energy_sias_cluster(atoms, info, Rcut = 5, thickness = 2, burger =
     cluster_num = len(cluster) - len(atoms)
     burger = tuple(round(x) for x in burger)
 
-    dump_xyz('SIA_cluster.xyz', atoms, comment=f' config_type = {info}{cluster_num}_SIAs_Cluster')
+    dump_xyz('SIA_cluster.xyz', cluster_relaxed, comment=f' config_type = {info}{cluster_num}_SIAs_Cluster')
     with open('SIA_cluster.out', 'a') as f:
         print(f' {info}{cluster_num}_sias_Formation_Energy_Sias_Cluster: {formation_energy:.4} eV', file=f)
     return formation_energy
@@ -39,5 +39,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-    
