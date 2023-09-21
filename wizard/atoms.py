@@ -922,28 +922,6 @@ class MaterialCalculator():
         plt.close()
         return energies
     
-    def formation_energy_sias_cluster(self, cut = 5, thickness = 2, burger = (1, 0, 0), supercell = (10, 10, 10), relax_params = {'f_max':0.1,'cell':'false','model':'lbfgs'}):
-        atoms = self.atoms.copy() * supercell
-        atoms.calc = self.calc
-        atom_energy = self.atom_energy
-        num = len(atoms)
-        center = atoms.get_center_of_mass()
-        for atom in atoms:
-            vector = atom.position - center
-            proj = abs(vector @ burger) / np.linalg.norm(burger)
-            R = np.sqrt(max(np.dot(vector, vector) - np.dot(proj, proj), 0))
-            if  R < cut and proj < thickness:
-                Morph(atoms).create_self_interstitial_atom(burger, index = atom.index)
-        relax(atoms, **relax_params)
-        formation_energy = atoms.get_potential_energy() - atom_energy * len(atoms)
-        cluster_num = len(atoms) - num
-        burger = tuple(round(x) for x in burger)
-
-        dump_xyz('MaterialProperties.xyz', atoms, comment=f' config_type = {self.symbol} {burger} {cluster_num} SIAs Cluster')
-        with open('MaterialProperties.out', 'a') as f:
-            print(f' {self.symbol:<7}{burger} {cluster_num} sias Formation_Energy_Sias_Cluster: {formation_energy:.4} eV', file=f)
-        return formation_energy
-
     def formation_energy_interstitial_atom(self, symbol, fractional_position, config_type, new_atom_e = 0, supercell = (4, 5, 6), relax_params = {}):
         atoms = self.atoms.copy() * supercell
         atoms.calc = self.calc
@@ -1036,7 +1014,7 @@ class MaterialCalculator():
         atoms.calc = self.calc
         atom_energy = atoms.get_potential_energy() / len(atoms)
 
-        slab = cut(atoms, a, b, clength=None, origo=(0,0,0), nlayers = 18, extend=1.0,tolerance=0.01,maxatoms=None)
+        slab = cut(atoms, a, b, clength=None, origo=(0,0,0), nlayers = 18, extend=1.0, tolerance=0.01, maxatoms=None)
         rotate(slab, a,(1,0,0),b,(0,1,0), center=(0,0,0))
         slab.calc = self.calc
         relax(slab)
