@@ -39,12 +39,16 @@ def create_md(atoms, run_in = ['potential ../nep.txt', 'velocity 300', 'time_ste
                                  'dump_exyz 10000', 'run 1000000']):
     if not os.path.exists('md'):
         os.makedirs('md')
-    os.system('rm md/model.xyz')
-    os.system('rm md/run.in')
+    else:
+        if os.path.exists('md/model.xyz'):
+            os.remove('md/model.xyz')
+        if os.path.exists('md/run.in'):
+            os.remove('md/run.in')
     original_directory = os.getcwd()
-    os.chdir('relax')
+    os.chdir('md')
     dump_xyz('model.xyz', atoms)
     write_run(run_in)
+    os.system('gpumd')
     os.chdir(original_directory)
     
 def run_lammps(filename):
