@@ -1,14 +1,11 @@
 from wizard.atoms import SymbolInfo, Morph
-from wizard.io import dump_xyz, mkdir_relax, read_xyz, run_gpumd
+from wizard.io import dump_xyz, read_xyz, create_md
 import numpy as np
-import os
 
 def relax(atoms):
-    mkdir_relax(atoms, run_in = ['potential ../nep.txt', 'ensemble nve', 'time_step 0',
-                                     'minimize fire 1.0e-4 1000','dump_exyz 1 0 0','run 1'])
-    run_gpumd('relax')
-    atoms_relaxed = read_xyz('relax/dump.xyz')[-1]
-    os.system('rm -rf relax')
+    create_md(atoms,run_in = ['potential ../nep.txt', 'ensemble nve', 'time_step 0',
+                              'minimize fire 1.0e-4 1000','dump_exyz 1 0 0','run 1'])
+    atoms_relaxed = read_xyz('md/dump.xyz')[-1]
     return atoms_relaxed
        
 def formation_energy_sias_cluster(atoms, info, Rcut = 5, thickness = 2, burger = (1, 0, 0)):
