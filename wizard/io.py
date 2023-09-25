@@ -433,29 +433,26 @@ def Prediction():
     print(f_rmse)
     print(v_rmse)
 
-
-def relax(atoms, para={'f_max': 0.01, 'method': 'cell', 'model': 'qn', 'steps': 500}):
-    if para['method'] == 'cell':
-        ucf = ExpCellFilter(atoms, scalar_pressure=0.0, hydrostatic_strain=True)
-    elif para['method'] == 'fixed_line':
+def relax(atoms, f_max=0.01, cell=True, model='qn', method='regular'):
+    if method == 'fixed_line':
         constraint = [FixedLine(atom.index, direction=[0, 0, 1]) for atom in atoms]
         atoms.set_constraint(constraint)
         ucf = atoms
     else:
-        ucf = atoms
+        ucf = ExpCellFilter(atoms, scalar_pressure=0.0, hydrostatic_strain=True) if cell else atoms
     
-    if para['model'] == 'qn':
+    if model == 'qn':
         dyn = QuasiNewton(ucf)
-    elif para['model'] == 'lbfgs':
+    elif model == 'lbfgs':
         dyn = LBFGS(ucf)
-    elif para['model'] == 'fire':
+    elif model == 'fire':
         dyn = FIRE(ucf)
-    elif para['model'] == 'no_opt':
+    elif model == 'no_opt':
         return
     else:
         raise ValueError('Invalid optimization model.')
     
-    dyn.run(fmax=para['f_max'], steps=para['steps'])
+    dyn.run(fmax=f_max, steps=500)
 
 def get_nth_nearest_neighbor_index(atoms, index, nth):
     cutoffs = [5.0] * len(atoms)
