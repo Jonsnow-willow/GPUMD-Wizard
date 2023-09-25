@@ -571,25 +571,29 @@ class Morph():
             raise TypeError("atoms must be an instance of ase.Atoms")
         self.atoms = atoms
         
-    def relax(self, f_max=0.01, cell=True, model='qn', method='regular'):
+    def relax(self, para={'f_max': 0.01, 'method': 'cell', 'model': 'qn', 'steps': 500}):
         atoms = self.atoms
-        if method == 'fixed_line':
+        if para['method'] == 'cell':
+            ucf = ExpCellFilter(atoms, scalar_pressure=0.0, hydrostatic_strain=True)
+        elif para['method'] == 'fixed_line':
             constraint = [FixedLine(atom.index, direction=[0, 0, 1]) for atom in atoms]
             atoms.set_constraint(constraint)
             ucf = atoms
         else:
-            ucf = ExpCellFilter(atoms, scalar_pressure=0.0, hydrostatic_strain=True) if cell else atoms
-        if model == 'qn':
+            ucf = atoms
+        
+        if para['model'] == 'qn':
             dyn = QuasiNewton(ucf)
-        elif model == 'lbfgs':
+        elif para['model'] == 'lbfgs':
             dyn = LBFGS(ucf)
-        elif model == 'fire':
+        elif para['model'] == 'fire':
             dyn = FIRE(ucf)
-        elif model == 'no_opt':
+        elif para['model'] == 'no_opt':
             return
         else:
             raise ValueError('Invalid optimization model.')
-        dyn.run(fmax=f_max, steps=500)
+        
+        dyn.run(fmax=para['f_max'], steps=para['steps'])
 
     def shuffle_symbols(self):
         atoms = self.atoms
