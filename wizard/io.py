@@ -433,13 +433,17 @@ def Prediction():
     print(f_rmse)
     print(v_rmse)
 
-def relax(atoms, f_max=0.01, cell=True, model='qn', method='regular'):
+def relax(atoms, fmax = 0.01, steps = 500, model = 'qn', method = 'hydro'):
     if method == 'fixed_line':
         constraint = [FixedLine(atom.index, direction=[0, 0, 1]) for atom in atoms]
         atoms.set_constraint(constraint)
         ucf = atoms
+    elif method == 'hydro':
+        ucf = ExpCellFilter(atoms, scalar_pressure=0.0, hydrostatic_strain=True) 
+    elif method == 'ucf':
+        ucf = atoms
     else:
-        ucf = ExpCellFilter(atoms, scalar_pressure=0.0, hydrostatic_strain=True) if cell else atoms
+        raise ValueError('Invalid relaxation method.')
     
     if model == 'qn':
         dyn = QuasiNewton(ucf)
@@ -452,7 +456,7 @@ def relax(atoms, f_max=0.01, cell=True, model='qn', method='regular'):
     else:
         raise ValueError('Invalid optimization model.')
     
-    dyn.run(fmax=f_max, steps=500)
+    dyn.run(fmax=fmax, steps=steps)
 
 def get_nth_nearest_neighbor_index(atoms, index, nth):
     cutoffs = [5.0] * len(atoms)
