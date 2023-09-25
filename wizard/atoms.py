@@ -571,14 +571,19 @@ class Morph():
             raise TypeError("atoms must be an instance of ase.Atoms")
         self.atoms = atoms
         
-    def relax(self, f_max=0.01, cell=True, model='qn', method='regular'):
+    def relax(self, fmax = 0.01, steps = 500, model = 'qn', method = 'hydro'):
         atoms = self.atoms
         if method == 'fixed_line':
             constraint = [FixedLine(atom.index, direction=[0, 0, 1]) for atom in atoms]
             atoms.set_constraint(constraint)
             ucf = atoms
+        elif method == 'hydro':
+            ucf = ExpCellFilter(atoms, scalar_pressure=0.0, hydrostatic_strain=True) 
+        elif method == 'ucf':
+            ucf = atoms
         else:
-            ucf = ExpCellFilter(atoms, scalar_pressure=0.0, hydrostatic_strain=True) if cell else atoms
+            raise ValueError('Invalid relaxation method.')
+        
         if model == 'qn':
             dyn = QuasiNewton(ucf)
         elif model == 'lbfgs':
@@ -589,7 +594,8 @@ class Morph():
             return
         else:
             raise ValueError('Invalid optimization model.')
-        dyn.run(fmax=f_max, steps=500)
+        
+        dyn.run(fmax=fmax, steps=steps)
 
     def shuffle_symbols(self):
         atoms = self.atoms
@@ -845,7 +851,7 @@ class MaterialCalculator():
             f.write(f' {self.symbol:<7}{nth}th Formation_Energy_Divacancies: {formation_energy:.4f} eV\n')
         return formation_energy
 
-    def migration_energy_vacancy(self, supercell = (4, 5, 6)):
+    def migration_energy_vacancy(self, supercell = (4, 5, 6), fmax = 0.02, steps = 500):
         atoms = self.atoms.copy() * supercell
         initial = atoms.copy()
         index = get_nth_nearest_neighbor_index(initial, 0, 1)
@@ -858,7 +864,7 @@ class MaterialCalculator():
         relax_cell = initial.get_cell()
         final.set_cell(relax_cell)
         final.calc = self.calc
-        relax(final, cell=False)
+        relax(final, method='ucf')
 
         images = [initial] + [initial.copy() for i in range(11)] + [final]
         for i in images:
@@ -867,7 +873,7 @@ class MaterialCalculator():
         neb.interpolate()
         
         optimizer = FIRE(neb)
-        optimizer.run(fmax=0.02, steps=500)
+        optimizer.run(fmax=fmax, steps=steps)
         energies = [image.get_potential_energy() for image in images]
         migration_energy = max(energies) - min(energies)
         energies -= min(energies)
@@ -894,7 +900,7 @@ class MaterialCalculator():
             print(f' {self.symbol:<7}{vector} Formation_Energy_Sia: {formation_energy:.4} eV', file=f)
         return formation_energy
     
-    def migration_energy_sia(self, vector1, vector2, supercell = (4, 5, 6)):
+    def migration_energy_sia(self, vector1, vector2, supercell = (4, 5, 6), fmax=0.02, steps=500):
         atoms = self.atoms.copy() * supercell
         initial = atoms.copy()
         final = atoms.copy()
@@ -907,7 +913,7 @@ class MaterialCalculator():
         relax_cell = initial.get_cell()
         final.set_cell(relax_cell)
         final.calc = self.calc
-        relax(final, cell=False)
+        relax(final, method='ucf')
 
         images = [initial] + [initial.copy() for i in range(11)] + [final]
         for i in images:
@@ -916,7 +922,7 @@ class MaterialCalculator():
         neb.interpolate()
         
         optimizer = FIRE(neb)
-        optimizer.run(fmax=0.02, steps=500)
+        optimizer.run(fmax=fmax, steps=steps)
         energies = [image.get_potential_energy() for image in images]
         migration_energy = max(energies) - min(energies)
         energies -= min(energies)
@@ -946,7 +952,7 @@ class MaterialCalculator():
             print(f' {self.symbol:<7}{config_type} Formation_Energy: {formation_energy:.4f} eV', file=f)
         return formation_energy
     
-    def migration_energy_interstitial(self, symbol, fractional_position, config_type, supercell = (4, 5, 6)):
+    def migration_energy_interstitial(self, symbol, fractional_position, config_type, supercell = (4, 5, 6), fmax = 0.02, steps = 500):
         atoms = self.atoms.copy() * supercell
         position0 = np.dot(fractional_position[0], self.atoms.get_cell())
         position1 = np.dot(fractional_position[1], self.atoms.get_cell())
@@ -962,7 +968,7 @@ class MaterialCalculator():
         relax_cell = initial.get_cell()
         final.set_cell(relax_cell)
         final.calc = self.calc
-        relax(final, cell=False)
+        relax(final, method='ucf')
 
         images = [initial] + [initial.copy() for i in range(11)] + [final]
         for i in images:
@@ -971,7 +977,7 @@ class MaterialCalculator():
         neb.interpolate()
         
         optimizer = FIRE(neb)
-        optimizer.run(fmax=0.02, steps=500)
+        optimizer.run(fmax=fmax, steps=steps)
         energies = [image.get_potential_energy() for image in images]
         migration_energy = max(energies) - min(energies)
         energies -= min(energies)
@@ -1053,7 +1059,7 @@ class MaterialCalculator():
         plt.close()
         return energies
     
-    def pure_bcc_metal_screw_dipole_move(self):
+    def pure_bcc_metal_screw_dipole_move(self, fmax = 0.02, steps = 500):
         lc = self.atoms.cell.cellpar()[0]
         symbols = self.atoms.get_chemical_symbols()[0]
         sym = [symbols for i in range(135)]
@@ -1072,7 +1078,7 @@ class MaterialCalculator():
         relax(initial)
         relax_cell = initial.cell.copy()
         final.set_cell(relax_cell, scale_atoms=True)
-        relax(final, cell=False)
+        relax(final, method='ucf')
 
         images = [initial] + [initial.copy() for i in range(9)] + [final]
         for i in images:
@@ -1080,7 +1086,7 @@ class MaterialCalculator():
         neb = NEB(images, allow_shared_calculator=True)
         neb.interpolate()    
         optimizer = FIRE(neb)
-        optimizer.run(fmax=0.02, steps=300)
+        optimizer.run(fmax=fmax, steps=steps)
         energies = [image.get_potential_energy() / 2  for image in images]
         energies = [energy - energies[0] for energy in energies]
         for image in images:
@@ -1092,7 +1098,7 @@ class MaterialCalculator():
         plt.close()
         return energies
 
-    def pure_bcc_metal_screw_one_move(self):
+    def pure_bcc_metal_screw_one_move(self, fmax = 0.02, steps = 500):
         lc = self.atoms.cell.cellpar()[0]
         symbols = self.atoms.get_chemical_symbols()[0]
         sym = [symbols for i in range(135)]
@@ -1111,7 +1117,7 @@ class MaterialCalculator():
         relax(initial)
         relax_cell = initial.cell.copy()
         final.set_cell(relax_cell, scale_atoms=True)
-        relax(final, cell=False)
+        relax(final, method='ucf')
 
         images = [initial] + [initial.copy() for i in range(9)] + [final]
         for i in images:
@@ -1119,7 +1125,7 @@ class MaterialCalculator():
         neb = NEB(images, allow_shared_calculator=True)
         neb.interpolate()    
         optimizer = FIRE(neb)
-        optimizer.run(fmax=0.02)
+        optimizer.run(fmax=fmax, steps=steps)
         energies = [image.get_potential_energy() for image in images]
         energies -= min(energies)
         for image in images:
