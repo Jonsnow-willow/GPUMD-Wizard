@@ -849,7 +849,7 @@ class MaterialCalculator():
             f.write(f' {self.symbol:<7}{nth}th Formation_Energy_Divacancies: {formation_energy:.4f} eV\n')
         return formation_energy
 
-    def migration_energy_vacancy(self, supercell = (4, 5, 6), relax_params = {'f_max' : 0.02}):
+    def migration_energy_vacancy(self, supercell = (4, 5, 6)):
         atoms = self.atoms.copy() * supercell
         initial = atoms.copy()
         index = get_nth_nearest_neighbor_index(initial, 0, 1)
@@ -864,7 +864,7 @@ class MaterialCalculator():
         neb.interpolate()
         
         optimizer = FIRE(neb)
-        optimizer.run(**relax_params)
+        optimizer.run(fmax=0.02, steps=500)
         energies = [image.get_potential_energy() for image in images]
         migration_energy = max(energies) - min(energies)
         energies -= min(energies)
@@ -891,7 +891,7 @@ class MaterialCalculator():
             print(f' {self.symbol:<7}{vector} Formation_Energy_Sia: {formation_energy:.4} eV', file=f)
         return formation_energy
     
-    def migration_energy_sia(self, vector1, vector2, supercell = (4, 5, 6), relax_params = {'f_max':0.02}):
+    def migration_energy_sia(self, vector1, vector2, supercell = (4, 5, 6)):
         atoms = self.atoms.copy() * supercell
         initial = atoms.copy()
         final = atoms.copy()
@@ -913,7 +913,7 @@ class MaterialCalculator():
         neb.interpolate()
         
         optimizer = FIRE(neb)
-        optimizer.run(**relax_params)
+        optimizer.run(fmax=0.02, steps=500)
         energies = [image.get_potential_energy() for image in images]
         migration_energy = max(energies) - min(energies)
         energies -= min(energies)
@@ -943,7 +943,7 @@ class MaterialCalculator():
             print(f' {self.symbol:<7}{config_type} Formation_Energy: {formation_energy:.4f} eV', file=f)
         return formation_energy
     
-    def migration_energy_interstitial(self, symbol, fractional_position, config_type, supercell = (4, 5, 6), relax_params = {'f_max':0.02}):
+    def migration_energy_interstitial(self, symbol, fractional_position, config_type, supercell = (4, 5, 6)):
         atoms = self.atoms.copy() * supercell
         position0 = np.dot(fractional_position[0], self.atoms.get_cell())
         position1 = np.dot(fractional_position[1], self.atoms.get_cell())
@@ -968,7 +968,7 @@ class MaterialCalculator():
         neb.interpolate()
         
         optimizer = FIRE(neb)
-        optimizer.run(**relax_params)
+        optimizer.run(fmax=0.02, steps=500)
         energies = [image.get_potential_energy() for image in images]
         migration_energy = max(energies) - min(energies)
         energies -= min(energies)
@@ -982,7 +982,7 @@ class MaterialCalculator():
         plt.close()
         return energies
     
-    def stacking_fault(self, a, b, miller, distance, relax_params = {'method': 'fixed_line'}):
+    def stacking_fault(self, a, b, miller, distance):
         '''
         ---------------------------------------------------------------------------------------------------
         For FCC-Al                  |   For BCC-Nb
@@ -1036,7 +1036,7 @@ class MaterialCalculator():
             slab_shift = slab.copy()
             slab_shift.positions[shift_indices] += [slide_steps * i, 0,0]
             slab_shift.calc = self.calc
-            relax(slab_shift, **relax_params)
+            relax(slab_shift, method='fixed_line')
             defects_energy = (slab_shift.get_potential_energy() - atom_energy * len(slab_shift)) / S
             energies.append(defects_energy)
             dump_xyz('MaterialProperties.xyz', slab_shift, comment=f' config_type = {self.symbol} Stacking Fault')
@@ -1050,7 +1050,7 @@ class MaterialCalculator():
         plt.close()
         return energies
     
-    def pure_bcc_metal_screw_dipole_move(self, relax_params = {'f_max':0.02}):
+    def pure_bcc_metal_screw_dipole_move(self):
         lc = self.atoms.cell.cellpar()[0]
         symbols = self.atoms.get_chemical_symbols()[0]
         sym = [symbols for i in range(135)]
@@ -1077,7 +1077,7 @@ class MaterialCalculator():
         neb = NEB(images, allow_shared_calculator=True)
         neb.interpolate()    
         optimizer = FIRE(neb)
-        optimizer.run(**relax_params)
+        optimizer.run(fmax=0.02, steps=300)
         energies = [image.get_potential_energy() / 2  for image in images]
         energies = [energy - energies[0] for energy in energies]
         for image in images:
@@ -1089,7 +1089,7 @@ class MaterialCalculator():
         plt.close()
         return energies
 
-    def pure_bcc_metal_screw_one_move(self, relax_params = {'f_max' : 0.02}):
+    def pure_bcc_metal_screw_one_move(self):
         lc = self.atoms.cell.cellpar()[0]
         symbols = self.atoms.get_chemical_symbols()[0]
         sym = [symbols for i in range(135)]
@@ -1116,7 +1116,7 @@ class MaterialCalculator():
         neb = NEB(images, allow_shared_calculator=True)
         neb.interpolate()    
         optimizer = FIRE(neb)
-        optimizer.run(**relax_params)
+        optimizer.run(fmax=0.02)
         energies = [image.get_potential_energy() for image in images]
         energies -= min(energies)
         for image in images:
