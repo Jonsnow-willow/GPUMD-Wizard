@@ -853,6 +853,13 @@ class MaterialCalculator():
         final = atoms.copy()
         del final[index]
 
+        initial.calc = self.calc
+        relax(initial)
+        relax_cell = initial.get_cell()
+        final.set_cell(relax_cell)
+        final.calc = self.calc
+        relax(final, cell=False)
+
         images = [initial] + [initial.copy() for i in range(11)] + [final]
         for i in images:
             i.calc = self.calc
@@ -1058,16 +1065,16 @@ class MaterialCalculator():
             i.set_chemical_symbols(sym)
 
         initial = initial_screw[0]
-        dipole = initial_screw[1]
+        final = initial_screw[1]
 
         unit_cell = initial.cell.copy()
         initial.set_cell(lc * unit_cell, scale_atoms=True)
         relax(initial)
         relax_cell = initial.cell.copy()
-        dipole.set_cell(relax_cell, scale_atoms=True)
-        relax(dipole, cell=False)
+        final.set_cell(relax_cell, scale_atoms=True)
+        relax(final, cell=False)
 
-        images = [initial] + [initial.copy() for i in range(9)] + [dipole]
+        images = [initial] + [initial.copy() for i in range(9)] + [final]
         for i in images:
             i.calc = self.calc
         neb = NEB(images, allow_shared_calculator=True)
@@ -1097,16 +1104,16 @@ class MaterialCalculator():
             i.set_chemical_symbols(sym)
 
         initial = initial_screw[0]
-        one_move = initial_screw[2]
+        final = initial_screw[2]
 
         unit_cell = initial.cell.copy()
         initial.set_cell(lc * unit_cell, scale_atoms=True)
         relax(initial)
         relax_cell = initial.cell.copy()
-        one_move.set_cell(relax_cell, scale_atoms=True)
-        relax(one_move, cell=False)
+        final.set_cell(relax_cell, scale_atoms=True)
+        relax(final, cell=False)
 
-        images = [initial] + [initial.copy() for i in range(9)] + [one_move]
+        images = [initial] + [initial.copy() for i in range(9)] + [final]
         for i in images:
             i.calc = self.calc
         neb = NEB(images, allow_shared_calculator=True)
