@@ -35,8 +35,8 @@ def mkdir_relax(atoms, run_in = ['potential ../nep.txt', 'velocity 300', 'time_s
     os.chdir(original_directory)
 
 def create_md(atoms, run_in = ['potential ../nep.txt', 'velocity 300', 'time_step 1', 
-                                 'ensemble npt_scr 300 300 200 0 500 2000', 'cmc 100 100 300', 
-                                 'dump_exyz 10000', 'run 1000000']):
+                                'ensemble npt_scr 300 300 200 0 500 2000', 
+                                'dump_exyz 10000', 'run 1000000']):
     if not os.path.exists('md'):
         os.makedirs('md')
     else:
