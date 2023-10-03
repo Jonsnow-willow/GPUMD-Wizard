@@ -7,7 +7,7 @@ def main():
     sia_vectors = [(1/2,1/2,1/2),(1,0,0),(1,1,0)]
     nths = [1,2,3,4,5]
     cmds = ["pair_style eam/fs",
-            "pair_coeff * * WRe.eam.fs W Re"]
+            "pair_coeff * * WRe.eam.fs W"]
     calc = LAMMPSlib(lmpcmds=cmds, log_file='log.' + symbol_info.symbol, keep_alive=True)
     atoms = symbol_info.create_bulk_atoms()
     material_calculator = MaterialCalculator(atoms, calc, symbol_info.symbol, symbol_info.structure)
