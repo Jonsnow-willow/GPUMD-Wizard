@@ -3,8 +3,8 @@ from ase.neighborlist import NeighborList
 from ase.optimize import QuasiNewton, FIRE, LBFGS
 from ase.constraints import ExpCellFilter, FixedLine
 from mpl_toolkits.axes_grid1 import ImageGrid    
-import matplotlib
-matplotlib.use('Agg')
+import matplotlib as mpl
+mpl.use('Agg')
 import matplotlib.pyplot as plt 
 import matplotlib.ticker as ticker 
 import numpy as np
@@ -505,3 +505,19 @@ def active_learning(frames, main_potential, potentials, error_min, error_max = 1
     if len(Train_set) > n:
         Train_set = random.sample(Train_set, n)
     return Train_set
+
+def plot_thermo_out(filename, num = 1):
+    with open(filename, 'r') as f:
+        lines = f.readlines()
+    lines = [line.strip() for line in lines]
+    lines = [line.split() for line in lines]
+    lines = [line for line in lines if len(line) == 12]  
+    lines = [[float(i) for i in line] for line in lines]
+    data = np.array(lines)
+    thermo = data[:, 2] / num
+    mpl.rcParams['font.size'] = 14
+    plt.plot(thermo, 'r-')
+    plt.gca().yaxis.set_major_formatter('{:.3f}'.format) 
+    plt.xlabel('step(100)')  
+    plt.ylabel('eV/atom') 
+    plt.savefig('thermo.png')
