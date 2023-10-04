@@ -6,8 +6,6 @@ from wizard.io import plot_e, plot_f
 import numpy as np 
 import matplotlib 
 matplotlib.use('Agg') 
-import matplotlib.pyplot as plt  
-import matplotlib.ticker as ticker 
 
 def main():
     symbols = ['Ag', 'Al', 'Au', 'Co', 'Cr', 'Cu', 'Fe', 'Mg', 'Mo', 'Ni', 'Pb', 'Pd', 'Pt', 'Ta', 'Ti', 'V', 'W', 'Zr']
