@@ -3,7 +3,7 @@ from pynep.calculate import NEP
 
 def main():
     symbol_info = SymbolInfo('W', 'bcc', 3.185)
-    calc = NEP('Wnep3.txt')
+    calc = NEP('nep.txt')
     millers = [(1,1,0),(0,0,1),(1,1,1),(1,1,2)]
     sia_vectors = [(1/2,1/2,1/2),(1,0,0),(1,1,0)]
     nths = [1,2,3]
