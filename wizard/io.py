@@ -506,7 +506,7 @@ def active_learning(frames, main_potential, potentials, error_min, error_max = 1
         Train_set = random.sample(Train_set, n)
     return Train_set
 
-def plot_thermo_out(filename, num = 1):
+def plot_thermo_out(filename, column = 2, num = 1):
     with open(filename, 'r') as f:
         lines = f.readlines()
     lines = [line.strip() for line in lines]
@@ -514,7 +514,7 @@ def plot_thermo_out(filename, num = 1):
     lines = [line for line in lines if len(line) == 12]  
     lines = [[float(i) for i in line] for line in lines]
     data = np.array(lines)
-    thermo = data[:, 2] / num
+    thermo = data[:, column] / num
     mpl.rcParams['font.size'] = 14
     plt.plot(thermo, 'r-')
     plt.gca().yaxis.set_major_formatter('{:.3f}'.format) 
