@@ -521,6 +521,7 @@ def plot_thermo_out(filename, column = 2, num = 1):
     plt.xlabel('step(100)')  
     plt.ylabel('eV/atom') 
     plt.savefig('thermo.png')
+    return thermo
 
 def plot_training_result():
     plt.rcParams["figure.figsize"] = (6, 6)
