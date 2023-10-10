@@ -3,3 +3,5 @@
 .DS_Store
 wizard_structure_evo
 tools/calc_vac_clusters.py
+thermo.png
+thermo.out
