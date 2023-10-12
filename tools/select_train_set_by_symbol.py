@@ -12,7 +12,7 @@ def main():
     for symbol in symbols:
         frames = load_nep('test.xyz', ftype= "exyz")
         mol = MultiMol(frames)
-        structures = mol.Devide_Train_set_by_symbol([symbol])
+        structures, _ = mol.select_by_symbol_all([symbol])
         calc = NEP('nep.txt')
         e_1, e_2, f_1, f_2 = [], [], [], []
         for atoms in structures:
