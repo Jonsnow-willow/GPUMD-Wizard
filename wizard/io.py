@@ -507,7 +507,8 @@ def active_learning(frames, main_potential, potentials, error_min, error_max = 1
     return Train_set
 
 def plot_thermo_out(filenames, column=2, num=1):
-    mpl.rcParams['font.size'] = 14
+    mpl.rcParams['font.size'] = 16
+    plt.figure(figsize=(8, 6))
     fig, ax = plt.subplots()
     for filename in filenames:
         with open(filename, 'r') as f:
@@ -523,6 +524,7 @@ def plot_thermo_out(filenames, column=2, num=1):
     ax.set_xlabel('step(100)')  
     ax.set_ylabel('eV/atom')
     ax.legend()
+    plt.tight_layout() 
     plt.savefig('thermo.png')
     return thermo
 
