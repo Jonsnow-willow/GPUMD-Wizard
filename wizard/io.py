@@ -506,20 +506,23 @@ def active_learning(frames, main_potential, potentials, error_min, error_max = 1
         Train_set = random.sample(Train_set, n)
     return Train_set
 
-def plot_thermo_out(filename, column = 2, num = 1):
-    with open(filename, 'r') as f:
-        lines = f.readlines()
-    lines = [line.strip() for line in lines]
-    lines = [line.split() for line in lines]
-    lines = [line for line in lines if len(line) == 12]  
-    lines = [[float(i) for i in line] for line in lines]
-    data = np.array(lines)
-    thermo = data[:, column] / num
+def plot_thermo_out(filenames, column=2, num=1):
     mpl.rcParams['font.size'] = 14
-    plt.plot(thermo, 'r-')
-    plt.gca().yaxis.set_major_formatter('{:.3f}'.format) 
-    plt.xlabel('step(100)')  
-    plt.ylabel('eV/atom') 
+    fig, ax = plt.subplots()
+    for filename in filenames:
+        with open(filename, 'r') as f:
+            lines = f.readlines()
+        lines = [line.strip() for line in lines]
+        lines = [line.split() for line in lines]
+        lines = [line for line in lines if len(line) == 12]  
+        lines = [[float(i) for i in line] for line in lines]
+        data = np.array(lines)
+        thermo = data[:, column] / num
+        ax.plot(thermo, label=filename)
+    ax.yaxis.set_major_formatter('{:.3f}'.format) 
+    ax.set_xlabel('step(100)')  
+    ax.set_ylabel('eV/atom')
+    ax.legend()
     plt.savefig('thermo.png')
     return thermo
 
