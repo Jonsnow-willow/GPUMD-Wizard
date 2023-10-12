@@ -91,7 +91,7 @@ class MultiMol():
         split_set = []
         for atoms in self.frames:
             f = np.concatenate(atoms.info['forces'])
-            if np.all((f > force_min) & (f < force_max)):
+            if np.all((abs(f) > force_min) & (abs(f) < force_max)):
                 select_set.append(atoms)
             else:
                 split_set.append(atoms)
