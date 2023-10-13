@@ -531,6 +531,7 @@ def plot_thermo_out(filenames, column=2, num=1):
 def plot_training_result():
     plt.rcParams["figure.figsize"] = (6, 6)
     plt.rcParams.update({"font.size": 10, "text.usetex": False})
+    fig, axes = plt.subplots(2, 2)
 
     loss = np.loadtxt("loss.out")
     energy = np.loadtxt("energy_train.out")
@@ -538,8 +539,6 @@ def plot_training_result():
     virial_initial = np.loadtxt("virial_train.out")
     virial= virial_initial[np.logical_not(np.any(virial_initial == -1e6, axis=1))]
     loss = loss[:, 2:7]
-
-    fig, axes = plt.subplots(2, 2)
 
     axes[0, 0].loglog(loss)
     axes[0, 0].annotate("(a)", xy=(0.0, 1.1), xycoords="axes fraction", va="top", ha="right")
@@ -591,3 +590,39 @@ def plot_training_result():
 
     plt.savefig("train_results.png")
     plt.show()
+
+def plot_force_results(frames, calcs, labels):
+    plt.rcParams["figure.figsize"] = (6, 6)
+    plt.rcParams.update({"font.size": 10, "text.usetex": False})
+    fig, axes = plt.subplots(1, 2)
+    cmap = plt.get_cmap("tab10")
+    
+    print(len(frames))
+    for calc, label in zip(calcs, labels):
+        e_1, e_2, f_1, f_2 = [], [], [], []
+        for atoms in frames:
+            atoms.calc = calc
+            e_1.append(atoms.get_potential_energy() / len(atoms))
+            e_2.append(atoms.info['energy'] / len(atoms))
+            f_1.append(atoms.get_forces())
+            f_2.append(atoms.info['forces'])
+        e_1 = np.array(e_1)
+        e_2 = np.array(e_2)
+        f_1 = np.concatenate(f_1)
+        f_2 = np.concatenate(f_2)
+        color = cmap(labels.index(label))
+        axes[0].plot(e_2, e_1, ".", markersize=10, label=label, color=color)
+        axes[1].plot(f_2, f_1, ".", markersize=10, label=label, color=color)
+        e_rmse = np.sqrt(np.mean((e_1-e_2)**2)) 
+        f_rmse = np.sqrt(np.mean((f_1-f_2)**2))
+        print(e_rmse)
+        print(f_rmse)
+
+    axes[0].set_xlabel("DFT energy (eV/atom)")
+    axes[0].set_ylabel("NEP energy (eV/atom)")
+    axes[1].set_xlabel("DFT force (eV/Å)")
+    axes[1].set_ylabel("NEP force (eV/Å)")
+    plt.subplots_adjust(hspace=0.4, wspace=0.3)
+    plt.legend()
+
+    plt.savefig("force_results.png")
