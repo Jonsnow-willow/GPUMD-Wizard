@@ -24,7 +24,7 @@ def run_gpumd(dirname = './'):
 
 def mkdir_relax(atoms, run_in = ['potential ../nep.txt', 'velocity 300', 'time_step 1', 
                                  'ensemble npt_scr 300 300 200 0 500 2000', 'dump_thermo 1000', 
-                                 'dump_restart 30000', 'run 30000']):
+                                 'dump_restart 30000', 'dump_exyz 10000','run 30000']):
     if os.path.exists('relax'):
         raise FileExistsError('Directory "relax" already exists')
     os.makedirs('relax')
