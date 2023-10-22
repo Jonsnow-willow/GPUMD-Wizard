@@ -74,17 +74,18 @@ class MultiMol():
                 split_set.append(atoms)
         return select_set, split_set
     
-    def select_by_error(self, error_min, error_max = 100, n = 1000000):
+    def select_by_error(self, error_min, error_max = 100):
         select_set = []
+        split_set = []
         for atoms in self.frames:
             f_1 = np.concatenate(atoms.get_forces())
             f_2 = np.concatenate(atoms.info['forces'])
             diff = abs(f_1 - f_2)
             if np.any((diff > error_min) & (diff < error_max)):
                 select_set.append(atoms)
-        if len(select_set) > n:
-            select_set = random.sample(select_set, n)
-        return select_set
+            else:
+                split_set.append(atoms)
+        return select_set, split_set
     
     def select_by_force(self, force_min, force_max):
         select_set = []
@@ -96,6 +97,17 @@ class MultiMol():
             else:
                 split_set.append(atoms)
         return select_set, split_set
+    
+    def select_random(self, num):
+        select_set = []
+        split_set = []
+        select_set = random.sample(self.frames, num)
+        split_set = [i for i in self.frames if i not in select_set]
+        return select_set, split_set
+    
+    def subtract_frames(self, frames):
+        select_set = [i for i in self.frames if i not in frames]
+        return select_set
     
     def subtract_isolated_atom_energy(self, isolated_atom_energy = {}):
         for atoms in self.frames:
