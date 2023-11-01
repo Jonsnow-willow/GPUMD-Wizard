@@ -4,7 +4,13 @@
         C12:  204.16 GPa
         C14:  160.72 GPa
         B:    307.75 GPa
+ W      (0.5, 0.5, 0.5) Formation_Energy_Sia: 9.42 eV
+ W      (1, 0, 0) Formation_Energy_Sia: 11.01 eV
+ W      (1, 1, 0) Formation_Energy_Sia: 9.76 eV
+ W      octahedral Formation_Energy: 10.6879 eV
+ W      tetrahedral Formation_Energy: 10.2537 eV
  W      Formation_Energy_Vacancy: 3.5377 eV
+ W      Migration_Energy_Vacancy: 1.9193 eV
  W      1th Formation_Energy_Divacancies: 6.6707 eV
  W      2th Formation_Energy_Divacancies: 6.6975 eV
  W      3th Formation_Energy_Divacancies: 7.1625 eV
@@ -16,8 +22,3 @@
  W      (1, 1, 2) Surface_Energy: 187.2742 meV/A^2
  W      [1, 1, 2] Stacking_Fault: 116.8426 meV/A^2
  W      [1, 1, 0] Stacking_Fault: 100.3221 meV/A^2
- W      (0.5, 0.5, 0.5) Formation_Energy_Sia: 9.42 eV
- W      (1, 0, 0) Formation_Energy_Sia: 11.01 eV
- W      (1, 1, 0) Formation_Energy_Sia: 9.76 eV
- W      octahedral Formation_Energy: 10.6879 eV
- W      tetrahedral Formation_Energy: 10.2537 eV

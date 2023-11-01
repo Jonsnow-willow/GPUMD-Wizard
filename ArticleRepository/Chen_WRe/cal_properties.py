@@ -14,7 +14,12 @@ def main():
     material_calculator.lattice_constant()
     material_calculator.elastic_constant()
     material_calculator.eos_curve()
+    for vector in sia_vectors:
+        material_calculator.formation_energy_sia(vector)
+    material_calculator.formation_energy_interstitial_atom('W',[0,0,1/2],'octahedral')
+    material_calculator.formation_energy_interstitial_atom('W',[1/4,0,1/2],'tetrahedral')
     material_calculator.formation_energy_vacancy()
+    material_calculator.migration_energy_vacancy()
     for nth in nths:
         material_calculator.formation_energy_divacancies(nth)
     for miller in millers:
@@ -22,11 +27,8 @@ def main():
     material_calculator.stacking_fault(a = (1,1,-1), b = (1,-1,0), miller = [1,1,2], distance = 3.185/2)
     material_calculator.stacking_fault(a = (1,1,-1), b = (1,1,2), miller = [1,1,0], distance = 3.185/2)
     material_calculator.pure_bcc_metal_screw_dipole_move()
-    for vector in sia_vectors:
-        material_calculator.formation_energy_sia(vector)
-    material_calculator.formation_energy_interstitial_atom('W',[0,0,1/2],'octahedral')
-    material_calculator.formation_energy_interstitial_atom('W',[1/4,0,1/2],'tetrahedral')
-   
+    material_calculator.pure_bcc_metal_screw_one_move()
+
 if __name__ == "__main__":
     main()
 
