@@ -875,6 +875,7 @@ class MaterialCalculator():
         optimizer = FIRE(neb)
         optimizer.run(fmax=fmax, steps=steps)
         energies = [image.get_potential_energy() for image in images]
+        energies = np.array(energies)
         migration_energy = max(energies) - min(energies)
         energies -= min(energies)
         for image in images:
@@ -924,6 +925,7 @@ class MaterialCalculator():
         optimizer = FIRE(neb)
         optimizer.run(fmax=fmax, steps=steps)
         energies = [image.get_potential_energy() for image in images]
+        energies = np.array(energies)
         migration_energy = max(energies) - min(energies)
         energies -= min(energies)
         for image in images:
@@ -979,6 +981,7 @@ class MaterialCalculator():
         optimizer = FIRE(neb)
         optimizer.run(fmax=fmax, steps=steps)
         energies = [image.get_potential_energy() for image in images]
+        energies = np.array(energies)
         migration_energy = max(energies) - min(energies)
         energies -= min(energies)
         for image in images:
@@ -1088,7 +1091,8 @@ class MaterialCalculator():
         optimizer = FIRE(neb)
         optimizer.run(fmax=fmax, steps=steps)
         energies = [image.get_potential_energy() / 2  for image in images]
-        energies = [energy - energies[0] for energy in energies]
+        energies = np.array(energies)
+        energies -= min(energies)
         for image in images:
             dump_xyz('MaterialProperties.xyz', image, comment=f' config_type = {self.symbol} bcc dipole screw')  
 
@@ -1127,6 +1131,7 @@ class MaterialCalculator():
         optimizer = FIRE(neb)
         optimizer.run(fmax=fmax, steps=steps)
         energies = [image.get_potential_energy() for image in images]
+        energies = np.array(energies)
         energies -= min(energies)
         for image in images:
             dump_xyz('MaterialProperties.xyz', image, comment=f' config_type = {self.symbol} bcc one move screw')  
