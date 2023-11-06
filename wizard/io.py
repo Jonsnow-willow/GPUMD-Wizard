@@ -592,12 +592,13 @@ def plot_training_result():
     plt.show()
 
 def plot_force_results(frames, calcs, labels):
-    plt.rcParams["figure.figsize"] = (6, 6)
+    plt.rcParams["figure.figsize"] = (12, 6)
     plt.rcParams.update({"font.size": 10, "text.usetex": False})
     fig, axes = plt.subplots(1, 2)
     cmap = plt.get_cmap("tab10")
     
     print(len(frames))
+    label_colors = {}
     for calc, label in zip(calcs, labels):
         e_1, e_2, f_1, f_2 = [], [], [], []
         for atoms in frames:
@@ -613,16 +614,30 @@ def plot_force_results(frames, calcs, labels):
         color = cmap(labels.index(label))
         axes[0].plot(e_2, e_1, ".", markersize=10, label=label, color=color)
         axes[1].plot(f_2, f_1, ".", markersize=10, label=label, color=color)
+        if label not in label_colors:
+            label_colors[label] = color
         e_rmse = np.sqrt(np.mean((e_1-e_2)**2)) 
         f_rmse = np.sqrt(np.mean((f_1-f_2)**2))
         print(e_rmse)
         print(f_rmse)
 
+    x_min, x_max = axes[0].get_xlim()
+    y_min, y_max = axes[0].get_ylim()
+    min_val = min(x_min, y_min)
+    max_val = max(x_max, y_max)
+    axes[0].plot([min_val, max_val], [min_val, max_val], 'k--')
+
+    x_min, x_max = axes[1].get_xlim()
+    y_min, y_max = axes[1].get_ylim()
+    min_val = min(x_min, y_min)
+    max_val = max(x_max, y_max)
+    axes[1].plot([min_val, max_val], [min_val, max_val], 'k--')
+    
     axes[0].set_xlabel("DFT energy (eV/atom)")
     axes[0].set_ylabel("NEP energy (eV/atom)")
     axes[1].set_xlabel("DFT force (eV/Å)")
     axes[1].set_ylabel("NEP force (eV/Å)")
-    plt.subplots_adjust(hspace=0.4, wspace=0.3)
-    plt.legend()
 
+    handles = [plt.Line2D([0], [0], color=color, marker='o', linestyle='') for label, color in label_colors.items()]
+    plt.legend(handles, label_colors.keys())
     plt.savefig("force_results.png")
