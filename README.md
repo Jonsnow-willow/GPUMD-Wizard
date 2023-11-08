@@ -1,7 +1,7 @@
 ![G-Wizard](G-Wizard.png)
 
 # GPUMD-Wizard
-Material structure processing software based on [ASE](https://wiki.fysik.dtu.dk/ase/index.html) (Atomic Simulation Environment) providing automation capabilities for calculating various properties of metals. It also aims to run and analyze molecular dynamics (MD) simulations using [GPUMD](https://github.com/brucefan1983/GPUMD).
+Material structure processing software based on [ASE](https://wiki.fysik.dtu.dk/ase/index.html) (Atomic Simulation Environment) providing automation capabilities for calculating various properties of metals. Additionally, it aims to run and analyze molecular dynamics (MD) simulations using [GPUMD](https://github.com/brucefan1983/GPUMD).
 
 ## Features
 * Based on the ASE package, MetalProperties-Automator supports different calculators such as [PyNEP](https://github.com/bigd4/PyNEP), [calorine](https://calorine.materialsmodeling.org/installation.html#installation-via-pip), [DP](https://github.com/deepmodeling/deepmd-kit), and [LAMMPS](https://www.lammps.org/).
