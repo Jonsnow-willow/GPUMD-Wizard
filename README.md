@@ -1,13 +1,13 @@
 ![G-Wizard](G-Wizard.png)
 
 # GPUMD-Wizard
-Material structure processing software based on [ASE](https://wiki.fysik.dtu.dk/ase/index.html) (Atomic Simulation Environment).  It provides automation capabilities for calculating various properties of metals.
+Material structure processing software based on [ASE](https://wiki.fysik.dtu.dk/ase/index.html) (Atomic Simulation Environment) providing automation capabilities for calculating various properties of metals. It also aims to run and analyze molecular dynamics (MD) simulations using [GPUMD](https://github.com/brucefan1983/GPUMD).
 
 ## Features
 * Based on the ASE package, MetalProperties-Automator supports different calculators such as [PyNEP](https://github.com/bigd4/PyNEP), [calorine](https://calorine.materialsmodeling.org/installation.html#installation-via-pip), [DP](https://github.com/deepmodeling/deepmd-kit), and [LAMMPS](https://www.lammps.org/).
 * Allows for automated batch calculations of metal properties.
 * Enables batch processing of files in the XYZ format.
-* Integrated with GPUMD for performing molecular dynamics simulations, such as irradiation damage.
+* Integrated with [GPUMD](https://github.com/brucefan1983/GPUMD) for performing molecular dynamics simulations, such as irradiation damage.
 
 ## Installation
 
@@ -18,7 +18,7 @@ Material structure processing software based on [ASE](https://wiki.fysik.dtu.dk/
 |  Package  | version |
 |  ----  | ----  |
 | [Python](https://www.python.org/) | >=     3.8 |
-|[ase](https://wiki.fysik.dtu.dk/ase/index.html)|>=     3.18.0|
+| [ase](https://wiki.fysik.dtu.dk/ase/index.html)|>=     3.18.0|
 | [elastic](https://github.com/jochym/Elastic) | |
 | [PyNEP](https://github.com/bigd4/PyNEP) | |
 
@@ -39,18 +39,11 @@ $ export PYTHONPATH=<path-to-GPUMD-Wizard-package>:$PYTHONPATH
 ```python
 from wizard.atoms import SymbolInfo, MaterialCalculator
 from pynep.calculate import NEP
-#from deepmd.calculator import DP
-#from ase.calculators.lammpslib import LAMMPSlib
-
 
 def main():
     # Create calculator object 
     calc = NEP('nep.txt')
-    # calc = DP('dp.pb')
-    # cmds = ["pair_style eam/alloy",
-    #         "pair_coeff * * W.eam.alloy W]
-    # calc = LAMMPSlib(lmpcmds=cmds, log_file='log.' + symbol_info.symbol, keep_alive=True)
-
+    
     # Set properties-related parameters
     millers = [(1,1,0),(0,0,1),(1,1,1),(1,1,2)]
     sia_vectors = [(1/2,1/2,1/2),(1,0,0),(1,1,0)]
