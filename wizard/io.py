@@ -545,7 +545,6 @@ def plot_training_result():
     axes[0, 0].set_xlabel("Generation")
     axes[0, 0].set_ylabel("Loss functions")
     axes[0, 0].legend(["L1", "L2", "Energy", "Force", "Virial"], loc="lower left")
-    axes[0, 0].set_xlim([0, loss.shape[0]])
 
     axes[0, 1].plot(energy[:, 1], energy[:, 0], ".", markersize=10, color=[0, 0.45, 0.74])
     axes[0, 1].plot(axes[0, 1].get_xlim(), axes[0, 1].get_xlim(), linewidth=2, color=[0.85, 0.33, 0.1])
