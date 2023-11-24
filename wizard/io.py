@@ -59,22 +59,33 @@ def write_run(parameters):
         for i in parameters:
             f.write(i+'\n')
 
-def dump_xyz(filename, atoms, comment = ''):
-    """
-    Append the atomic positions and other information to a file in XYZ format.
-    """
+def dump_xyz(filename, atoms, comment=''):
     with open(filename, 'a') as f:
         Out_string = ""
         Out_string += str(int(len(atoms))) + "\n"
         Out_string += "pbc=\"" + " ".join(["T" if pbc_value else "F" for pbc_value in atoms.get_pbc()]) + "\" "
         Out_string += "Lattice=\"" + " ".join(list(map(str, atoms.get_cell().reshape(-1)))) + "\" "
+        if 'energy' in atoms.info:
+            Out_string += " energy=" + str(atoms.info['energy'] + " ")
+        if 'stress' in atoms.info:
+            if len(atoms.info['stress']) == 6:
+                    virial = -atoms.info['stress'][[0, 5, 4, 5, 1, 3, 4, 3, 2]] * atoms.get_volume()
+            else:
+                virial = -atoms.info['stress'].reshape(-1) * atoms.get_volume()
+            Out_string += "virial=\"" + " ".join(list(map(str, virial))) + "\" "
         Out_string += "Properties=species:S:1:pos:R:3:mass:R:1"
-        Out_string += comment + "\n"
         s = atoms.get_chemical_symbols()
         p = atoms.get_positions()
         m = atoms.get_masses()
-        for j in range(int(len(atoms))):              
-            Out_string += '{:2} {:>15.8e} {:>15.8e} {:>15.8e} {:>15.8e}\n'.format(s[j], *p[j], m[j])
+        if 'forces' in atoms.info:
+            Out_string += ":force:R:3 " + comment + "\n"
+            force = atoms.info['forces']
+            for j in range(int(len(atoms))):
+                Out_string += '{:2} {:>15.8e} {:>15.8e} {:>15.8e} {:>15.8e} {:>15.8e} {:>15.8e} {:>15.8e}\n'.format(s[j], *p[j], m[j], *force[j])
+        else:
+            Out_string += comment + "\n"
+            for j in range(int(len(atoms))):
+                Out_string += '{:2} {:>15.8e} {:>15.8e} {:>15.8e} {:>15.8e}\n'.format(s[j], *p[j], m[j])
         f.write(Out_string)
 
 def read_xyz(filename):
@@ -110,26 +121,47 @@ def read_xyz(filename):
                 stress = None
             if "force" in comment:
                 forces = []
-                for _ in range(natoms):
-                    line = lines.pop(0)
-                    symbol, x, y, z, m, fx, fy, fz = line.split()[:8]
-                    symbol = symbol.lower().capitalize()
-                    symbols.append(symbol)
-                    positions.append([float(x), float(y), float(z)])
-                    masses.append(float(m))
-                    forces.append([float(fx), float(fy), float(fz)])
+                if "mass" in comment:
+                    for _ in range(natoms):
+                        line = lines.pop(0)
+                        symbol, x, y, z, m, fx, fy, fz = line.split()[:8]
+                        symbol = symbol.lower().capitalize()
+                        symbols.append(symbol)
+                        positions.append([float(x), float(y), float(z)])
+                        masses.append(float(m))
+                        forces.append([float(fx), float(fy), float(fz)])
+                    frames.append(Atoms(symbols=symbols, positions=positions, masses=masses, cell=cell, pbc=pbc, info={'energy': energy, 'stress': stress, 'forces': forces}))
+                else:
+                    for _ in range(natoms):
+                        line = lines.pop(0)
+                        symbol, x, y, z, fx, fy, fz = line.split()[:7]
+                        symbol = symbol.lower().capitalize()
+                        symbols.append(symbol)
+                        positions.append([float(x), float(y), float(z)])
+                        forces.append([float(fx), float(fy), float(fz)])
+                    frames.append(Atoms(symbols=symbols, positions=positions, cell=cell, pbc=pbc, info={'energy': energy, 'stress': stress, 'forces': forces}))
             else:
                 forces = None
-                for _ in range(natoms):
-                    line = lines.pop(0)
-                    symbol, x, y, z = line.split()[:4]
-                    symbol = symbol.lower().capitalize()
-                    symbols.append(symbol)
-                    positions.append([float(x), float(y), float(z)])
-            frames.append(Atoms(symbols=symbols, positions=positions, masses=masses, cell=cell, pbc=pbc, info={'energy': energy, 'stress': stress, 'forces': forces}))
+                if "mass" in comment:
+                    for _ in range(natoms):
+                        line = lines.pop(0)
+                        symbol, x, y, z, m = line.split()[:5]
+                        symbol = symbol.lower().capitalize()
+                        symbols.append(symbol)
+                        positions.append([float(x), float(y), float(z)])
+                        masses.append(float(m))
+                    frames.append(Atoms(symbols=symbols, positions=positions, masses=masses, cell=cell, pbc=pbc, info={'energy': energy, 'stress': stress, 'forces': forces}))
+                else:
+                    for _ in range(natoms):
+                        line = lines.pop(0)
+                        symbol, x, y, z = line.split()[:4]
+                        symbol = symbol.lower().capitalize()
+                        symbols.append(symbol)
+                        positions.append([float(x), float(y), float(z)])
+                    frames.append(Atoms(symbols=symbols, positions=positions, cell=cell, pbc=pbc, info={'energy': energy, 'stress': stress, 'forces': forces}))
     return frames
 
-def group_xyz(filename, atoms, min_xyz=[], max_xyz=[]):
+def write_xyz(filename, atoms, min_xyz = None, max_xyz = None):
     """
     Write the atomic positions and other information to a file in XYZ format,
     with an additional column indicating whether each atom is inside, outside,
@@ -140,17 +172,23 @@ def group_xyz(filename, atoms, min_xyz=[], max_xyz=[]):
         Out_string += str(int(len(atoms))) + "\n"
         Out_string += "pbc=\"" + " ".join(["T" if pbc_value else "F" for pbc_value in atoms.get_pbc()]) + "\" "
         Out_string += "Lattice=\"" + " ".join(list(map(str, atoms.get_cell().reshape(-1)))) + "\" "
-        Out_string += "Properties=species:S:1:pos:R:3:mass:R:1:group:I:1\n"
+        Out_string += "Properties=species:S:1:pos:R:3:mass:R:1"
         s = atoms.get_chemical_symbols()
         p = atoms.get_positions()
         m = atoms.get_masses()
-        for j in range(int(len(atoms))):
-            if p[j][0] < min_xyz[0] or p[j][1] < min_xyz[1] or p[j][2] < min_xyz[2]:
-                Out_string += '{:2} {:>15.8e} {:>15.8e} {:>15.8e} {:>15.8e} 0\n'.format(s[j], *p[j], m[j])
-            elif  p[j][0] >= max_xyz[0] or p[j][1] >= max_xyz[1] or p[j][2] >= max_xyz[2]:
-                Out_string += '{:2} {:>15.8e} {:>15.8e} {:>15.8e} {:>15.8e} 1\n'.format(s[j], *p[j], m[j])
-            else: 
-                Out_string += '{:2} {:>15.8e} {:>15.8e} {:>15.8e} {:>15.8e} 2\n'.format(s[j], *p[j], m[j])           
+        if min_xyz is not None and max_xyz is not None:
+            Out_string += ":group:I:1\n"
+            for j in range(int(len(atoms))):
+                if p[j][0] < min_xyz[0] or p[j][1] < min_xyz[1] or p[j][2] < min_xyz[2]:
+                    Out_string += '{:2} {:>15.8e} {:>15.8e} {:>15.8e} {:>15.8e} 0\n'.format(s[j], *p[j], m[j])
+                elif  p[j][0] >= max_xyz[0] or p[j][1] >= max_xyz[1] or p[j][2] >= max_xyz[2]:
+                    Out_string += '{:2} {:>15.8e} {:>15.8e} {:>15.8e} {:>15.8e} 1\n'.format(s[j], *p[j], m[j])
+                else: 
+                    Out_string += '{:2} {:>15.8e} {:>15.8e} {:>15.8e} {:>15.8e} 2\n'.format(s[j], *p[j], m[j])  
+        else:
+            Out_string += "\n"
+            for j in range(int(len(atoms))):
+                Out_string += '{:2} {:>15.8e} {:>15.8e} {:>15.8e} {:>15.8e}\n'.format(s[j], *p[j], m[j])         
         f.write(Out_string)
 
 def set_pka(input_restart, energy, angle, num, is_group = True):
