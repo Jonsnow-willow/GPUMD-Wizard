@@ -51,12 +51,6 @@ def create_md(atoms, run_in = ['potential ../nep.txt', 'velocity 300', 'time_ste
     os.system('gpumd')
     os.chdir(original_directory)
     
-def run_lammps(filename):
-    """
-    Run the LAMMPS simulation using the specified input file.
-    """
-    os.system('lmp_serial -in {}'.format(filename))
-
 def write_run(parameters):
     """
     Write the input parameters to a gpumd file 'run.in'.
@@ -93,8 +87,9 @@ def read_xyz(filename):
         while lines:
             symbols = []
             positions = []
+            masses = []
             natoms = int(lines.pop(0))
-            comment = lines.pop(0)  # Comment line; ignored
+            comment = lines.pop(0)  
             if "pbc=\"" in comment:
                 pbc_str = comment.split("pbc=\"")[1].split("\"")[0].strip()
                 pbc = [True if pbc_value == "T" else False for pbc_value in pbc_str.split()]
@@ -103,17 +98,35 @@ def read_xyz(filename):
             lattice_str = comment.split("Lattice=\"")[1].split("\" ")[0].strip()
             lattice = [list(map(float, row.split())) for row in lattice_str.split(" ")]
             cell = [lattice[0] + lattice[1] + lattice[2], lattice[3] + lattice[4] + lattice[5], lattice[6] + lattice[7] + lattice[8]]
-            for _ in range(natoms):
-                line = lines.pop(0)
-                symbol, x, y, z = line.split()[:4]
-                symbol = symbol.lower().capitalize()
-                symbols.append(symbol)
-                positions.append([float(x), float(y), float(z)])
             if "energy=" in comment:
                 energy = float(comment.split("energy=")[1].split()[0])
-                frames.append(Atoms(symbols=symbols, positions=positions, cell = cell, pbc = pbc, info={"energy": energy}))
+            else: 
+                energy = None
+            if "virial=" in comment:
+                virials = comment.split("virial=\"")[1].split("\" ")[0].strip()
+                virials = np.array([float(x) for x in virials.split()]).reshape(3, 3)
+                stress = - virials / np.linalg.det(cell)
             else:
-                frames.append(Atoms(symbols=symbols, positions=positions, cell = cell, pbc = pbc))
+                stress = None
+            if "force" in comment:
+                forces = []
+                for _ in range(natoms):
+                    line = lines.pop(0)
+                    symbol, x, y, z, m, fx, fy, fz = line.split()[:8]
+                    symbol = symbol.lower().capitalize()
+                    symbols.append(symbol)
+                    positions.append([float(x), float(y), float(z)])
+                    masses.append(float(m))
+                    forces.append([float(fx), float(fy), float(fz)])
+            else:
+                forces = None
+                for _ in range(natoms):
+                    line = lines.pop(0)
+                    symbol, x, y, z = line.split()[:4]
+                    symbol = symbol.lower().capitalize()
+                    symbols.append(symbol)
+                    positions.append([float(x), float(y), float(z)])
+            frames.append(Atoms(symbols=symbols, positions=positions, masses=masses, cell=cell, pbc=pbc, info={'energy': energy, 'stress': stress, 'forces': forces}))
     return frames
 
 def group_xyz(filename, atoms, min_xyz=[], max_xyz=[]):
