@@ -66,7 +66,7 @@ def dump_xyz(filename, atoms, comment=''):
         Out_string += "pbc=\"" + " ".join(["T" if pbc_value else "F" for pbc_value in atoms.get_pbc()]) + "\" "
         Out_string += "Lattice=\"" + " ".join(list(map(str, atoms.get_cell().reshape(-1)))) + "\" "
         if 'energy' in atoms.info:
-            Out_string += " energy=" + str(atoms.info['energy'] + " ")
+            Out_string += " energy=" + str(atoms.info['energy']) + " "
         if 'stress' in atoms.info:
             if len(atoms.info['stress']) == 6:
                     virial = -atoms.info['stress'][[0, 5, 4, 5, 1, 3, 4, 3, 2]] * atoms.get_volume()
