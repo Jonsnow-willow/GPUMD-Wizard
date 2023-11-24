@@ -1,5 +1,5 @@
 from wizard.atoms import SymbolInfo
-from wizard.io import write_run, group_xyz, run_gpumd
+from wizard.io import write_run, write_xyz, run_gpumd
 import os
 
 def mkdir_relax(atoms, height, symbol, Tm):
@@ -10,7 +10,7 @@ def mkdir_relax(atoms, height, symbol, Tm):
     Ti = Tm * 0.5
     Tcut = Tm - Ti
     os.chdir(f'relax_{symbol}')
-    group_xyz('model.xyz', atoms, [-10, -10, height], [10000000, 10000000, height])
+    write_xyz('model.xyz', atoms, [-10, -10, height], [10000000, 10000000, height])
     write_run(['potential ../nep.txt', f'velocity {Ti}', 'time_step 1', 
               f'ensemble npt_ber {Ti} {Ti} 200 0 0 0 0 0 0 500 500 500 500 500 500 2000', 
               'dump_exyz 10000 0 0', 'run 1000000',

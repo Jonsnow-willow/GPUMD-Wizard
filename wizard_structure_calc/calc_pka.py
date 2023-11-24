@@ -1,5 +1,5 @@
 from ase.build import bulk
-from wizard.io import write_run, run_gpumd, group_xyz, set_pka
+from wizard.io import write_run, run_gpumd, write_xyz, set_pka
 import numpy as np
 import os
 
@@ -10,7 +10,7 @@ def mkdir_relax(atoms, lc, duplicate):
     os.makedirs('relax')
     original_directory = os.getcwd()
     os.chdir('relax')
-    group_xyz('model.xyz', atoms, [3 * lc, 3 * lc, 3 * lc], [(duplicate - 3) * lc, (duplicate - 3) * lc, (duplicate - 3) * lc])
+    write_xyz('model.xyz', atoms, [3 * lc, 3 * lc, 3 * lc], [(duplicate - 3) * lc, (duplicate - 3) * lc, (duplicate - 3) * lc])
     write_run(['potential ../../nep.txt', 'velocity 300', 'time_step 1', 
               'ensemble npt_scr 300 300 200 0 500 2000', 
               'dump_thermo 1000', 'dump_restart 30000', 'run 30000'])
