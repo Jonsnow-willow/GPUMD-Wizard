@@ -4,7 +4,7 @@ from ase.optimize import QuasiNewton, FIRE, LBFGS
 from ase.constraints import ExpCellFilter, FixAtoms, FixedLine
 from ase.neb import NEB
 from ase.build import surface
-from wizard.io import get_nth_nearest_neighbor_index, relax, dump_xyz, read_xyz
+from wizard.io import get_nth_nearest_neighbor_index, relax, dump_xyz, read_xyz, write_xyz, write_run
 from pynep.phono import PhonoCalc
 from elastic.elastic import get_elementary_deformations, get_elastic_tensor
 import matplotlib
@@ -702,7 +702,23 @@ class Morph():
     
     def get_potential_energy(self):
         return self.atoms.get_potential_energy()
-        
+    
+    def gpumd(self, dirname = 'relax',
+              run_in = ['potential ../nep.txt', 'velocity 300', 'time_step 1', 
+                        'ensemble npt_scr 300 300 200 0 500 2000', 'dump_thermo 1000', 
+                        'dump_restart 30000', 'dump_exyz 10000','run 30000'],
+              min_xyz = None, max_xyz = None,):
+        atoms = self.atoms
+        if os.path.exists(dirname):
+            raise FileExistsError('Directory "relax" already exists')
+        os.makedirs(dirname)
+        original_directory = os.getcwd()
+        os.chdir(dirname)
+        write_run(run_in)
+        write_xyz('model.xyz', atoms = atoms, min_xyz = min_xyz, max_xyz = max_xyz)
+        os.system('gpumd')
+        os.chdir(original_directory)
+     
 class SymbolInfo:
     def __init__(self, symbol, structure, *lattice_constant):
         self.symbol = symbol
@@ -749,7 +765,7 @@ class MaterialCalculator():
                 f.write(f" {self.symbol:<7}Lattice_Constants: {round(sum(cell_lengths[:3])/3, 3):.4f} A\n" 
                         f"{'':<8}Coherent Energy: {atom_energy:.4f} eV\n")
         return atom_energy, cell_lengths
-
+    
     def elastic_constant(self, supercell = (3, 3, 3)):
         atoms = self.atoms.copy() * supercell
         atoms.calc = self.calc
