@@ -612,6 +612,17 @@ class Morph():
         np.random.shuffle(sym)
         atoms.set_chemical_symbols(sym.tolist())
 
+    def element_random_replace(self, symbol1, symbol2, num):
+        atoms = self.atoms
+        symbols = atoms.get_chemical_symbols()
+        indices = np.where(np.array(symbols) == symbol1)[0]
+        if len(indices) < num:
+            raise ValueError('The number of atoms to be replaced is greater than the number of atoms of the first element.')
+        np.random.shuffle(indices)
+        indices = indices[:num]
+        for index in indices:
+            atoms[index].symbol = symbol2
+
     def coord_element_set(self, coord, symbol):
         atoms = self.atoms
         for atom in atoms:
@@ -661,7 +672,7 @@ class Morph():
         atoms.append(atom1)
         atoms.append(atom2)
 
-    def create_vacancy(self, index):
+    def create_vacancy(self, index = 0):
         del self.atoms[index]
 
     def create_divacancies(self, index1 = 0, nth = 1):
