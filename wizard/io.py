@@ -65,9 +65,9 @@ def dump_xyz(filename, atoms, comment=''):
         Out_string += str(int(len(atoms))) + "\n"
         Out_string += "pbc=\"" + " ".join(["T" if pbc_value else "F" for pbc_value in atoms.get_pbc()]) + "\" "
         Out_string += "Lattice=\"" + " ".join(list(map(str, atoms.get_cell().reshape(-1)))) + "\" "
-        if 'energy' in atoms.info:
+        if 'energy' in atoms.info and atoms.info['energy'] is not None:
             Out_string += " energy=" + str(atoms.info['energy']) + " "
-        if 'stress' in atoms.info:
+        if 'stress' in atoms.info and atoms.info['stress'] is not None:
             if len(atoms.info['stress']) == 6:
                     virial = -atoms.info['stress'][[0, 5, 4, 5, 1, 3, 4, 3, 2]] * atoms.get_volume()
             else:
@@ -77,7 +77,7 @@ def dump_xyz(filename, atoms, comment=''):
         s = atoms.get_chemical_symbols()
         p = atoms.get_positions()
         m = atoms.get_masses()
-        if 'forces' in atoms.info:
+        if 'forces' in atoms.info and atoms.info['forces'] is not None:
             Out_string += ":force:R:3 " + comment + "\n"
             force = atoms.info['forces']
             for j in range(int(len(atoms))):
