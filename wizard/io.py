@@ -74,10 +74,10 @@ def dump_xyz(filename, atoms):
                 virial = -atoms.info['stress'].reshape(-1) * atoms.get_volume()
             Out_string += "virial=\"" + " ".join(list(map(str, virial))) + "\" "
         Out_string += "Properties=species:S:1:pos:R:3:mass:R:1"
-        if 'forces' in atoms.info and atoms.info['forces'] is not None:
-            Out_string += ":force:R:3"
         if 'velocities' in atoms.info and atoms.info['velocities'] is not None:
             Out_string += ":vel:R:3"
+        if 'forces' in atoms.info and atoms.info['forces'] is not None:
+            Out_string += ":force:R:3"
         if 'group' in atoms.info and atoms.info['group'] is not None:
             Out_string += ":group:I:1"
         if 'comment' in atoms.info and atoms.info['comment'] is not None:
