@@ -85,12 +85,12 @@ def dump_xyz(filename, atoms):
         Out_string += "\n"
         for atom in atoms:
             Out_string += '{:2} {:>15.8e} {:>15.8e} {:>15.8e} {:>15.8e}'.format(atom.symbol, *atom.position, atom.mass)
-            if atoms.info['forces'] is not None:
+            if 'forces' in atoms.info and atoms.info['forces'] is not None:
                 Out_string += ' {:>15.8e} {:>15.8e} {:>15.8e}'.format(*atoms.info['forces'][atom.index])
-            if atoms.info['velocities'] is not None:
+            if 'velocities' in atoms.info and atoms.info['velocities'] is not None:
                 Out_string += ' {:>15.8e} {:>15.8e} {:>15.8e}'.format(*atoms.info['velocities'][atom.index])
-            if atoms.info['group'] is not None:
-                Out_string += ' {:>15.8e}'.format(atoms.info['group'][atom.index])
+            if 'group' in atoms.info and atoms.info['group'] is not None:
+                Out_string += ' {:>15d}'.format(atoms.info['group'][atom.index])
             Out_string += '\n'
         f.write(Out_string)
 
@@ -109,7 +109,7 @@ def parsed_properties(content):
 def read_symbols(words_in_line, parsed_properties):
     symbol_slice = parsed_properties['species']
     symbol = words_in_line[symbol_slice]
-    symbol = symbol.lower().capitalize()
+    symbol = symbol[0].lower().capitalize()
     return symbol
 
 def read_positions(words_in_line, parsed_properties):
@@ -121,13 +121,13 @@ def read_mass(words_in_line, parsed_properties):
     if 'mass' in parsed_properties:
         mass_slice = parsed_properties['mass']
         mass = words_in_line[mass_slice]
-        return float(mass)
+        return float(mass[0])
     else:
         return None
 
 def read_force(words_in_line, parsed_properties):
-    if 'force' in parsed_properties:
-        force_slice = parsed_properties['force']
+    if 'forces' in parsed_properties:
+        force_slice = parsed_properties['forces']
         force = words_in_line[force_slice]
         return [float(force[0]), float(force[1]), float(force[2])]
     else:
@@ -137,7 +137,7 @@ def read_group(words_in_line, parsed_properties):
     if 'group' in parsed_properties:
         group_slice = parsed_properties['group']
         group = words_in_line[group_slice]
-        return int(group)
+        return int(group[0])
     else:
         return None
 
