@@ -59,7 +59,7 @@ def write_run(parameters):
         for i in parameters:
             f.write(i+'\n')
 
-def dump_xyz(filename, atoms, comment=''):
+def dump_xyz(filename, atoms):
     with open(filename, 'a') as f:
         Out_string = ""
         Out_string += str(int(len(atoms))) + "\n"
@@ -74,19 +74,80 @@ def dump_xyz(filename, atoms, comment=''):
                 virial = -atoms.info['stress'].reshape(-1) * atoms.get_volume()
             Out_string += "virial=\"" + " ".join(list(map(str, virial))) + "\" "
         Out_string += "Properties=species:S:1:pos:R:3:mass:R:1"
-        s = atoms.get_chemical_symbols()
-        p = atoms.get_positions()
-        m = atoms.get_masses()
         if 'forces' in atoms.info and atoms.info['forces'] is not None:
-            Out_string += ":force:R:3 " + comment + "\n"
-            force = atoms.info['forces']
-            for j in range(int(len(atoms))):
-                Out_string += '{:2} {:>15.8e} {:>15.8e} {:>15.8e} {:>15.8e} {:>15.8e} {:>15.8e} {:>15.8e}\n'.format(s[j], *p[j], m[j], *force[j])
-        else:
-            Out_string += comment + "\n"
-            for j in range(int(len(atoms))):
-                Out_string += '{:2} {:>15.8e} {:>15.8e} {:>15.8e} {:>15.8e}\n'.format(s[j], *p[j], m[j])
+            Out_string += ":force:R:3"
+        if 'velocities' in atoms.info and atoms.info['velocities'] is not None:
+            Out_string += ":vel:R:3"
+        if 'group' in atoms.info and atoms.info['group'] is not None:
+            Out_string += ":group:I:1"
+        if 'comment' in atoms.info and atoms.info['comment'] is not None:
+            Out_string += " comment= "+ atoms.info['comment']
+        Out_string += "\n"
+        for atom in atoms:
+            Out_string += '{:2} {:>15.8e} {:>15.8e} {:>15.8e} {:>15.8e}'.format(atom.symbol, *atom.position, atom.mass)
+            if atoms.info['forces'] is not None:
+                Out_string += ' {:>15.8e} {:>15.8e} {:>15.8e}'.format(*atoms.info['forces'][atom.index])
+            if atoms.info['velocities'] is not None:
+                Out_string += ' {:>15.8e} {:>15.8e} {:>15.8e}'.format(*atoms.info['velocities'][atom.index])
+            if atoms.info['group'] is not None:
+                Out_string += ' {:>15.8e}'.format(atoms.info['group'][atom.index])
+            Out_string += '\n'
         f.write(Out_string)
+
+def parsed_properties(comment):
+    properties_str = comment.split('Properties=')[1].split()[0]
+    properties = properties_str.split(':')
+    parsed_properties = {}
+    start = 0
+    for i in range(0, len(properties), 3):
+        property_name = properties[i]
+        property_count = int(properties[i+2])
+        parsed_properties[property_name] = slice(start, start + property_count)
+        start += property_count
+    return parsed_properties
+
+def read_symbols(words_in_line, parsed_properties):
+    symbol_slice = parsed_properties['species']
+    symbol = words_in_line[symbol_slice]
+    symbol = symbol.lower().capitalize()
+    return symbol
+
+def read_positions(words_in_line, parsed_properties):
+    pos_slice = parsed_properties['pos']
+    pos = words_in_line[pos_slice]
+    return [float(pos[0]), float(pos[1]), float(pos[2])]
+
+def read_mass(words_in_line, parsed_properties):
+    if 'mass' in parsed_properties:
+        mass_slice = parsed_properties['mass']
+        mass = words_in_line[mass_slice]
+        return float(mass)
+    else:
+        return None
+
+def read_force(words_in_line, parsed_properties):
+    if 'force' in parsed_properties:
+        force_slice = parsed_properties['force']
+        force = words_in_line[force_slice]
+        return [float(force[0]), float(force[1]), float(force[2])]
+    else:
+        return None
+
+def read_group(words_in_line, parsed_properties):
+    if 'group' in parsed_properties:
+        group_slice = parsed_properties['group']
+        group = words_in_line[group_slice]
+        return int(group)
+    else:
+        return None
+
+def read_velocity(words_in_line, parsed_properties):
+    if 'vel' in parsed_properties:
+        vel_slice = parsed_properties['vel']
+        vel = words_in_line[vel_slice]
+        return [float(vel[0]), float(vel[1]), float(vel[2])]
+    else:
+        return None
 
 def read_xyz(filename):
     """
@@ -99,6 +160,9 @@ def read_xyz(filename):
             symbols = []
             positions = []
             masses = []
+            forces = []
+            velocities = []
+            group = []
             natoms = int(lines.pop(0))
             comment = lines.pop(0)  
             if "pbc=\"" in comment:
@@ -119,46 +183,21 @@ def read_xyz(filename):
                 stress = - virials / np.linalg.det(cell)
             else:
                 stress = None
-            if "force" in comment:
-                forces = []
-                if "mass" in comment:
-                    for _ in range(natoms):
-                        line = lines.pop(0)
-                        symbol, x, y, z, m, fx, fy, fz = line.split()[:8]
-                        symbol = symbol.lower().capitalize()
-                        symbols.append(symbol)
-                        positions.append([float(x), float(y), float(z)])
-                        masses.append(float(m))
-                        forces.append([float(fx), float(fy), float(fz)])
-                    frames.append(Atoms(symbols=symbols, positions=positions, masses=masses, cell=cell, pbc=pbc, info={'energy': energy, 'stress': stress, 'forces': forces}))
-                else:
-                    for _ in range(natoms):
-                        line = lines.pop(0)
-                        symbol, x, y, z, fx, fy, fz = line.split()[:7]
-                        symbol = symbol.lower().capitalize()
-                        symbols.append(symbol)
-                        positions.append([float(x), float(y), float(z)])
-                        forces.append([float(fx), float(fy), float(fz)])
-                    frames.append(Atoms(symbols=symbols, positions=positions, cell=cell, pbc=pbc, info={'energy': energy, 'stress': stress, 'forces': forces}))
+            if "comment=" in comment:
+                comment = comment.split("comment=")[1].strip()
             else:
-                forces = None
-                if "mass" in comment:
-                    for _ in range(natoms):
-                        line = lines.pop(0)
-                        symbol, x, y, z, m = line.split()[:5]
-                        symbol = symbol.lower().capitalize()
-                        symbols.append(symbol)
-                        positions.append([float(x), float(y), float(z)])
-                        masses.append(float(m))
-                    frames.append(Atoms(symbols=symbols, positions=positions, masses=masses, cell=cell, pbc=pbc, info={'energy': energy, 'stress': stress, 'forces': forces}))
-                else:
-                    for _ in range(natoms):
-                        line = lines.pop(0)
-                        symbol, x, y, z = line.split()[:4]
-                        symbol = symbol.lower().capitalize()
-                        symbols.append(symbol)
-                        positions.append([float(x), float(y), float(z)])
-                    frames.append(Atoms(symbols=symbols, positions=positions, cell=cell, pbc=pbc, info={'energy': energy, 'stress': stress, 'forces': forces}))
+                comment = None
+            parsed_properties_dict = parsed_properties(comment)
+            for _ in range(natoms):
+                line = lines.pop(0)
+                words_in_line = line.split()
+                symbols.append(read_symbols(words_in_line, parsed_properties_dict))
+                positions.append(read_positions(words_in_line, parsed_properties_dict))
+                masses.append(read_mass(words_in_line, parsed_properties_dict))
+                forces.append(read_force(words_in_line, parsed_properties_dict))
+                velocities.append(read_velocity(words_in_line, parsed_properties_dict))
+                group.append(read_group(words_in_line, parsed_properties_dict))
+            frames.append(Atoms(symbols=symbols, positions=positions, masses=masses, cell=cell, pbc=pbc, info={'energy': energy, 'stress': stress, 'forces': forces, 'velocities': velocities, 'group': group, 'comment': comment}))
     return frames
 
 def write_xyz(filename, atoms, min_xyz = None, max_xyz = None):
