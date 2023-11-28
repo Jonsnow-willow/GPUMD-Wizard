@@ -60,36 +60,39 @@ def write_run(parameters):
             f.write(i+'\n')
 
 def dump_xyz(filename, atoms):
+    def is_valid_key(key):
+        return key in atoms.info and atoms.info[key] is not None and all(v is not None for v in atoms.info[key])
+    
     with open(filename, 'a') as f:
         Out_string = ""
         Out_string += str(int(len(atoms))) + "\n"
         Out_string += "pbc=\"" + " ".join(["T" if pbc_value else "F" for pbc_value in atoms.get_pbc()]) + "\" "
         Out_string += "Lattice=\"" + " ".join(list(map(str, atoms.get_cell().reshape(-1)))) + "\" "
-        if 'energy' in atoms.info and atoms.info['energy'] is not None:
+        if is_valid_key('energy'):
             Out_string += " energy=" + str(atoms.info['energy']) + " "
-        if 'stress' in atoms.info and atoms.info['stress'] is not None:
+        if is_valid_key('stress'):
             if len(atoms.info['stress']) == 6:
                     virial = -atoms.info['stress'][[0, 5, 4, 5, 1, 3, 4, 3, 2]] * atoms.get_volume()
             else:
                 virial = -atoms.info['stress'].reshape(-1) * atoms.get_volume()
             Out_string += "virial=\"" + " ".join(list(map(str, virial))) + "\" "
         Out_string += "Properties=species:S:1:pos:R:3:mass:R:1"
-        if 'velocities' in atoms.info and atoms.info['velocities'] is not None:
+        if is_valid_key('velocities'):
             Out_string += ":vel:R:3"
-        if 'forces' in atoms.info and atoms.info['forces'] is not None:
+        if is_valid_key('forces'):
             Out_string += ":force:R:3"
-        if 'group' in atoms.info and atoms.info['group'] is not None:
+        if is_valid_key('group'):
             Out_string += ":group:I:1"
-        if 'comment' in atoms.info and atoms.info['comment'] is not None:
+        if is_valid_key('comment'):
             Out_string += " comment= "+ atoms.info['comment']
         Out_string += "\n"
         for atom in atoms:
             Out_string += '{:2} {:>15.8e} {:>15.8e} {:>15.8e} {:>15.8e}'.format(atom.symbol, *atom.position, atom.mass)
-            if 'velocities' in atoms.info and atoms.info['velocities'] is not None:
+            if is_valid_key('velocities'):
                 Out_string += ' {:>15.8e} {:>15.8e} {:>15.8e}'.format(*atoms.info['velocities'][atom.index])
-            if 'forces' in atoms.info and atoms.info['forces'] is not None:
+            if is_valid_key('forces'):
                 Out_string += ' {:>15.8e} {:>15.8e} {:>15.8e}'.format(*atoms.info['forces'][atom.index])
-            if 'group' in atoms.info and atoms.info['group'] is not None:
+            if is_valid_key('group'):
                 Out_string += ' {:>15d}'.format(atoms.info['group'][atom.index])
             Out_string += '\n'
         f.write(Out_string)
