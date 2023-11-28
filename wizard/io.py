@@ -94,8 +94,8 @@ def dump_xyz(filename, atoms):
             Out_string += '\n'
         f.write(Out_string)
 
-def parsed_properties(comment):
-    properties_str = comment.split('Properties=')[1].split()[0]
+def parsed_properties(content):
+    properties_str = content.split('Properties=')[1].split()[0]
     properties = properties_str.split(':')
     parsed_properties = {}
     start = 0
@@ -164,30 +164,30 @@ def read_xyz(filename):
             velocities = []
             group = []
             natoms = int(lines.pop(0))
-            comment = lines.pop(0)  
-            if "pbc=\"" in comment:
-                pbc_str = comment.split("pbc=\"")[1].split("\"")[0].strip()
+            content = lines.pop(0)  
+            if "pbc=\"" in content:
+                pbc_str = content.split("pbc=\"")[1].split("\"")[0].strip()
                 pbc = [True if pbc_value == "T" else False for pbc_value in pbc_str.split()]
             else:
                 pbc = [True, True, True]
-            lattice_str = comment.split("Lattice=\"")[1].split("\" ")[0].strip()
+            lattice_str = content.split("Lattice=\"")[1].split("\" ")[0].strip()
             lattice = [list(map(float, row.split())) for row in lattice_str.split(" ")]
             cell = [lattice[0] + lattice[1] + lattice[2], lattice[3] + lattice[4] + lattice[5], lattice[6] + lattice[7] + lattice[8]]
-            if "energy=" in comment:
-                energy = float(comment.split("energy=")[1].split()[0])
+            if "energy=" in content:
+                energy = float(content.split("energy=")[1].split()[0])
             else: 
                 energy = None
-            if "virial=" in comment:
-                virials = comment.split("virial=\"")[1].split("\" ")[0].strip()
+            if "virial=" in content:
+                virials = content.split("virial=\"")[1].split("\" ")[0].strip()
                 virials = np.array([float(x) for x in virials.split()]).reshape(3, 3)
                 stress = - virials / np.linalg.det(cell)
             else:
                 stress = None
-            if "comment=" in comment:
+            if "comment=" in content:
                 comment = comment.split("comment=")[1].strip()
             else:
                 comment = None
-            parsed_properties_dict = parsed_properties(comment)
+            parsed_properties_dict = parsed_properties(content)
             for _ in range(natoms):
                 line = lines.pop(0)
                 words_in_line = line.split()
