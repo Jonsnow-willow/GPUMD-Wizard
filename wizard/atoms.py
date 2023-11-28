@@ -767,7 +767,7 @@ class MaterialCalculator():
         atoms = self.atoms
         atom_energy = self.atom_energy
         cell_lengths = atoms.cell.cellpar()
-        dump_xyz('MaterialProperties.xyz', atoms, comment=f' config_type = {self.symbol} Lattice Constants')
+        dump_xyz('MaterialProperties.xyz', atoms)
         with open('MaterialProperties.out', "a") as f:
             if self.structure == 'hcp':
                 f.write(f" {self.symbol:<7}Lattice_Constants: a: {cell_lengths[0]:.4f} A    c: {cell_lengths[2]:.4f} A\n" 
@@ -814,7 +814,7 @@ class MaterialCalculator():
             atoms.set_cell(scale * origin_cell, scale_atoms = True)
             volumes.append(atoms.get_volume())
             energies.append(atoms.get_potential_energy() / len(atoms))
-            dump_xyz('MaterialProperties.xyz', atoms, comment=f' config_type = {self.symbol} {scale:.2f} strain')
+            dump_xyz('MaterialProperties.xyz', atoms)
             
         fig, ax = plt.subplots()
         font_size = 15
@@ -847,7 +847,7 @@ class MaterialCalculator():
         slab_energy = slab.get_potential_energy()
         formation_energy = (slab_energy - atom_energy * len(slab)) / S
         
-        dump_xyz('MaterialProperties.xyz', slab, comment=f' config_type = {self.symbol} {miller} Surface_Energy')
+        dump_xyz('MaterialProperties.xyz', slab)
         with open('MaterialProperties.out', 'a') as f:
             print(f' {self.symbol:<7}{miller} Surface_Energy: {formation_energy * 1000:.4f} meV/A^2', file=f)
         return formation_energy * 1000
@@ -860,7 +860,7 @@ class MaterialCalculator():
         relax(atoms, **relax_params)
         formation_energy = atoms.get_potential_energy() - atom_energy * len(atoms)
 
-        dump_xyz('MaterialProperties.xyz', atoms, comment=f' config_type = {self.symbol} Vacancy')
+        dump_xyz('MaterialProperties.xyz', atoms)
         with open('MaterialProperties.out', 'a') as f:
             print(f' {self.symbol:<7}Formation_Energy_Vacancy: {formation_energy:.4f} eV', file=f)
         return formation_energy
@@ -873,7 +873,7 @@ class MaterialCalculator():
         relax(atoms, **relax_params)
         formation_energy = atoms.get_potential_energy() - atom_energy * len(atoms)
 
-        dump_xyz('MaterialProperties.xyz', atoms, comment=f' config_type = {self.symbol} Divacancies')     
+        dump_xyz('MaterialProperties.xyz', atoms)     
         with open('MaterialProperties.out', 'a') as f:
             f.write(f' {self.symbol:<7}{nth}th Formation_Energy_Divacancies: {formation_energy:.4f} eV\n')
         return formation_energy
@@ -906,7 +906,7 @@ class MaterialCalculator():
         migration_energy = max(energies) - min(energies)
         energies -= min(energies)
         for image in images:
-            dump_xyz('MaterialProperties.xyz', image, comment=f' config_type = {self.symbol} Migration Energy Vacancy')  
+            dump_xyz('MaterialProperties.xyz', image)  
         with open('MaterialProperties.out', 'a') as f:
             print(f' {self.symbol:<7}Migration_Energy_Vacancy: {migration_energy:.4f} eV', file=f)
         plt.plot(np.linspace(0, 1, len(energies)), energies, marker='o', label=f'{self.symbol}')  
@@ -923,7 +923,7 @@ class MaterialCalculator():
         relax(atoms, **relax_params)
         formation_energy = atoms.get_potential_energy() - atom_energy * len(atoms)
 
-        dump_xyz('MaterialProperties.xyz', atoms, comment=f' config_type = {self.symbol} {vector} SIA')
+        dump_xyz('MaterialProperties.xyz', atoms)
         with open('MaterialProperties.out', 'a') as f:
             print(f' {self.symbol:<7}{vector} Formation_Energy_Sia: {formation_energy:.4} eV', file=f)
         return formation_energy
@@ -956,7 +956,7 @@ class MaterialCalculator():
         migration_energy = max(energies) - min(energies)
         energies -= min(energies)
         for image in images:
-            dump_xyz('MaterialProperties.xyz', image, comment=f' config_type = SIA Migration Energy')  
+            dump_xyz('MaterialProperties.xyz', image)  
         with open('MaterialProperties.out', 'a') as f:
             print(f'{self.symbol:^4}   Migration_Energy_SIA: {migration_energy:.4f} eV', file=f)
         plt.plot(np.linspace(0, 1, len(energies)), energies, marker='o')  
@@ -976,7 +976,7 @@ class MaterialCalculator():
         relax(atoms, **relax_params)
         formation_energy = atoms.get_potential_energy() - atoms_energy - new_atom_e
 
-        dump_xyz('MaterialProperties.xyz', atoms, comment=f' config_type = {self.symbol} {config_type} intersitial')
+        dump_xyz('MaterialProperties.xyz', atoms)
         with open('MaterialProperties.out', 'a') as f:
             print(f' {self.symbol:<7}{config_type} Formation_Energy: {formation_energy:.4f} eV', file=f)
         return formation_energy
@@ -1012,7 +1012,7 @@ class MaterialCalculator():
         migration_energy = max(energies) - min(energies)
         energies -= min(energies)
         for image in images:
-            dump_xyz('MaterialProperties.xyz', image, comment=f' config_type = {config_type} interstitial Migration Energy')  
+            dump_xyz('MaterialProperties.xyz', image)  
         with open('MaterialProperties.out', 'a') as f:
             print(f' {self.symbol:<7}   Migration_Energy_{config_type}: {migration_energy:.4f} eV', file=f)
         plt.plot(np.linspace(0, 1, len(energies)), energies, marker='o', label=f'{config_type}')  
@@ -1078,7 +1078,7 @@ class MaterialCalculator():
             relax(slab_shift, method='fixed_line')
             defects_energy = (slab_shift.get_potential_energy() - atom_energy * len(slab_shift)) / S
             energies.append(defects_energy)
-            dump_xyz('MaterialProperties.xyz', slab_shift, comment=f' config_type = {self.symbol} Stacking Fault')
+            dump_xyz('MaterialProperties.xyz', slab_shift)
 
         with open('MaterialProperties.out', 'a') as f:
             print(f' {self.symbol:<7}{miller} Stacking_Fault: {max(energies) * 1000:.4f} meV/A^2', file=f)
@@ -1121,7 +1121,7 @@ class MaterialCalculator():
         energies = np.array(energies)
         energies -= min(energies)
         for image in images:
-            dump_xyz('MaterialProperties.xyz', image, comment=f' config_type = {self.symbol} bcc dipole screw')  
+            dump_xyz('MaterialProperties.xyz', image)  
 
         plt.plot(np.linspace(0, 1, len(energies)), energies, marker='o', label=f'{self.symbol}')
         plt.legend()
@@ -1161,7 +1161,7 @@ class MaterialCalculator():
         energies = np.array(energies)
         energies -= min(energies)
         for image in images:
-            dump_xyz('MaterialProperties.xyz', image, comment=f' config_type = {self.symbol} bcc one move screw')  
+            dump_xyz('MaterialProperties.xyz', image)  
 
         plt.plot(np.linspace(0, 1, len(energies)), energies, marker='o', label=f'{self.symbol}')
         plt.legend()
