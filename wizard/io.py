@@ -85,10 +85,10 @@ def dump_xyz(filename, atoms):
         Out_string += "\n"
         for atom in atoms:
             Out_string += '{:2} {:>15.8e} {:>15.8e} {:>15.8e} {:>15.8e}'.format(atom.symbol, *atom.position, atom.mass)
-            if 'forces' in atoms.info and atoms.info['forces'] is not None:
-                Out_string += ' {:>15.8e} {:>15.8e} {:>15.8e}'.format(*atoms.info['forces'][atom.index])
             if 'velocities' in atoms.info and atoms.info['velocities'] is not None:
                 Out_string += ' {:>15.8e} {:>15.8e} {:>15.8e}'.format(*atoms.info['velocities'][atom.index])
+            if 'forces' in atoms.info and atoms.info['forces'] is not None:
+                Out_string += ' {:>15.8e} {:>15.8e} {:>15.8e}'.format(*atoms.info['forces'][atom.index])
             if 'group' in atoms.info and atoms.info['group'] is not None:
                 Out_string += ' {:>15d}'.format(atoms.info['group'][atom.index])
             Out_string += '\n'
