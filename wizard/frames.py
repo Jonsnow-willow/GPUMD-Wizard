@@ -40,28 +40,17 @@ class MultiMol():
                 split_set.append(atoms)
         return select_set, split_set
 
-    def select_contain_all_symbols(self, symbols = []):
+    def select_by_symbols(self, symbols_list = []):
         select_set = []
         split_set = []
         for atoms in self.frames:
-            s = atoms.get_chemical_symbols()
-            if all(i in symbols for i in s):
+            symbols = atoms.get_chemical_symbols()
+            if all(symbol in symbols_list for symbol in symbols):
                 select_set.append(atoms)
             else:
                 split_set.append(atoms)
         return select_set, split_set
-    
-    def select_contain_any_symbol(self, symbols = []):
-        select_set = []
-        split_set = []
-        for atoms in self.frames:
-            s = atoms.get_chemical_symbols()
-            if any(i in symbols for i in s):
-                select_set.append(atoms)
-            else:
-                split_set.append(atoms)
-        return select_set, split_set
-    
+
     def select_by_num_of_symbols(self, num):
         select_set = []
         split_set = []
