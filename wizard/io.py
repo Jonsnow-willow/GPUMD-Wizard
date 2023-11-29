@@ -55,7 +55,7 @@ def dump_xyz(filename, atoms):
             if valid_keys['forces']:
                 Out_string += ' {:>15.8e} {:>15.8e} {:>15.8e}'.format(*atoms.info['forces'][atom.index])
             if valid_keys['group']:
-                Out_string += ' {:>15d}'.format(atoms.info['group'][atom.index])
+                Out_string += ' {}'.format(atoms.info['group'][atom.index])
             Out_string += '\n'
         f.write(Out_string)
 
