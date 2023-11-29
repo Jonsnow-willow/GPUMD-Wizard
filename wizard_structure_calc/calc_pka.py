@@ -7,7 +7,7 @@ lc = 3.1854
 duplicate = [50, 50, 50]
 pka_energy = 1000
 angle = np.array([1, 3, 5])    
-index = int(2 * (duplicate * duplicate * duplicate / 2 + duplicate * duplicate / 2 + duplicate / 2))
+index = int(2 * (duplicate[0] * duplicate[1] * duplicate[2] / 2 + duplicate[0] * duplicate[1] / 2 + duplicate[0] / 2))
 
 group = []
 for i in range(duplicate[0]):
@@ -27,7 +27,7 @@ for i in range (10):
                          run_in= ['potential ../../hea.txt', 'velocity 300', 'time_step 1', 
                                   'ensemble npt_scr 300 300 200 0 500 2000', 
                                   'dump_thermo 1000', 'dump_restart 30000', 'run 30000'])
-    atoms = read_xyz(f'radiation{i}' + '/relax/restart.xyz')
+    atoms = read_xyz(f'radiation{i}' + '/relax/restart.xyz')[0]
     Morph(atoms).set_pka(pka_energy, angle, index)
     Morph(atoms).gpumd(f'radiation{i}' + '/cascade',
                        run_in= ['potential ../../hea.txt', 
