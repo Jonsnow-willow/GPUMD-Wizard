@@ -23,6 +23,8 @@ def dump_xyz(filename, atoms):
     def is_valid_key(key):
         return key in atoms.info and atoms.info[key] is not None and all(v is not None for v in atoms.info[key])
     
+    valid_keys = {key: is_valid_key(key) for key in ['velocities', 'forces', 'group']}
+
     with open(filename, 'a') as f:
         Out_string = ""
         Out_string += str(int(len(atoms))) + "\n"
@@ -37,22 +39,22 @@ def dump_xyz(filename, atoms):
                 virial = -atoms.info['stress'].reshape(-1) * atoms.get_volume()
             Out_string += "virial=\"" + " ".join(list(map(str, virial))) + "\" "
         Out_string += "Properties=species:S:1:pos:R:3:mass:R:1"
-        if is_valid_key('velocities'):
+        if valid_keys['velocities']:
             Out_string += ":vel:R:3"
-        if is_valid_key('forces'):
+        if valid_keys['forces']:
             Out_string += ":force:R:3"
-        if is_valid_key('group'):
+        if valid_keys['group']:
             Out_string += ":group:I:1"
         if is_valid_key('comment'):
             Out_string += " comment= "+ atoms.info['comment']
         Out_string += "\n"
         for atom in atoms:
             Out_string += '{:2} {:>15.8e} {:>15.8e} {:>15.8e} {:>15.8e}'.format(atom.symbol, *atom.position, atom.mass)
-            if is_valid_key('velocities'):
+            if valid_keys['velocities']:
                 Out_string += ' {:>15.8e} {:>15.8e} {:>15.8e}'.format(*atoms.info['velocities'][atom.index])
-            if is_valid_key('forces'):
+            if valid_keys['forces']:
                 Out_string += ' {:>15.8e} {:>15.8e} {:>15.8e}'.format(*atoms.info['forces'][atom.index])
-            if is_valid_key('group'):
+            if valid_keys['group']:
                 Out_string += ' {:>15d}'.format(atoms.info['group'][atom.index])
             Out_string += '\n'
         f.write(Out_string)
