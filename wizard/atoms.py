@@ -53,6 +53,34 @@ class Morph():
         
         dyn.run(fmax=fmax, steps=steps)
 
+    def gpumd(self, dirname = 'relax',
+              run_in = ['potential ../nep.txt', 'velocity 300', 'time_step 1', 
+                        'ensemble npt_scr 300 300 200 0 500 2000', 'dump_thermo 1000', 
+                        'dump_restart 30000', 'dump_exyz 10000','run 30000']):
+        atoms = self.atoms
+        if os.path.exists(dirname):
+            raise FileExistsError('Directory "relax" already exists')
+        os.makedirs(dirname)
+        original_directory = os.getcwd()
+        os.chdir(dirname)
+        write_run(run_in)
+        dump_xyz('model.xyz', atoms = atoms)
+        os.system('gpumd')
+        os.chdir(original_directory)
+
+    def set_pka(self, energy, angle, index = 0):
+        atoms = self.atoms
+        if atoms.info['velocities'] is None:
+            raise ValueError('The velocities of atoms are not set.')
+        mass = atoms[index].mass
+        vx = pow(2 * energy / mass , 0.5) * angle[0] / pow(np.sum(angle ** 2), 0.5) / 10.18
+        vy = pow(2 * energy / mass , 0.5) * angle[1] / pow(np.sum(angle ** 2), 0.5) / 10.18
+        vz = pow(2 * energy / mass , 0.5) * angle[2] / pow(np.sum(angle ** 2), 0.5) / 10.18
+        delta_momentum = (np.array(atoms.info['velocities'][index]) - np.array([vx, vy, vz])) * mass / (len(atoms) - 1)
+        for i in range(len(atoms)):
+            atoms.info['velocities'][i] += delta_momentum / atoms[i].mass
+        atoms[index].velocity = [vx, vy, vz]
+        
     def shuffle_symbols(self):
         atoms = self.atoms
         s = atoms.get_chemical_symbols()
@@ -170,18 +198,5 @@ class Morph():
     def get_potential_energy(self):
         return self.atoms.get_potential_energy()
     
-    def gpumd(self, dirname = 'relax',
-              run_in = ['potential ../nep.txt', 'velocity 300', 'time_step 1', 
-                        'ensemble npt_scr 300 300 200 0 500 2000', 'dump_thermo 1000', 
-                        'dump_restart 30000', 'dump_exyz 10000','run 30000']):
-        atoms = self.atoms
-        if os.path.exists(dirname):
-            raise FileExistsError('Directory "relax" already exists')
-        os.makedirs(dirname)
-        original_directory = os.getcwd()
-        os.chdir(dirname)
-        write_run(run_in)
-        dump_xyz('model.xyz', atoms = atoms)
-        os.system('gpumd')
-        os.chdir(original_directory)
+    
      
