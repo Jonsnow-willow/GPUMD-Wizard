@@ -9,7 +9,6 @@ from phonopy.structure.atoms import PhonopyAtoms
 from phonopy.phonon.band_structure import get_band_qpoints_and_path_connections
 from phonopy.interface.phonopy_yaml import PhonopyYaml
 
-
 def ase2phono(atoms):
     return PhonopyAtoms(symbols=atoms.get_chemical_symbols(),
                         cell=atoms.cell.array,
