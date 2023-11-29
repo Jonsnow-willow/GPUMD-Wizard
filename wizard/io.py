@@ -457,6 +457,57 @@ def plot_v(vd, vr, lim=None, symbol=None):
         plt.savefig(f'{symbol}_v.png')
     return fig
 
+
+def plot_band_structure(atoms, symbol=None):
+    if 'band_dict' not in atoms.info:
+        raise ValueError('No band structure data found.')
+    band_dict = atoms.info['band_dict']
+    labels_path = band_dict['labels_path']
+    frequencies = band_dict['frequencies']
+    distances = band_dict['distances']
+    fig = plt.figure()
+    axs = ImageGrid(fig, 111, nrows_ncols=(1, len(labels_path)), axes_pad=0.2, label_mode="L")
+
+    max_freq = max([np.max(fq) for fq in frequencies])
+    max_dist = distances[-1][-1]
+    xscale = max_freq / max_dist * 1.5
+    distances_scaled = [d * xscale for d in distances]
+
+    n = 0
+    axs[0].set_ylabel("Frequency", fontsize=14)
+    for i, path in enumerate(labels_path):
+        axs[i].spines['bottom'].set_linewidth(1.5)
+        axs[i].spines['left'].set_linewidth(1.5)
+        axs[i].spines['right'].set_linewidth(1.5)
+        axs[i].spines['top'].set_linewidth(1.5)
+        axs[i].tick_params(labelsize=14)
+        xticks = [distances_scaled[n][0]]
+        for label in path[:-1]:
+            xticks.append(distances_scaled[n][-1])
+            axs[i].plot([distances_scaled[n][-1], distances_scaled[n][-1]], 
+                        [0, max_freq],
+                        linewidth=2,
+                        linestyle=":",
+                        c='grey')
+            axs[i].plot(distances_scaled[n], 
+                        frequencies[n], 
+                        linewidth=2,
+                        c='g')
+            n += 1
+        axs[i].set_xlim(xticks[0], xticks[-1])
+        axs[i].set_xticks(xticks)
+        axs[i].set_xticklabels(path)
+        axs[i].plot([xticks[0], xticks[-1]], 
+                    [0, 0], 
+                    linewidth=1,
+                    c='black')
+        
+    if symbol is None:
+        plt.savefig('phono.png')
+    else:
+        plt.savefig(f'{symbol}_phono.png')
+    return axs
+
 def Prediction():
     e_1, e_2 = [], []
     v_1, v_2 = [], []
