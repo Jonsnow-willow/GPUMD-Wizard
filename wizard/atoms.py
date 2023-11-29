@@ -59,12 +59,12 @@ class Morph():
                         'dump_restart 30000', 'dump_exyz 10000','run 30000']):
         atoms = self.atoms
         if os.path.exists(dirname):
-            raise FileExistsError('Directory "relax" already exists')
+            raise FileExistsError('Directory already exists')
         os.makedirs(dirname)
         original_directory = os.getcwd()
         os.chdir(dirname)
         write_run(run_in)
-        dump_xyz('model.xyz', atoms = atoms)
+        dump_xyz('model.xyz', atoms)
         os.system('gpumd')
         os.chdir(original_directory)
 
@@ -79,7 +79,7 @@ class Morph():
         delta_momentum = (np.array(atoms.info['velocities'][index]) - np.array([vx, vy, vz])) * mass / (len(atoms) - 1)
         for i in range(len(atoms)):
             atoms.info['velocities'][i] += delta_momentum / atoms[i].mass
-        atoms[index].velocity = [vx, vy, vz]
+        atoms.info['velocities'][index] = [vx, vy, vz]
         
     def shuffle_symbols(self):
         atoms = self.atoms
