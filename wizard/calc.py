@@ -4,9 +4,8 @@ from ase.optimize import FIRE
 from ase.constraints import FixAtoms
 from ase.neb import NEB
 from ase.build import surface
-from wizard.io import get_nth_nearest_neighbor_index, relax, dump_xyz, read_xyz
-#from wizard.phono import PhonoCalc
-from pynep.phono import PhonoCalc
+from wizard.io import get_nth_nearest_neighbor_index, relax, dump_xyz, read_xyz, plot_band_structure
+from wizard.phono import PhonoCalc
 from wizard.atoms import Morph
 from elastic.elastic import get_elementary_deformations, get_elastic_tensor
 import matplotlib
@@ -653,10 +652,9 @@ class MaterialCalculator():
     def phonon_dispersion(self):
         atoms = self.atoms.copy()
         calc = self.calc
-        phono_calc = PhonoCalc(calc)
-        phono_calc.calculate(atoms, ['band'])    
-        os.rename('phono.png', f'phonon_{self.symbol}.png')
-        plt.close()
+        PhonoCalc(atoms, calc).get_band_structure()
+        plot_band_structure('atoms', self.symbol)
+        
        
     def formation_energy_surface(self, miller = (1, 0, 0), supercell = (2, 2, 10), relax_params = {}):
         atoms = self.atoms.copy()
