@@ -23,16 +23,16 @@ def dump_xyz(filename, atoms):
     def is_valid_key(key):
         return key in atoms.info and atoms.info[key] is not None and all(v is not None for v in atoms.info[key])
     
-    valid_keys = {key: is_valid_key(key) for key in ['velocities', 'forces', 'group']}
+    valid_keys = {key: is_valid_key(key) for key in ['stress', 'velocities', 'forces', 'group']}
 
     with open(filename, 'a') as f:
         Out_string = ""
         Out_string += str(int(len(atoms))) + "\n"
         Out_string += "pbc=\"" + " ".join(["T" if pbc_value else "F" for pbc_value in atoms.get_pbc()]) + "\" "
         Out_string += "Lattice=\"" + " ".join(list(map(str, atoms.get_cell().reshape(-1)))) + "\" "
-        if is_valid_key('energy'):
+        if atoms.info['energy'] is not None:
             Out_string += " energy=" + str(atoms.info['energy']) + " "
-        if is_valid_key('stress'):
+        if valid_keys['stress']:
             if len(atoms.info['stress']) == 6:
                     virial = -atoms.info['stress'][[0, 5, 4, 5, 1, 3, 4, 3, 2]] * atoms.get_volume()
             else:
@@ -45,7 +45,7 @@ def dump_xyz(filename, atoms):
             Out_string += ":force:R:3"
         if valid_keys['group']:
             Out_string += ":group:I:1"
-        if is_valid_key('comment'):
+        if atoms.info['comment'] is not None:
             Out_string += " comment= "+ atoms.info['comment']
         Out_string += "\n"
         for atom in atoms:
@@ -60,7 +60,7 @@ def dump_xyz(filename, atoms):
         f.write(Out_string)
 
 def parsed_properties(content):
-    properties_str = content.split('Properties=')[1].split()[0]
+    properties_str = content.split('properties=')[1].split()[0]
     properties = properties_str.split(':')
     parsed_properties = {}
     start = 0
@@ -129,13 +129,13 @@ def read_xyz(filename):
             velocities = []
             group = []
             natoms = int(lines.pop(0))
-            content = lines.pop(0)  
+            content = lines.pop(0).lower()
             if "pbc=\"" in content:
                 pbc_str = content.split("pbc=\"")[1].split("\"")[0].strip()
                 pbc = [True if pbc_value == "T" else False for pbc_value in pbc_str.split()]
             else:
                 pbc = [True, True, True]
-            lattice_str = content.split("Lattice=\"")[1].split("\" ")[0].strip()
+            lattice_str = content.split("lattice=\"")[1].split("\" ")[0].strip()
             lattice = [list(map(float, row.split())) for row in lattice_str.split(" ")]
             cell = [lattice[0] + lattice[1] + lattice[2], lattice[3] + lattice[4] + lattice[5], lattice[6] + lattice[7] + lattice[8]]
             if "energy=" in content:
