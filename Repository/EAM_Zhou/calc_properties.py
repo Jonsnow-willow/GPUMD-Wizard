@@ -1,4 +1,5 @@
-from wizard.atoms import SymbolInfo, MaterialCalculator
+from wizard.atoms import SymbolInfo
+from wizard.calculator import MaterialCalculator
 from ase.calculators.lammpslib import LAMMPSlib
 
 def main():
