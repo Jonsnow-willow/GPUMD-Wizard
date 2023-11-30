@@ -46,7 +46,7 @@ def dump_xyz(filename, atoms):
         if valid_keys['group']:
             Out_string += ":group:I:1"
         if 'config_type' in atoms.info and atoms.info['config_type'] is not None:
-            Out_string += " config_type= "+ atoms.info['config_type']
+            Out_string += " config_type="+ atoms.info['config_type']
         Out_string += "\n"
         for atom in atoms:
             Out_string += '{:2} {:>15.8e} {:>15.8e} {:>15.8e} {:>15.8e}'.format(atom.symbol, *atom.position, atom.mass)
@@ -149,7 +149,7 @@ def read_xyz(filename):
             else:
                 stress = None
             if "config_type=" in comment:
-                config_type = comment.split("config_type=")[1].strip()
+                config_type = comment.split("config_type=")[1].split()[0].strip()
             else:
                 config_type = None
             parsed_properties_dict = parsed_properties(comment)
