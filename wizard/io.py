@@ -45,8 +45,8 @@ def dump_xyz(filename, atoms):
             Out_string += ":force:R:3"
         if valid_keys['group']:
             Out_string += ":group:I:1"
-        if 'comment' in atoms.info and atoms.info['comment'] is not None:
-            Out_string += " comment= "+ atoms.info['comment']
+        if 'config_type' in atoms.info and atoms.info['config_type'] is not None:
+            Out_string += " config_type= "+ atoms.info['config_type']
         Out_string += "\n"
         for atom in atoms:
             Out_string += '{:2} {:>15.8e} {:>15.8e} {:>15.8e} {:>15.8e}'.format(atom.symbol, *atom.position, atom.mass)
@@ -59,8 +59,8 @@ def dump_xyz(filename, atoms):
             Out_string += '\n'
         f.write(Out_string)
 
-def parsed_properties(content):
-    properties_str = content.split('properties=')[1].split()[0]
+def parsed_properties(comment):
+    properties_str = comment.split('properties=')[1].split()[0]
     properties = properties_str.split(':')
     parsed_properties = {}
     start = 0
@@ -129,30 +129,30 @@ def read_xyz(filename):
             velocities = []
             group = []
             natoms = int(lines.pop(0))
-            content = lines.pop(0).lower()
-            if "pbc=\"" in content:
-                pbc_str = content.split("pbc=\"")[1].split("\"")[0].strip()
+            comment = lines.pop(0).lower()
+            if "pbc=\"" in comment:
+                pbc_str = comment.split("pbc=\"")[1].split("\"")[0].strip()
                 pbc = [True if pbc_value == "t" else False for pbc_value in pbc_str.split()]
             else:
                 pbc = [True, True, True]
-            lattice_str = content.split("lattice=\"")[1].split("\" ")[0].strip()
+            lattice_str = comment.split("lattice=\"")[1].split("\" ")[0].strip()
             lattice = [list(map(float, row.split())) for row in lattice_str.split(" ")]
             cell = [lattice[0] + lattice[1] + lattice[2], lattice[3] + lattice[4] + lattice[5], lattice[6] + lattice[7] + lattice[8]]
-            if "energy=" in content:
-                energy = float(content.split("energy=")[1].split()[0])
+            if "energy=" in comment:
+                energy = float(comment.split("energy=")[1].split()[0])
             else: 
                 energy = None
-            if "virial=" in content:
-                virials = content.split("virial=\"")[1].split("\" ")[0].strip()
+            if "virial=" in comment:
+                virials = comment.split("virial=\"")[1].split("\" ")[0].strip()
                 virials = np.array([float(x) for x in virials.split()]).reshape(3, 3)
                 stress = - virials / np.linalg.det(cell)
             else:
                 stress = None
-            if "comment=" in content:
-                comment = comment.split("comment=")[1].strip()
+            if "config_type=" in comment:
+                config_type = comment.split("config_type=")[1].strip()
             else:
-                comment = None
-            parsed_properties_dict = parsed_properties(content)
+                config_type = None
+            parsed_properties_dict = parsed_properties(comment)
             for _ in range(natoms):
                 line = lines.pop(0)
                 words_in_line = line.split()
@@ -162,7 +162,7 @@ def read_xyz(filename):
                 forces.append(read_force(words_in_line, parsed_properties_dict))
                 velocities.append(read_velocity(words_in_line, parsed_properties_dict))
                 group.append(read_group(words_in_line, parsed_properties_dict))
-            frames.append(Atoms(symbols=symbols, positions=positions, masses=masses, cell=cell, pbc=pbc, info={'energy': energy, 'stress': stress, 'forces': forces, 'velocities': velocities, 'group': group, 'comment': comment}))
+            frames.append(Atoms(symbols=symbols, positions=positions, masses=masses, cell=cell, pbc=pbc, info={'energy': energy, 'stress': stress, 'forces': forces, 'velocities': velocities, 'group': group, 'config_type': config_type}))
     return frames
 
 def plot_e(ed, er, lim=None, symbol=None):
