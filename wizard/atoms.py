@@ -197,6 +197,3 @@ class Morph():
     
     def get_potential_energy(self):
         return self.atoms.get_potential_energy()
-    
-    
-     
