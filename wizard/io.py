@@ -30,7 +30,7 @@ def dump_xyz(filename, atoms):
         Out_string += str(int(len(atoms))) + "\n"
         Out_string += "pbc=\"" + " ".join(["T" if pbc_value else "F" for pbc_value in atoms.get_pbc()]) + "\" "
         Out_string += "Lattice=\"" + " ".join(list(map(str, atoms.get_cell().reshape(-1)))) + "\" "
-        if atoms.info['energy'] is not None:
+        if 'energy' in atoms.info and atoms.info['energy'] is not None:
             Out_string += " energy=" + str(atoms.info['energy']) + " "
         if valid_keys['stress']:
             if len(atoms.info['stress']) == 6:
@@ -45,7 +45,7 @@ def dump_xyz(filename, atoms):
             Out_string += ":force:R:3"
         if valid_keys['group']:
             Out_string += ":group:I:1"
-        if atoms.info['comment'] is not None:
+        if 'comment' in atoms.info and atoms.info['comment'] is not None:
             Out_string += " comment= "+ atoms.info['comment']
         Out_string += "\n"
         for atom in atoms:
