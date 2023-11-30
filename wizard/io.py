@@ -132,7 +132,7 @@ def read_xyz(filename):
             content = lines.pop(0).lower()
             if "pbc=\"" in content:
                 pbc_str = content.split("pbc=\"")[1].split("\"")[0].strip()
-                pbc = [True if pbc_value == "T" else False for pbc_value in pbc_str.split()]
+                pbc = [True if pbc_value == "t" else False for pbc_value in pbc_str.split()]
             else:
                 pbc = [True, True, True]
             lattice_str = content.split("lattice=\"")[1].split("\" ")[0].strip()
