@@ -87,7 +87,7 @@ class Morph():
         random.shuffle(s)
         atoms.set_chemical_symbols(s)
 
-    def prop_element_set(self, symbols):
+    def prop_element_set(self, symbols = []):
         atoms = self.atoms
         n_atoms = len(atoms)
         n_sym = len(symbols)
