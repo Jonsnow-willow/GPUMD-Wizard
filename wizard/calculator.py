@@ -731,7 +731,7 @@ class MaterialCalculator():
             print(f' {self.symbol:<7}Migration_Energy_Vacancy: {migration_energy:.4f} eV', file=f)
         plt.plot(np.linspace(0, 1, len(energies)), energies, marker='o', label=f'{self.symbol}')  
         plt.legend()
-        plt.savefig(f'migration_vacancy.png')
+        plt.savefig(f'{self.symbol}_migration_vacancy.png')
         plt.close()
         return energies
     
