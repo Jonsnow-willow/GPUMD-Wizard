@@ -68,14 +68,14 @@ class Morph():
         os.system('gpumd')
         os.chdir(original_directory)
 
-    def set_pka(self, energy, angle, index = 0):
+    def set_pka(self, energy, direction, index = 0):
         atoms = self.atoms
         if atoms.info['velocities'] is None:
             raise ValueError('The velocities of atoms are not set.')
         mass = atoms[index].mass
-        vx = pow(2 * energy / mass , 0.5) * angle[0] / pow(np.sum(angle ** 2), 0.5) / 10.18
-        vy = pow(2 * energy / mass , 0.5) * angle[1] / pow(np.sum(angle ** 2), 0.5) / 10.18
-        vz = pow(2 * energy / mass , 0.5) * angle[2] / pow(np.sum(angle ** 2), 0.5) / 10.18
+        vx = pow(2 * energy / mass , 0.5) * direction[0] / pow(np.sum(direction ** 2), 0.5) / 10.18
+        vy = pow(2 * energy / mass , 0.5) * direction[1] / pow(np.sum(direction ** 2), 0.5) / 10.18
+        vz = pow(2 * energy / mass , 0.5) * direction[2] / pow(np.sum(direction ** 2), 0.5) / 10.18
         delta_momentum = (np.array(atoms.info['velocities'][index]) - np.array([vx, vy, vz])) * mass / (len(atoms) - 1)
         for i in range(len(atoms)):
             atoms.info['velocities'][i] += delta_momentum / atoms[i].mass
