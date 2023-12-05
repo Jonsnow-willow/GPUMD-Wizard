@@ -366,6 +366,8 @@ def plot_band_structure(atoms, symbol=None):
         plt.savefig('phono.png')
     else:
         plt.savefig(f'{symbol}_phono.png')
+    
+    plt.close()
     return axs
 
 def Prediction():
