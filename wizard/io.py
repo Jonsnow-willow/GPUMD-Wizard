@@ -91,13 +91,14 @@ def read_mass(words_in_line, parsed_properties):
         return None
 
 def read_force(words_in_line, parsed_properties):
-    if 'forces' in parsed_properties:
-        force_slice = parsed_properties['forces']
+    force_key = 'forces' if 'forces' in parsed_properties else 'force'
+    if force_key in parsed_properties:
+        force_slice = parsed_properties[force_key]
         force = words_in_line[force_slice]
         return [float(force[0]), float(force[1]), float(force[2])]
     else:
         return None
-
+    
 def read_group(words_in_line, parsed_properties):
     if 'group' in parsed_properties:
         group_slice = parsed_properties['group']
