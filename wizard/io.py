@@ -165,11 +165,11 @@ def read_xyz(filename):
             frames.append(Atoms(symbols=symbols, positions=positions, masses=masses, cell=cell, pbc=pbc, info={'energy': energy, 'stress': stress, 'forces': forces, 'velocities': velocities, 'group': group, 'config_type': config_type}))
     return frames
 
-def plot_e(ed, er, lim=None, symbol=None):
+def plot_e(ed, en, lim=None, symbol=None):
     fig = plt.figure()
     plt.title("NEP energy vs DFT energy", fontsize=16)
     ed = ed - np.mean(ed)
-    er = er - np.mean(er)
+    en = en - np.mean(en)
     ax = plt.gca()
     ax.set_aspect(1)
     xmajorLocator = ticker.MaxNLocator(5)
@@ -194,10 +194,10 @@ def plot_e(ed, er, lim=None, symbol=None):
     
     plt.plot([np.min(ed), np.max(ed)], [np.min(ed), np.max(ed)],
             color='black',linewidth=3,linestyle='--',)
-    plt.scatter(ed, er, zorder=200)
+    plt.scatter(ed, en, zorder=200)
     
-    m1 = min(np.min(ed), np.min(er))
-    m2 = max(np.max(ed), np.max(er))
+    m1 = min(np.min(ed), np.min(en))
+    m2 = max(np.max(ed), np.max(en))
     if lim is not None:
         m1 = lim[0]
         m2 = lim[1]
@@ -207,9 +207,9 @@ def plot_e(ed, er, lim=None, symbol=None):
     ax.set_xlim(m1, m2)
     ax.set_ylim(m1, m2)
 
-    rmse = np.sqrt(np.mean((ed-er)**2))
+    rmse = np.sqrt(np.mean((ed-en)**2))
     plt.text(np.min(ed) * 0.85 + np.max(ed) * 0.15, 
-             np.min(er) * 0.15 + np.max(ed) * 0.85,
+             np.min(en) * 0.15 + np.max(ed) * 0.85,
              "RMSE: {:.3f} eV/atom".format(rmse), fontsize=14)
     if symbol is None:
         plt.savefig('e.png')
@@ -217,7 +217,7 @@ def plot_e(ed, er, lim=None, symbol=None):
         plt.savefig(f'{symbol}_e.png')
     return fig
 
-def plot_f(fd, fr, lim=None, symbol=None):
+def plot_f(fd, fn, lim=None, symbol=None):
     fig = plt.figure()
     ax = plt.gca()
     plt.title("NEP forces vs DFT forces", fontsize=16)
@@ -243,23 +243,23 @@ def plot_f(fd, fr, lim=None, symbol=None):
     ax.tick_params(labelsize=14)
 
     ax.set_xlim(np.min(fd), np.max(fd))
-    ax.set_ylim(np.min(fr), np.max(fr))
+    ax.set_ylim(np.min(fn), np.max(fn))
 
     plt.plot([np.min(fd), np.max(fd)], [np.min(fd), np.max(fd)],
             color='black',linewidth=2,linestyle='--')
-    plt.scatter(fd.reshape(-1), fr.reshape(-1), s=2)
+    plt.scatter(fd.reshape(-1), fn.reshape(-1), s=2)
 
-    m1 = min(np.min(fd), np.min(fr))
-    m2 = max(np.max(fd), np.max(fr))
+    m1 = min(np.min(fd), np.min(fn))
+    m2 = max(np.max(fd), np.max(fn))
     if lim is not None:
         m1 = lim[0]
         m2 = lim[1]
     ax.set_xlim(m1, m2)
     ax.set_ylim(m1, m2)
 
-    rmse = np.sqrt(np.mean((fd-fr)**2))
+    rmse = np.sqrt(np.mean((fd-fn)**2))
     plt.text(np.min(fd) * 0.85 + np.max(fd) * 0.15, 
-             np.min(fr) * 0.15 + np.max(fr) * 0.85,
+             np.min(fn) * 0.15 + np.max(fn) * 0.85,
              "RMSE: {:.3f} eV/A".format(rmse), fontsize=14)
     if symbol is None:
         plt.savefig('f.png')
@@ -267,7 +267,7 @@ def plot_f(fd, fr, lim=None, symbol=None):
         plt.savefig(f'{symbol}_f.png')
     return fig
 
-def plot_v(vd, vr, lim=None, symbol=None):
+def plot_v(vd, vn, lim=None, symbol=None):
     fig = plt.figure()
     plt.title("NEP virial vs DFT virial", fontsize=16)
     ax = plt.gca()
@@ -291,13 +291,16 @@ def plot_v(vd, vr, lim=None, symbol=None):
     ax.spines['top'].set_linewidth(3)    
     ax.tick_params(labelsize=16)
 
-    
+    idx = np.where(vn == -10**6)[0]  
+    vd = np.delete(vd, idx) 
+    vn = np.delete(vn, idx)
+
     plt.plot([np.min(vd), np.max(vd)], [np.min(vd), np.max(vd)],
             color='black',linewidth=3,linestyle='--',)
-    plt.scatter(vd, vr, zorder=200)
+    plt.scatter(vd, vn, zorder=200)
     
-    m1 = min(np.min(vd), np.min(vr))
-    m2 = max(np.max(vd), np.max(vr))
+    m1 = min(np.min(vd), np.min(vn))
+    m2 = max(np.max(vd), np.max(vn))
     if lim is not None:
         m1 = lim[0]
         m2 = lim[1]
@@ -307,9 +310,9 @@ def plot_v(vd, vr, lim=None, symbol=None):
     ax.set_xlim(m1, m2)
     ax.set_ylim(m1, m2)
 
-    rmse = np.sqrt(np.mean((vd-vr)**2))
+    rmse = np.sqrt(np.mean((vd-vn)**2))
     plt.text(np.min(vd) * 0.85 + np.max(vd) * 0.15, 
-             np.min(vr) * 0.15 + np.max(vd) * 0.85,
+             np.min(vn) * 0.15 + np.max(vd) * 0.85,
              "RMSE: {:.3f} eV/atom".format(rmse), fontsize=14)
     if symbol is None:
         plt.savefig('v.png')
