@@ -136,7 +136,7 @@ def read_xyz(filename):
                 pbc = [True if pbc_value == "t" else False for pbc_value in pbc_str.split()]
             else:
                 pbc = [True, True, True]
-            lattice_str = comment.split("lattice=\"")[1].split("\" ")[0].strip()
+            lattice_str = comment.split("lattice=\"")[1].split("\"")[0].strip()
             lattice = [list(map(float, row.split())) for row in lattice_str.split(" ")]
             cell = [lattice[0] + lattice[1] + lattice[2], lattice[3] + lattice[4] + lattice[5], lattice[6] + lattice[7] + lattice[8]]
             if "energy=" in comment:
@@ -144,7 +144,7 @@ def read_xyz(filename):
             else: 
                 energy = None
             if "virial=" in comment:
-                virials = comment.split("virial=\"")[1].split("\" ")[0].strip()
+                virials = comment.split("virial=\"")[1].split("\"")[0].strip()
                 virials = np.array([float(x) for x in virials.split()]).reshape(3, 3)
                 stress = - virials / np.linalg.det(cell)
             else:
