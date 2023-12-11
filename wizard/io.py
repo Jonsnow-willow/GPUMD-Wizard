@@ -187,13 +187,13 @@ def read_restart(filename):
         if "group" in comment:
             for _ in range(natoms):
                 line = f.readline()
-                symbol, x, y, z, mass, vx, vy, vz, g= line.split()[:9]
+                symbol, x, y, z, mass, vx, vy, vz, group_info= line.split()[:9]
                 symbol = symbol.lower().capitalize()
                 symbols.append(symbol)
                 positions.append([float(x), float(y), float(z)])
                 velocities.append([float(vx), float(vy), float(vz)])
                 masses.append(mass)
-                group.append(g)      
+                group.append(group_info)      
             atoms = Atoms(symbols=symbols, positions=positions, masses=masses, cell=cell, pbc=pbc, info={'velocities': velocities, 'group': group})
         else:
             for _ in range(natoms):
