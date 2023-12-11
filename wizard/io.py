@@ -169,7 +169,6 @@ def read_xyz(filename):
 def read_restart(filename):
     with open(filename) as f:
         lines = f.readlines()
-        frames = []
         while lines:
             symbols = []
             positions = []
