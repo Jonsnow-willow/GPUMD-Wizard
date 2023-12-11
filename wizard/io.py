@@ -167,45 +167,44 @@ def read_xyz(filename):
     return frames
 
 def read_restart(filename):
-    with open(filename) as f:
-        lines = f.readlines()
-        while lines:
-            symbols = []
-            positions = []
-            masses = []
-            velocities = []
-            group = []
-            natoms = int(lines.pop(0))
-            comment = lines.pop(0)  # Comment line; ignored
-            if "pbc=\"" in comment:
-                pbc_str = comment.split("pbc=\"")[1].split("\"")[0].strip()
-                pbc = [True if pbc_value == "T" else False for pbc_value in pbc_str.split()]
-            else:
-                pbc = [True, True, True]
-            lattice_str = comment.split("Lattice=\"")[1].split("\" ")[0].strip()
-            lattice = [list(map(float, row.split())) for row in lattice_str.split(" ")]
-            cell = [lattice[0] + lattice[1] + lattice[2], lattice[3] + lattice[4] + lattice[5], lattice[6] + lattice[7] + lattice[8]]
-            if "group" in comment:
-                for _ in range(natoms):
-                    line = lines.pop(0)
-                    symbol, x, y, z , mass , vx, vy, vz, g= line.split()[:9]
-                    symbol = symbol.lower().capitalize()
-                    symbols.append(symbol)
-                    positions.append([float(x), float(y), float(z)])
-                    velocities.append([float(vx), float(vy), float(vz)])
-                    masses.append(mass)
-                    group.append(g)
-                atoms = Atoms(symbols=symbols, positions=positions, masses=masses, cell=cell, pbc=pbc, info={'velocities': velocities, 'group': group})
-            else:
-                for _ in range(natoms):
-                    line = lines.pop(0)
-                    symbol, x, y, z , mass , vx, vy, vz= line.split()[:8]
-                    symbol = symbol.lower().capitalize()
-                    symbols.append(symbol)
-                    positions.append([float(x), float(y), float(z)])
-                    velocities.append([float(vx), float(vy), float(vz)])
-                    masses.append(mass)
-                atoms = Atoms(symbols=symbols, positions=positions, masses=masses, cell=cell, pbc=pbc, info={'velocities': velocities})
+    with open(filename, 'r') as f:
+        line = f.readline()
+        natoms = int(line.split(' ')[0])
+        symbols = []
+        positions = []
+        masses = []
+        velocities = []
+        group = []
+        comment = f.readline()  
+        if "pbc=\"" in comment:
+            pbc_str = comment.split("pbc=\"")[1].split("\"")[0].strip()
+            pbc = [True if pbc_value == "T" else False for pbc_value in pbc_str.split()]
+        else:
+            pbc = [True, True, True]
+        lattice_str = comment.split("Lattice=\"")[1].split("\"")[0].strip()
+        lattice = [list(map(float, row.split())) for row in lattice_str.split(" ")]
+        cell = [lattice[0] + lattice[1] + lattice[2], lattice[3] + lattice[4] + lattice[5], lattice[6] + lattice[7] + lattice[8]]
+        if "group" in comment:
+            for _ in range(natoms):
+                line = f.readline()
+                symbol, x, y, z, mass, vx, vy, vz, g= line.split()[:9]
+                symbol = symbol.lower().capitalize()
+                symbols.append(symbol)
+                positions.append([float(x), float(y), float(z)])
+                velocities.append([float(vx), float(vy), float(vz)])
+                masses.append(mass)
+                group.append(g)      
+            atoms = Atoms(symbols=symbols, positions=positions, masses=masses, cell=cell, pbc=pbc, info={'velocities': velocities, 'group': group})
+        else:
+            for _ in range(natoms):
+                line = f.readline()
+                symbol, x, y, z, mass, vx, vy, vz= line.split()[:8]
+                symbol = symbol.lower().capitalize()
+                symbols.append(symbol)
+                positions.append([float(x), float(y), float(z)])
+                velocities.append([float(vx), float(vy), float(vz)])
+                masses.append(mass)  
+            atoms = Atoms(symbols=symbols, positions=positions, masses=masses, cell=cell, pbc=pbc, info={'velocities': velocities})
     return atoms
 
 def plot_e(ed, en, lim=None, symbol=None):
