@@ -701,10 +701,9 @@ class MaterialCalculator():
     def migration_energy_vacancy(self, supercell = (4, 5, 6), fmax = 0.02, steps = 500):
         atoms = self.atoms.copy() * supercell
         initial = atoms.copy()
-        index = get_nth_nearest_neighbor_index(initial, 0, 1)
         del initial[0]
         final = atoms.copy()
-        del final[index]
+        del final[1]
 
         initial.calc = self.calc
         relax(initial)
@@ -713,7 +712,7 @@ class MaterialCalculator():
         final.calc = self.calc
         relax(final, method='ucf')
 
-        images = [initial] + [initial.copy() for i in range(11)] + [final]
+        images = [initial] + [initial.copy() for _ in range(11)] + [final]
         for i in images:
             i.calc = self.calc
         neb = NEB(images, allow_shared_calculator=True)
