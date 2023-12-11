@@ -82,8 +82,9 @@ class Morph():
         vy = pow(2 * energy / mass , 0.5) * direction[1] / pow(np.sum(direction ** 2), 0.5) / 10.18
         vz = pow(2 * energy / mass , 0.5) * direction[2] / pow(np.sum(direction ** 2), 0.5) / 10.18
         delta_momentum = (np.array(atoms.info['velocities'][index]) - np.array([vx, vy, vz])) * mass / (len(atoms) - 1)
-        for i in range(len(atoms)):
-            atoms.info['velocities'][i] += delta_momentum / atoms[i].mass
+        
+        atoms_masses = np.array(atoms.get_masses())
+        atoms.info['velocities'] += delta_momentum / atoms_masses[:, np.newaxis]
         atoms.info['velocities'][index] = [vx, vy, vz]
         
     def shuffle_symbols(self):
