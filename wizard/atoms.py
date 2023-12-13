@@ -4,21 +4,27 @@ from ase.optimize import QuasiNewton, FIRE, LBFGS
 from ase.constraints import ExpCellFilter, FixedLine
 from wizard.io import get_nth_nearest_neighbor_index, dump_xyz, write_run
 import numpy as np
-import os
 import random
+import os
+import re
 
 class SymbolInfo:
     def __init__(self, symbol, structure, *lattice_constant):
         self.symbol = symbol
+        self.symbols = re.findall('[A-Z][a-z]*', symbol)
         self.structure = structure
         self.lattice_constant = lattice_constant
     
-    def create_bulk_atoms(self):
-        symbol, structure, lc = self.symbol, self.structure, self.lattice_constant
+    def create_bulk_atoms(self, supercell = (1, 1, 1)):
+        symbol, structure, lc = self.symbols[0], self.structure, self.lattice_constant
         if structure == 'hcp':
-            atoms = bulk(symbol, structure, a = lc[0], c = lc[1])
+            atoms = bulk(symbol, structure, a = lc[0], c = lc[1]) * supercell
         else:
-            atoms = bulk(symbol, structure, a = lc[0], cubic=True)
+            atoms = bulk(symbol, structure, a = lc[0], cubic=True) * supercell
+        if len(self.symbols) > 1:
+            if len(atoms) < len(self.symbols):
+                raise ValueError('The number of atoms in the unit cell is less than the number of symbols.')
+            Morph(atoms).prop_element_set(self.symbols)
         return atoms
     
 class Morph():
