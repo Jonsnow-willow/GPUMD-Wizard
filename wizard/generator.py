@@ -5,10 +5,6 @@ class Generator:
     def __init__(self, frames):
         self.frames = frames
 
-    def supercell(self, cell = (2, 2, 2)):
-        for atoms in self.frames:
-            atoms *= cell
-
     def deform(self, scale = np.arange(0.95, 1.06, 0.05)):
         frames = []
         for atoms in self.frames:
