@@ -603,7 +603,7 @@ class MaterialCalculator():
         atoms = self.atoms.copy() * supercell
         atoms.calc = self.calc
         systems = get_elementary_deformations(atoms)
-        C, B = get_elastic_tensor(atoms, systems)
+        C, _ = get_elastic_tensor(atoms, systems)
         C = C * 160.21766208 # 1 eV/Å³ to GPa)
         with open('MaterialProperties.out', 'a') as f:
             f.write(f" {self.comment:<7}C11: {C[0]:>7.2f} GPa\n"
