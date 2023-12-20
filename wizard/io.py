@@ -641,7 +641,7 @@ def plot_training_result():
     plt.savefig("train_results.png")
     plt.show()
 
-def plot_force_results(frames, calcs, labels):
+def plot_force_results(frames, calcs, labels = None):
     plt.rcParams["figure.figsize"] = (12, 6)
     plt.rcParams.update({"font.size": 10, "text.usetex": False})
     fig, axes = plt.subplots(1, 2)
@@ -649,6 +649,8 @@ def plot_force_results(frames, calcs, labels):
     
     print(len(frames))
     label_colors = {}
+    if labels is None:
+        labels = [str(i) for i in range(len(calcs))]
     for calc, label in zip(calcs, labels):
         e_1, e_2, f_1, f_2 = [], [], [], []
         for atoms in frames:
