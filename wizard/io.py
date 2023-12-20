@@ -646,8 +646,9 @@ def plot_force_results(frames, calcs, labels = None):
     plt.rcParams.update({"font.size": 10, "text.usetex": False})
     fig, axes = plt.subplots(1, 2)
     cmap = plt.get_cmap("tab10")
-    
-    print(len(frames))
+  
+    print(len(frames), '\n')  
+
     label_colors = {}
     if labels is None:
         labels = [str(i) for i in range(len(calcs))]
