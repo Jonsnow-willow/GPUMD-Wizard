@@ -1,4 +1,6 @@
+from wizard.io import dump_xyz
 import numpy as np
+import random
 
 class Generator:
 
@@ -31,3 +33,13 @@ class Generator:
             atoms_copy.positions += np.random.uniform(-max_displacement, max_displacement, atoms_copy.positions.shape)
             frames.append(atoms_copy)
         return frames
+    
+    def shuffle_symbols(self):
+        for atoms in self.frames:
+            s = atoms.get_chemical_symbols()
+            random.shuffle(s)
+            atoms.set_chemical_symbols(s)
+
+    def dump_sequence(self, filename):
+        for atoms in self.frames:
+            dump_xyz(filename, atoms)
