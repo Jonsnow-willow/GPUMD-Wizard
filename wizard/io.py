@@ -693,5 +693,6 @@ def plot_force_results(frames, calcs, labels = None):
 
     handles = [plt.Line2D([0], [0], color=color, marker='o', linestyle='') for label, color in label_colors.items()]
     plt.legend(handles, label_colors.keys())
-    plt.close()
     plt.savefig("force_results.png")
+    plt.show()
+    plt.close()
