@@ -493,6 +493,8 @@ def relax(atoms, fmax = 0.01, steps = 500, model = 'qn', method = 'hydro'):
         ucf = ExpCellFilter(atoms, scalar_pressure=0.0, hydrostatic_strain=True) 
     elif method == 'ucf':
         ucf = atoms
+    elif method == 'no_opt':
+        return
     else:
         raise ValueError('Invalid relaxation method.')
     
@@ -502,8 +504,6 @@ def relax(atoms, fmax = 0.01, steps = 500, model = 'qn', method = 'hydro'):
         dyn = LBFGS(ucf)
     elif model == 'fire':
         dyn = FIRE(ucf)
-    elif model == 'no_opt':
-        return
     else:
         raise ValueError('Invalid optimization model.')
     
