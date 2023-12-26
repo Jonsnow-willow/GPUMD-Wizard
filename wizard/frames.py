@@ -1,3 +1,4 @@
+from wizard.io import dump_xyz
 import numpy as np 
 import random 
 
@@ -112,3 +113,40 @@ class MultiMol():
                     dft_force.append(atoms.info['forces'][atom.index])
                     calc_force.append(atoms.get_forces()[atom.index])
         return np.array([dft_force, calc_force])
+
+    def deform(self, scale = np.arange(0.95, 1.06, 0.05)):
+        frames = []
+        for atoms in self.frames:
+            for s in scale:
+                atoms_copy = atoms.copy()
+                atoms_copy.set_cell(atoms.get_cell() * s, scale_atoms=True)
+                frames.append(atoms_copy)
+        return frames
+    
+    def random_strain(self, ratio = 0.04):
+        frames = []
+        for atoms in self.frames:
+            atoms_copy = atoms.copy()
+            strain_matrix = np.eye(3) + 2 * ratio * (np.random.random((3,3)) - 0.5)
+            new_cell = np.dot(atoms.get_cell(), strain_matrix)
+            atoms_copy.set_cell(new_cell, scale_atoms=True)
+            frames.append(atoms_copy)
+        return frames
+    
+    def random_displacement(self, max_displacement = 0.4):
+        frames = []
+        for atoms in self.frames:
+            atoms_copy = atoms.copy()
+            atoms_copy.positions += np.random.uniform(-max_displacement, max_displacement, atoms_copy.positions.shape)
+            frames.append(atoms_copy)
+        return frames
+    
+    def shuffle_symbols(self):
+        for atoms in self.frames:
+            s = atoms.get_chemical_symbols()
+            random.shuffle(s)
+            atoms.set_chemical_symbols(s)
+
+    def dump_sequence(self, filename):
+        for atoms in self.frames:
+            dump_xyz(filename, atoms)
