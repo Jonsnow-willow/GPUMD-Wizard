@@ -74,14 +74,19 @@ class Morph():
         os.system('gpumd')
         os.chdir(original_directory)
 
-    def set_pka(self, energy, direction, index = None):
+    def set_pka(self, energy, direction, index = None, symbol = None):
         atoms = self.atoms
         if atoms.info['velocities'] is None:
             raise ValueError('The velocities of atoms are not set.')
         
         if index is None:
-            center = np.diag(atoms.get_cell()) / 2.0
-            index = np.argmin(np.sum((atoms.positions - center)**2, axis=1))
+            if symbol is None:
+                center = np.diag(atoms.get_cell()) / 2.0
+                index = np.argmin(np.sum((atoms.positions - center)**2, axis=1))
+            else:
+                element_indices = [i for i, atom in enumerate(atoms) if atom.symbol == symbol]
+                element_positions = atoms.positions[element_indices]
+                index = element_indices[np.argmin(np.sum((element_positions - center)**2, axis=1))]
 
         mass = atoms[index].mass
         vx = pow(2 * energy / mass , 0.5) * direction[0] / pow(np.sum(direction ** 2), 0.5) / 10.18
