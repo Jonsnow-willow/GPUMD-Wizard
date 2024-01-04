@@ -119,18 +119,20 @@ def read_xyz(filename):
     """
     Read the atomic positions and other information from a file in XYZ format.
     """
+    frames = []
     with open(filename) as f:
-        lines = f.readlines()
-        frames = []
-        while lines:
+        while True:
+            line = f.readline()
+            if not line:
+                break
             symbols = []
             positions = []
             masses = []
             forces = []
             velocities = []
             group = []
-            natoms = int(lines.pop(0))
-            comment = lines.pop(0).lower()
+            natoms = int(line.strip())
+            comment = f.readline().lower().strip()
             if "pbc=\"" in comment:
                 pbc_str = comment.split("pbc=\"")[1].split("\"")[0].strip()
                 pbc = [True if pbc_value == "t" else False for pbc_value in pbc_str.split()]
@@ -155,7 +157,7 @@ def read_xyz(filename):
                 config_type = None
             parsed_properties_dict = parsed_properties(comment)
             for _ in range(natoms):
-                line = lines.pop(0)
+                line = f.readline()
                 words_in_line = line.split()
                 symbols.append(read_symbols(words_in_line, parsed_properties_dict))
                 positions.append(read_positions(words_in_line, parsed_properties_dict))
