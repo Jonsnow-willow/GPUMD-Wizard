@@ -26,9 +26,9 @@ def main():
     for symbol_info in symbol_infos:
         atoms = symbol_info.create_bulk_atoms()
         cmds = ["pair_style eam/alloy",
-                "pair_coeff * * potentials/" + symbol_info.symbol + ".eam.alloy " + symbol_info.symbol]
-        calc = LAMMPSlib(lmpcmds=cmds, log_file='log.' + symbol_info.symbol, keep_alive=True)
-        material_calculator = MaterialCalculator(atoms, calc, symbol_info.symbol, symbol_info.structure)
+                "pair_coeff * * potentials/" + symbol_info.formula + ".eam.alloy " + symbol_info.formula]
+        calc = LAMMPSlib(lmpcmds=cmds, log_file='log.' + symbol_info.formula, keep_alive=True)
+        material_calculator = MaterialCalculator(atoms, calc, symbol_info.formula, symbol_info.structure)
         material_calculator.lattice_constant()
         material_calculator.eos_curve()
         material_calculator.elastic_constant()
