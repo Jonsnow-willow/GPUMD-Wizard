@@ -10,7 +10,7 @@ def main():
     sia_vectors = [(1,1,1),(1,0,0),(1,1,0)]
     nths = [1,2,3]
     atoms = symbol_info.create_bulk_atoms()
-    material_calculator = MaterialCalculator(atoms, calc, symbol_info.symbol, symbol_info.structure)
+    material_calculator = MaterialCalculator(atoms, calc, symbol_info.formula, symbol_info.structure)
     material_calculator.lattice_constant()
     material_calculator.elastic_constant()
     material_calculator.eos_curve()
