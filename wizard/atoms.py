@@ -7,13 +7,18 @@ import numpy as np
 import random
 import os
 import re
+import math
 
 class SymbolInfo:
-    def __init__(self, symbol, structure, *lattice_constant):
-        self.symbol = symbol
-        self.symbols = re.findall('[A-Z][a-z]*', symbol)
+    def __init__(self, formula, structure, *lattice_constant):
+        self.formula = formula
         self.structure = structure
         self.lattice_constant = lattice_constant
+        self.symbols = []
+        self.compositions = []
+        for symbol, composition in re.findall('([A-Z][a-z]*)(\d*)', formula):
+            self.symbols.append(symbol)
+            self.compositions.append(int(composition) if composition else 1)
     
     def create_bulk_atoms(self, supercell = (1, 1, 1)):
         symbol, structure, lc = self.symbols[0], self.structure, self.lattice_constant
@@ -22,9 +27,13 @@ class SymbolInfo:
         else:
             atoms = bulk(symbol, structure, a = lc[0], cubic=True) * supercell
         if len(self.symbols) > 1:
-            if len(atoms) < len(self.symbols):
+            if len(atoms) < sum(self.compositions):
                 raise ValueError('The number of atoms in the unit cell is less than the number of symbols.')
-            Morph(atoms).prop_element_set(self.symbols)
+            element_ratio = np.array(self.compositions) / sum(self.compositions)
+            symbols = [symbol for i, symbol in enumerate(self.symbols) for _ in range(math.ceil(element_ratio[i] * len(atoms)))]
+            symbols = symbols[:len(atoms)]
+            random.shuffle(symbols)
+            atoms.set_chemical_symbols(symbols)
         return atoms
     
 class Morph():
