@@ -8,7 +8,6 @@ mpl.use('Agg')
 import matplotlib.pyplot as plt 
 import matplotlib.ticker as ticker 
 import numpy as np
-import os
 import random
 
 def write_run(parameters):
