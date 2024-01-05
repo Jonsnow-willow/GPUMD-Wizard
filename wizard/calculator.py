@@ -701,6 +701,8 @@ class MaterialCalculator():
 
     def migration_energy_vacancy(self, supercell = (4, 5, 6), fmax = 0.02, steps = 500):
         atoms = self.atoms.copy() * supercell
+        symbol = atoms[0].symbol
+        atoms[1].symbol = symbol
         initial = atoms.copy()
         del initial[0]
         final = atoms.copy()
@@ -728,10 +730,10 @@ class MaterialCalculator():
         for image in images:
             dump_xyz('MaterialProperties.xyz', image)  
         with open('MaterialProperties.out', 'a') as f:
-            print(f' {self.comment:<7}Migration_Energy_Vacancy: {migration_energy:.4f} eV', file=f)
+            print(f' {self.comment:<7}Migration_Energy_({symbol}-Vacancy): {migration_energy:.4f} eV', file=f)
         plt.plot(np.linspace(0, 1, len(energies)), energies, marker='o', label=f'{self.comment}')  
         plt.legend()
-        plt.savefig(f'{self.comment}_migration_vacancy.png')
+        plt.savefig(f'{self.comment}_migration_{symbol}_vacancy.png')
         plt.close()
         return energies
     
