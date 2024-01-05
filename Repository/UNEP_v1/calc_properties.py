@@ -26,7 +26,7 @@ def main():
     for symbol_info in symbol_infos:
         atoms = symbol_info.create_bulk_atoms()
         calc = NEP('nep.txt')
-        material_calculator = MaterialCalculator(atoms, calc, symbol_info.symbol, symbol_info.structure)
+        material_calculator = MaterialCalculator(atoms, calc, symbol_info.formula, symbol_info.structure)
         material_calculator.lattice_constant()
         material_calculator.eos_curve()
         material_calculator.elastic_constant()
