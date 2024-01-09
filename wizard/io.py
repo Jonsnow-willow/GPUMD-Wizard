@@ -46,6 +46,8 @@ def dump_xyz(filename, atoms):
             Out_string += ":group:I:1"
         if 'config_type' in atoms.info and atoms.info['config_type'] is not None:
             Out_string += " config_type="+ atoms.info['config_type']
+        if 'weight' in atoms.info and atoms.info['weight'] is not None:
+            Out_string += " weight="+ str(atoms.info['weight'])
         Out_string += "\n"
         for atom in atoms:
             Out_string += '{:2} {:>15.8e} {:>15.8e} {:>15.8e} {:>15.8e}'.format(atom.symbol, *atom.position, atom.mass)
