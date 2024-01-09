@@ -580,15 +580,15 @@ def plot_thermo_out(filenames, column=2, num=1):
     plt.savefig('thermo.png')
     return thermo
 
-def plot_training_result():
+def plot_training_result(dirname = '', type = 'train'):
     plt.rcParams["figure.figsize"] = (6, 6)
     plt.rcParams.update({"font.size": 10, "text.usetex": False})
     fig, axes = plt.subplots(2, 2)
 
-    loss = np.loadtxt("loss.out")
-    energy = np.loadtxt("energy_train.out")
-    force = np.loadtxt("force_train.out")
-    virial_initial = np.loadtxt("virial_train.out")
+    loss = np.loadtxt(dirname + "loss.out")
+    energy = np.loadtxt(dirname + "energy_" + type + ".out")
+    force = np.loadtxt(dirname + "force_" + type + ".out")
+    virial_initial = np.loadtxt(dirname + "virial_" + type + ".out")
     virial= virial_initial[np.logical_not(np.any(virial_initial == -1e6, axis=1))]
     loss = loss[:, 2:7]
 
@@ -624,7 +624,9 @@ def plot_training_result():
     axes[1, 0].set_xlim(x_min, x_max)
     axes[1, 0].set_ylim(y_min, y_max)
 
-    axes[1, 1].plot(virial[:, 0:6], virial[:, 6:12], ".", markersize=10, color=[0, 0.45, 0.74])
+    cols = virial.shape[1]
+    half = cols // 2
+    axes[1, 1].plot(virial[:, :half], virial[:, half:], ".", markersize=10, color=[0, 0.45, 0.74])
     axes[1, 1].plot(axes[1, 1].get_xlim(), axes[1, 1].get_xlim(), linewidth=2, color=[0.85, 0.33, 0.1])
     axes[1, 1].annotate("(d)", xy=(0.0, 1.1), xycoords="axes fraction", va="top", ha="right")
     axes[1, 1].set_xlabel("DFT virial (eV/atom)")
