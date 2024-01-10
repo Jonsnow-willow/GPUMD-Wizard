@@ -30,10 +30,10 @@ class SymbolInfo:
             if len(atoms) < sum(self.compositions):
                 raise ValueError('The number of atoms in the unit cell is less than the number of symbols.')
             element_ratio = np.array(self.compositions) / sum(self.compositions)
-            symbols = [symbol for i, symbol in enumerate(self.symbols) for _ in range(math.ceil(element_ratio[i] * len(atoms)))]
-            symbols = symbols[:len(atoms)]
-            random.shuffle(symbols)
-            atoms.set_chemical_symbols(symbols)
+            element_counts = np.ceil(element_ratio * len(atoms)).astype(int)
+            symbols = np.repeat(self.symbols, element_counts)
+            np.random.shuffle(symbols)
+            atoms.set_chemical_symbols(symbols[:len(atoms)])
         return atoms
     
 class Morph():
