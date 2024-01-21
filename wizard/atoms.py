@@ -107,6 +107,18 @@ class Morph():
         atoms.info['velocities'] += delta_momentum / atoms_masses[:, np.newaxis]
         atoms.info['velocities'][index] = [vx, vy, vz]
         
+    def velocity(self, vx, vy, vz, group = 0):
+        atoms = self.atoms
+        if atoms.info['velocities'] is None:
+            raise ValueError('The velocities of atoms are not set.')
+        for index in range(len(atoms)):
+            if int(atoms.info['group'][index]) == group:
+                atoms.info['velocities'][index] = [vx, vy, vz]
+        
+        atoms_masses = np.array(atoms.get_masses())
+        momentum = np.sum(atoms.info['velocities'] * atoms_masses[:, np.newaxis], axis=0) / len(atoms)
+        atoms.info['velocities'] -= momentum / atoms_masses[:, np.newaxis]
+    
     def shuffle_symbols(self):
         atoms = self.atoms
         s = atoms.get_chemical_symbols()
