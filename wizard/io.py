@@ -646,7 +646,7 @@ def plot_training_result(dirname = '', type = 'train'):
     plt.savefig("train_results.png")
     plt.show()
 
-def plot_force_results(frames, calcs, labels = None):
+def plot_force_results(frames, calcs, labels = None, e_val = [None, None], f_val = [None, None]):
     plt.rcParams["figure.figsize"] = (12, 6)
     plt.rcParams.update({"font.size": 10, "text.usetex": False})
     fig, axes = plt.subplots(1, 2)
@@ -691,6 +691,12 @@ def plot_force_results(frames, calcs, labels = None):
     max_val = max(x_max, y_max)
     axes[1].plot([min_val, max_val], [min_val, max_val], 'k--')
     
+    if e_val[0] is not None and e_val[1] is not None:
+        axes[0].set_xlim(e_val)
+        axes[0].set_ylim(e_val)
+    if f_val[0] is not None and f_val[1] is not None:
+        axes[1].set_xlim(f_val)
+        axes[1].set_ylim(f_val)
     axes[0].set_xlabel("DFT energy (eV/atom)")
     axes[0].set_ylabel("NEP energy (eV/atom)")
     axes[1].set_xlabel("DFT force (eV/Å)")
