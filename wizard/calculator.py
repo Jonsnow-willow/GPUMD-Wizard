@@ -592,25 +592,30 @@ class MaterialCalculator():
         dump_xyz('MaterialProperties.xyz', atoms)
         with open('MaterialProperties.out', "a") as f:
             if self.structure == 'hcp':
-                f.write(f" {self.comment:<7}Lattice_Constants: a: {cell_lengths[0]:.4f} A    c: {cell_lengths[2]:.4f} A\n" 
-                        f"{'':<8}Coherent Energy: {atom_energy:.4f} eV\n")
+                f.write(f" {self.comment:<10}Lattice_Constants: a: {cell_lengths[0]:.4f} A    c: {cell_lengths[2]:.4f} A\n" 
+                        f"{'':<11}Coherent Energy: {atom_energy:.4f} eV\n")
             else:
-                f.write(f" {self.comment:<7}Lattice_Constants: {round(sum(cell_lengths[:3])/3, 3):.4f} A\n" 
-                        f"{'':<8}Coherent Energy: {atom_energy:.4f} eV\n")
+                f.write(f" {self.comment:<10}Lattice_Constants: {round(sum(cell_lengths[:3])/3, 3):.4f} A\n" 
+                        f"{'':<11}Coherent Energy: {atom_energy:.4f} eV\n")
         return atom_energy, cell_lengths
     
     def elastic_constant(self, supercell = (3, 3, 3)):
         atoms = self.atoms.copy() * supercell
+        Morph(atoms).shuffle_symbols()
         atoms.calc = self.calc
         systems = get_elementary_deformations(atoms)
-        C, _ = get_elastic_tensor(atoms, systems)
-        C = C * 160.21766208 # 1 eV/Å³ to GPa)
+        Cij, _ = get_elastic_tensor(atoms, systems)
+        Cij = Cij * 160.21766208 # 1 eV/Å³ to GPa)
         with open('MaterialProperties.out', 'a') as f:
-            f.write(f" {self.comment:<7}C11: {C[0]:>7.2f} GPa\n"
-                    f"{'':<8}C12: {C[1]:>7.2f} GPa\n"
-                    f"{'':<8}C14: {C[2]:>7.2f} GPa\n"
-                    f"{'':<8}B:   {(C[0] + 2 * C[1])/ 3:>7.2f} GPa\n")
-        return (C[0] + 2 * C[1])/ 3
+            if len(Cij) == 3:
+                f.write(f" {self.comment:<10}C11: {Cij[0]:>7.2f} GPa\n"
+                        f"{'':<11}C12: {Cij[1]:>7.2f} GPa\n"
+                        f"{'':<11}C14: {Cij[2]:>7.2f} GPa\n")
+            else:
+                f.write(f" {self.comment:<10}C11: {(Cij[0]+ Cij[1]+Cij[2])/3:>7.2f} GPa\n"
+                        f"{'':<11}C12: {(Cij[3]+ Cij[4]+Cij[5])/3:>7.2f} GPa\n"
+                        f"{'':<11}C44: {(Cij[6]+ Cij[7]+Cij[8])/3:>7.2f} GPa\n")
+        return Cij
     
     def young_modulus(self, supercell = (3, 3, 3)):
         atoms = self.atoms.copy() * supercell
