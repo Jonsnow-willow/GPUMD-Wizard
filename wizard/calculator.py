@@ -606,6 +606,7 @@ class MaterialCalculator():
         systems = get_elementary_deformations(atoms)
         Cij, _ = get_elastic_tensor(atoms, systems)
         Cij = Cij * 160.21766208 # 1 eV/Å³ to GPa)
+        dump_xyz('MaterialProperties.xyz', atoms)
         with open('MaterialProperties.out', 'a') as f:
             if len(Cij) == 3:
                 f.write(f" {self.comment:<10}C11: {Cij[0]:>7.2f} GPa\n"
