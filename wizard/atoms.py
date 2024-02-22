@@ -20,7 +20,7 @@ class SymbolInfo:
             self.symbols.append(symbol)
             self.compositions.append(int(composition) if composition else 1)
     
-    def create_bulk_atoms(self, supercell = (1, 1, 1)):
+    def create_bulk_atoms(self, supercell = (3, 3, 3)):
         symbol, structure, lc = self.symbols[0], self.structure, self.lattice_constant
         if structure == 'hcp':
             atoms = bulk(symbol, structure, a = lc[0], c = lc[1]) * supercell
