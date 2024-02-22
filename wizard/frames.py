@@ -147,6 +147,6 @@ class MultiMol():
             random.shuffle(s)
             atoms.set_chemical_symbols(s)
 
-    def dump_sequence(self, filename):
+    def dump(self, filename):
         for atoms in self.frames:
             dump_xyz(filename, atoms)
