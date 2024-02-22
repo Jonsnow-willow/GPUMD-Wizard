@@ -947,10 +947,10 @@ class MaterialCalculator():
 
         unit_cell = initial.cell.copy()
         initial.set_cell(lc * unit_cell, scale_atoms=True)
-        #relax(initial)
-        relax_cell = initial.cell.copy()
-        final.set_cell(relax_cell, scale_atoms=True)
-        #relax(final, method='ucf')
+        relax(initial, method='ucf')
+        initial_cell = initial.cell.copy()
+        final.set_cell(initial_cell, scale_atoms=True)
+        relax(final, method='ucf')
 
         images = [initial] + [initial.copy() for i in range(9)] + [final]
         for i in images:
@@ -971,10 +971,21 @@ class MaterialCalculator():
         plt.close()
         return energies
 
-    def pure_bcc_metal_screw_one_move(self, fmax = 0.02, steps = 500):
-        lc = self.atoms.cell.cellpar()[0]
-        symbol = self.atoms.get_chemical_symbols()[0]
-        sym = [symbol for _ in range(135)]
+    def bcc_metal_screw_one_move(self, fmax = 0.02, steps = 500):
+        lc = self.lc
+        symbols = []
+        compositions = []
+        for symbol, composition in re.findall('([A-Z][a-z]*)(\d*)', self.formula):
+            symbols.append(symbol)
+            compositions.append(int(composition) if composition else 1)
+        if len(symbols) > 1:
+            element_ratio = np.array(compositions) / sum(compositions)
+            element_counts = np.ceil(element_ratio * 135).astype(int)
+            symbols = np.repeat(symbols, element_counts)
+            np.random.shuffle(symbols)
+            sym = symbols[:135]
+        else:
+            sym = [symbols[0] for _ in range(135)]
         with tempfile.NamedTemporaryFile(mode='w') as f:
             f.write(unit_screw)
             initial_screw = read_xyz(f.name)
@@ -987,9 +998,9 @@ class MaterialCalculator():
 
         unit_cell = initial.cell.copy()
         initial.set_cell(lc * unit_cell, scale_atoms=True)
-        relax(initial)
-        relax_cell = initial.cell.copy()
-        final.set_cell(relax_cell, scale_atoms=True)
+        relax(initial, method='ucf')
+        initial_cell = initial.cell.copy()
+        final.set_cell(initial_cell, scale_atoms=True)
         relax(final, method='ucf')
 
         images = [initial] + [initial.copy() for i in range(9)] + [final]
