@@ -28,7 +28,7 @@ def main():
         cmds = ["pair_style eam/alloy",
                 "pair_coeff * * potentials/" + symbol_info.formula + ".eam.alloy " + symbol_info.formula]
         calc = LAMMPSlib(lmpcmds=cmds, log_file='log.' + symbol_info.formula, keep_alive=True)
-        material_calculator = MaterialCalculator(atoms, calc, symbol_info.formula, symbol_info.structure)
+        material_calculator = MaterialCalculator(atoms, calc, symbol_info)
         material_calculator.lattice_constant()
         material_calculator.eos_curve()
         material_calculator.elastic_constant()
