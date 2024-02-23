@@ -10,7 +10,7 @@ def main():
     sia_vectors = [(1,1,1),(1,0,0),(1,1,0)]
     nths = [1,2,3]
     atoms = symbol_info.create_bulk_atoms()
-    material_calculator = MaterialCalculator(atoms, calc, symbol_info.formula, symbol_info.structure)
+    material_calculator = MaterialCalculator(atoms, calc, symbol_info)
     material_calculator.lattice_constant()
     material_calculator.elastic_constant()
     material_calculator.eos_curve()
@@ -23,8 +23,8 @@ def main():
         material_calculator.formation_energy_surface(miller)
     material_calculator.stacking_fault(a = (1,1,-1), b = (1,-1,0), miller = [1,1,2], distance = 3.185/2)
     material_calculator.stacking_fault(a = (1,1,-1), b = (1,1,2), miller = [1,1,0], distance = 3.185/2)
-    material_calculator.pure_bcc_metal_screw_dipole_move()
-    material_calculator.pure_bcc_metal_screw_one_move()
+    material_calculator.bcc_metal_screw_dipole_move()
+    material_calculator.bcc_metal_screw_one_move()
     for vector in sia_vectors:
         material_calculator.formation_energy_sia(vector)
     material_calculator.formation_energy_interstitial_atom('W',[0,0,1/2],'octahedral')
