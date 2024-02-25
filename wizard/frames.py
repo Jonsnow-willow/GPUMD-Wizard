@@ -1,37 +1,21 @@
 from wizard.io import dump_xyz
 import numpy as np 
 import random 
+import re
 
 class MultiMol(): 
     
     def __init__(self, frames):         
         self.frames = frames
 
-    def select_binary(self):
-        select_set = []
-        split_set = []
-        for atoms in self.frames:
-            s = atoms.get_chemical_symbols()
-            unique_elements = set(s)
-            if len(unique_elements) < 3:
-                select_set.append(atoms)
-            else:
-                split_set.append(atoms)
-        return select_set, split_set
-
-    def select_multi(self):
-        select_set = []
-        split_set = []
-        for atoms in self.frames:
-            s = atoms.get_chemical_symbols()
-            unique_elements = set(s)
-            if len(unique_elements) > 2:
-                select_set.append(atoms)
-            else:
-                split_set.append(atoms)
-        return select_set, split_set
-    
     def select_by_size(self, num):
+        select_set = []
+        for atoms in self.frames:
+            if len(atoms) == num:
+                select_set.append(atoms)
+        return select_set
+    
+    def split_by_size(self, num):
         select_set = []
         split_set = []
         for atoms in self.frames:
@@ -41,18 +25,29 @@ class MultiMol():
                 split_set.append(atoms)
         return select_set, split_set
 
-    def select_by_symbols(self, symbols_list = []):
+    def select_by_formulars(self, formulars = []):
         select_set = []
-        split_set = []
+        symbols_lists = []
+        for formula in formulars:
+            symbols_lists.append(re.findall('([A-Z][a-z]*)', formula))
         for atoms in self.frames:
             symbols = atoms.get_chemical_symbols()
-            if all(symbol in symbols_list for symbol in symbols):
-                select_set.append(atoms)
-            else:
-                split_set.append(atoms)
-        return select_set, split_set
-
+            for symbols_list in symbols_lists:
+                if set(symbols) == set(symbols_list):
+                    select_set.append(atoms)
+                    break
+        return select_set
+    
     def select_by_num_of_symbols(self, num):
+        select_set = []
+        for atoms in self.frames:
+            s = atoms.get_chemical_symbols()
+            unique_elements = set(s)
+            if len(unique_elements) == num:
+                select_set.append(atoms)
+        return select_set
+    
+    def split_by_num_of_symbols(self, num):
         select_set = []
         split_set = []
         for atoms in self.frames:
@@ -63,8 +58,18 @@ class MultiMol():
             else:
                 split_set.append(atoms)
         return select_set, split_set
+
+    def select_by_force_error(self, error_min, error_max = 100):
+        select_set = []
+        for atoms in self.frames:
+            f_1 = np.concatenate(atoms.get_forces())
+            f_2 = np.concatenate(atoms.info['forces'])
+            diff = abs(f_1 - f_2)
+            if np.any((diff > error_min) & (diff < error_max)):
+                select_set.append(atoms)
+        return select_set
     
-    def select_by_error(self, error_min, error_max = 100):
+    def split_by_force_error(self, error_min, error_max = 100):
         select_set = []
         split_set = []
         for atoms in self.frames:
@@ -79,6 +84,14 @@ class MultiMol():
     
     def select_by_force(self, force_min, force_max):
         select_set = []
+        for atoms in self.frames:
+            f = np.concatenate(atoms.info['forces'])
+            if np.all((f > force_min) & (f < force_max)):
+                select_set.append(atoms)
+        return select_set
+    
+    def split_by_force(self, force_min, force_max):
+        select_set = []
         split_set = []
         for atoms in self.frames:
             f = np.concatenate(atoms.info['forces'])
@@ -87,8 +100,13 @@ class MultiMol():
             else:
                 split_set.append(atoms)
         return select_set, split_set
-    
+
     def select_random(self, num):
+        select_set = []
+        select_set = random.sample(self.frames, num)
+        return select_set
+    
+    def split_random(self, num):
         select_set = []
         split_set = []
         select_set = random.sample(self.frames, num)
