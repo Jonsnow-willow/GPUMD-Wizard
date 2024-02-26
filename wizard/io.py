@@ -652,7 +652,7 @@ def plot_force_results(frames, calcs, labels = None, e_val = [None, None], f_val
     fig, axes = plt.subplots(1, 2)
     cmap = plt.get_cmap("tab10")
   
-    print(len(frames), '\n')  
+    print(len(frames))  
 
     label_colors = {}
     if labels is None:
@@ -676,8 +676,8 @@ def plot_force_results(frames, calcs, labels = None, e_val = [None, None], f_val
             label_colors[label] = color
         e_rmse = np.sqrt(np.mean((e_1-e_2)**2)) 
         f_rmse = np.sqrt(np.mean((f_1-f_2)**2))
-        print(e_rmse)
-        print(f_rmse)
+        print(f'{label}_E_rmse: {e_rmse * 1000:.2f} meV/atom')
+        print(f'{label}_F_rmse: {f_rmse * 1000:.2f} meV/Å')
 
     x_min, x_max = axes[0].get_xlim()
     y_min, y_max = axes[0].get_ylim()
