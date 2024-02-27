@@ -518,9 +518,8 @@ def get_nth_nearest_neighbor_index(atoms, index, nth):
     neighbor_list.update(atoms)
     indices, offsets = neighbor_list.get_neighbors(index)
     distances = [atoms.get_distance(index, neighbor) for neighbor in indices]
-
     sorted_neighbors = sorted(zip(distances, indices), key=lambda x: x[0])
-    current_order = 1
+    current_order = 0
     nth_nearest_neighbor_index = None
 
     for i in range(len(sorted_neighbors)):
@@ -529,7 +528,6 @@ def get_nth_nearest_neighbor_index(atoms, index, nth):
             break
         if i < len(sorted_neighbors) - 1 and not np.isclose(sorted_neighbors[i][0], sorted_neighbors[i + 1][0]):
             current_order += 1
-
     return nth_nearest_neighbor_index
 
 def symbol_to_string(symbols):
