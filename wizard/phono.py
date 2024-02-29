@@ -70,7 +70,11 @@ class PhonoCalc:
             print('Fail to collect force constants')
 
     def get_band_structure(self):
-        cell = Cell(spglib.find_primitive(self.atoms)[0])
+        lattice = self.atoms.get_cell().T
+        positions = self.atoms.get_scaled_positions()
+        numbers = self.atoms.get_atomic_numbers()
+        atoms_cell = (lattice, positions, numbers)
+        cell = Cell(spglib.find_primitive(atoms_cell)[0])
         special_points = cell.get_bravais_lattice().get_special_points()
         labels_path = ase.dft.kpoints.parse_path_string(cell.bandpath().path)
         labels, path = [], []
