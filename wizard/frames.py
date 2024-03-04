@@ -41,6 +41,13 @@ class MultiMol():
                     break
         return select_set
     
+    def select_by_config_type(self, config_type):
+        select_set = []
+        for atoms in self.frames:
+            if atoms.info['config_type'] == config_type:
+                select_set.append(atoms)
+        return select_set
+    
     def select_by_num_of_symbols(self, num):
         select_set = []
         for atoms in self.frames:
