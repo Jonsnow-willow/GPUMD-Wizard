@@ -595,10 +595,10 @@ class MaterialCalculator():
         with open('MaterialProperties.out', "a") as f:
             if self.structure == 'hcp':
                 f.write(f" {self.formula:<10}Lattice_Constants: a: {cell_lengths[0]:.4f} A    c: {cell_lengths[2]:.4f} A\n" 
-                        f"{'':<11}Coherent Energy: {atom_energy:.4f} eV\n")
+                        f"{'':<11}Ground_State_Energy: {atom_energy:.4f} eV\n")
             else:
                 f.write(f" {self.formula:<10}Lattice_Constants: {round(sum(cell_lengths[:3])/3, 3):.4f} A\n" 
-                        f"{'':<11}Coherent Energy: {atom_energy:.4f} eV\n")
+                        f"{'':<11}Ground_State_Energy: {atom_energy:.4f} eV\n")
         return atom_energy, cell_lengths
     
     def elastic_constant(self):
