@@ -614,6 +614,12 @@ class MaterialCalculator():
                 f.write(f" {self.formula:<10}C11: {Cij[0]:>7.2f} GPa\n"
                         f"{'':<11}C12: {Cij[1]:>7.2f} GPa\n"
                         f"{'':<11}C14: {Cij[2]:>7.2f} GPa\n")
+            elif len(Cij) == 5:
+                f.write(f" {self.formula:<10}C11: {Cij[0]:>7.2f} GPa\n"
+                        f"{'':<11}C12: {Cij[2]:>7.2f} GPa\n"
+                        f"{'':<11}C13: {Cij[3]:>7.2f} GPa\n"
+                        f"{'':<11}C33: {Cij[1]:>7.2f} GPa\n"
+                        f"{'':<11}C44: {Cij[4]:>7.2f} GPa\n")
             else:
                 f.write(f" {self.formula:<10}C11: {(Cij[0]+ Cij[1]+Cij[2])/3:>7.2f} GPa\n"
                         f"{'':<11}C12: {(Cij[3]+ Cij[4]+Cij[5])/3:>7.2f} GPa\n"
