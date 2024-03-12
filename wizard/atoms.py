@@ -7,6 +7,7 @@ import numpy as np
 import random
 import os
 import re
+import shutil
 import math
 
 class SymbolInfo:
@@ -68,14 +69,18 @@ class Morph():
         
         dyn.run(fmax=fmax, steps=steps)
 
-    def gpumd(self, dirname = 'relax',
-              run_in = ['potential ../nep.txt', 'velocity 300', 'time_step 1', 
+    def gpumd(self, dirname = 'relax', nep_path = 'nep.txt',
+              run_in = ['potential nep.txt', 'velocity 300', 'time_step 1', 
                         'ensemble npt_scr 300 300 200 0 500 2000', 'dump_thermo 1000', 
                         'dump_restart 30000', 'dump_exyz 10000','run 30000']):
         atoms = self.atoms
         if os.path.exists(dirname):
             raise FileExistsError('Directory already exists')
         os.makedirs(dirname)
+        if os.path.exists(nep_path):
+            shutil.copy(nep_path, dirname)
+        else:
+            raise FileNotFoundError('nep.txt does not exist')
         original_directory = os.getcwd()
         os.chdir(dirname)
         write_run(run_in)
