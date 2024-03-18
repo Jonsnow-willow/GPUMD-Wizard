@@ -27,8 +27,8 @@ def main():
     material_calculator.bcc_metal_screw_one_move()
     for vector in sia_vectors:
         material_calculator.formation_energy_sia(vector)
-    material_calculator.formation_energy_interstitial_atom('W',[0,0,1/2],'octahedral')
-    material_calculator.formation_energy_interstitial_atom('W',[1/4,0,1/2],'tetrahedral')
+    material_calculator.formation_energy_interstitial_atom(symbol_info.formula,[0,0,1/2],'octahedral')
+    material_calculator.formation_energy_interstitial_atom(symbol_info.formula,[1/4,0,1/2],'tetrahedral')
         
 if __name__ == "__main__":
     main()
