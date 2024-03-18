@@ -69,10 +69,9 @@ class Morph():
         
         dyn.run(fmax=fmax, steps=steps)
 
-    def gpumd(self, dirname = 'relax', nep_path = 'nep.txt',
-              run_in = ['potential nep.txt', 'velocity 300', 'time_step 1', 
-                        'ensemble npt_scr 300 300 200 0 500 2000', 'dump_thermo 1000', 
-                        'dump_restart 30000', 'dump_exyz 10000','run 30000']):
+    def gpumd(self, dirname = 'relax', run_in = ['potential nep.txt', 'velocity 300', 'time_step 1', 
+             'ensemble npt_scr 300 300 200 0 500 2000', 'dump_thermo 1000', 'dump_restart 30000', 
+             'dump_exyz 10000','run 30000'], nep_path = 'nep.txt', write_in = False):
         atoms = self.atoms
         if os.path.exists(dirname):
             raise FileExistsError('Directory already exists')
@@ -85,7 +84,10 @@ class Morph():
         os.chdir(dirname)
         write_run(run_in)
         dump_xyz('model.xyz', atoms)
-        os.system('gpumd')
+        if write_in:
+           pass
+        else:
+            os.system('gpumd')
         os.chdir(original_directory)
 
     def set_pka(self, energy, direction, index = None, symbol = None):
@@ -94,8 +96,8 @@ class Morph():
             raise ValueError('The velocities of atoms are not set.')
         
         if index is None:
+            center = np.diag(atoms.get_cell()) / 2.0
             if symbol is None:
-                center = np.diag(atoms.get_cell()) / 2.0
                 index = np.argmin(np.sum((atoms.positions - center)**2, axis=1))
             else:
                 element_indices = [i for i, atom in enumerate(atoms) if atom.symbol == symbol]
