@@ -8,7 +8,6 @@ import random
 import os
 import re
 import shutil
-import math
 
 class SymbolInfo:
     def __init__(self, formula, structure, *lattice_constant):
