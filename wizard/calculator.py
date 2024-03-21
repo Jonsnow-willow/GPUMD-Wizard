@@ -5,9 +5,9 @@ from ase.constraints import FixAtoms
 from ase.neb import NEB
 from ase.build import surface
 from wizard.io import get_nth_nearest_neighbor_index, relax, dump_xyz, read_xyz, plot_band_structure
+from calorine.tools import get_elastic_stiffness_tensor, get_force_constants, relax_structure
 from wizard.phono import PhonoCalc
 from wizard.atoms import Morph
-from elastic.elastic import get_elementary_deformations, get_elastic_tensor
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt 
@@ -605,40 +605,17 @@ class MaterialCalculator():
         atoms = self.atoms.copy()
         Morph(atoms).shuffle_symbols()
         atoms.calc = self.calc
-        systems = get_elementary_deformations(atoms)
-        Cij, _ = get_elastic_tensor(atoms, systems)
-        Cij = Cij * 160.21766208 # 1 eV/Å³ to GPa)
+        Cij = get_elastic_stiffness_tensor(atoms)
         dump_xyz('MaterialProperties.xyz', atoms)
         with open('MaterialProperties.out', 'a') as f:
-            if len(Cij) == 3:
-                f.write(f" {self.formula:<10}C11: {Cij[0]:>7.2f} GPa\n"
-                        f"{'':<11}C12: {Cij[1]:>7.2f} GPa\n"
-                        f"{'':<11}C14: {Cij[2]:>7.2f} GPa\n")
-            elif len(Cij) == 5:
-                f.write(f" {self.formula:<10}C11: {Cij[0]:>7.2f} GPa\n"
-                        f"{'':<11}C12: {Cij[2]:>7.2f} GPa\n"
-                        f"{'':<11}C13: {Cij[3]:>7.2f} GPa\n"
-                        f"{'':<11}C33: {Cij[1]:>7.2f} GPa\n"
-                        f"{'':<11}C44: {Cij[4]:>7.2f} GPa\n")
-            else:
-                f.write(f" {self.formula:<10}C11: {(Cij[0]+ Cij[1]+Cij[2])/3:>7.2f} GPa\n"
-                        f"{'':<11}C12: {(Cij[3]+ Cij[4]+Cij[5])/3:>7.2f} GPa\n"
-                        f"{'':<11}C44: {(Cij[6]+ Cij[7]+Cij[8])/3:>7.2f} GPa\n")
+            f.write(f" {self.formula:<10}C11: {Cij[0][0]:>7.2f} GPa\n"
+                    f"{'':<11}C12: {Cij[0][1]:>7.2f} GPa\n"
+                    f"{'':<11}C13: {Cij[0][2]:>7.2f} GPa\n"
+                    f"{'':<11}C33: {Cij[2][2]:>7.2f} GPa\n"
+                    f"{'':<11}C44: {Cij[3][3]:>7.2f} GPa\n"
+                    f"{'':<11}C66: {Cij[5][5]:>7.2f} GPa\n")
         return Cij
     
-    def young_modulus(self):
-        atoms = self.atoms.copy()
-        atoms.calc = self.calc
-        systems = get_elementary_deformations(atoms)
-        C, B = get_elastic_tensor(atoms, systems)
-        C = C * 160.21766208 # 1 eV/Å³ to GPa)
-        bulk_modulus = (C[0] + 2 * C[1])/ 3
-        shear_modulus = 1 / 5 *((C[0] - C[1]) + 3 * C[2])
-        E = 9 * bulk_modulus * shear_modulus / (3 * bulk_modulus + shear_modulus)
-        with open('MaterialProperties.out', 'a') as f:
-            f.write(f" {self.formula:<7}Young_Modulus: {E:>7.2f} GPa\n")
-        return E
-
     def eos_curve(self):
         atoms = self.atoms.copy()
         atoms.calc = self.calc
