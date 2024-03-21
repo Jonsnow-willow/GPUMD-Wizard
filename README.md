@@ -23,6 +23,12 @@ Material structure processing software based on [ASE](https://wiki.fysik.dtu.dk/
 | [phonopy](http://phonopy.github.io/phonopy/)|>=     v2.22.0|
 
 
+### By pip 
+
+```shell
+$ pip install gpumd-wizard
+```
+
  ### From Source
 
 ```shell
