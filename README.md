@@ -20,6 +20,7 @@ Material structure processing software based on [ASE](https://wiki.fysik.dtu.dk/
 | [Python](https://www.python.org/) | >=     3.8 |
 | [ase](https://wiki.fysik.dtu.dk/ase/index.html)|>=     3.18.0|
 | [calorine](https://gitlab.com/materials-modeling/calorine)|>=     2.2.1|
+| [phonopy](http://phonopy.github.io/phonopy/)|>=     v2.22.0|
 
 
  ### From Source
