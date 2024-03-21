@@ -4,7 +4,7 @@
 Material structure processing software based on [ASE](https://wiki.fysik.dtu.dk/ase/index.html) (Atomic Simulation Environment) providing automation capabilities for calculating various properties of metals. Additionally, it aims to run and analyze molecular dynamics (MD) simulations using [GPUMD](https://github.com/brucefan1983/GPUMD).
 
 ## Features
-* Based on the ASE package, MetalProperties-Automator supports different calculators such as [PyNEP](https://github.com/bigd4/PyNEP), [calorine](https://calorine.materialsmodeling.org/installation.html#installation-via-pip), [DP](https://github.com/deepmodeling/deepmd-kit), and [LAMMPS](https://www.lammps.org/).
+* Based on the ASE package, MetalProperties-Automator supports different calculators such as [calorine](https://calorine.materialsmodeling.org/installation.html#installation-via-pip), [DP](https://github.com/deepmodeling/deepmd-kit), and [LAMMPS](https://www.lammps.org/).
 * Allows for automated batch calculations of metal properties.
 * Enables batch processing of files in the XYZ format.
 * Integrated with [GPUMD](https://github.com/brucefan1983/GPUMD) for performing molecular dynamics simulations, such as irradiation damage.
@@ -19,8 +19,7 @@ Material structure processing software based on [ASE](https://wiki.fysik.dtu.dk/
 |  ----  | ----  |
 | [Python](https://www.python.org/) | >=     3.8 |
 | [ase](https://wiki.fysik.dtu.dk/ase/index.html)|>=     3.18.0|
-| [elastic](https://github.com/jochym/Elastic) | |
-| [PyNEP](https://github.com/bigd4/PyNEP) | |
+| [calorine]https://gitlab.com/materials-modeling/calorine  |
 
 
  ### From Source
@@ -38,11 +37,11 @@ $ export PYTHONPATH=<path-to-GPUMD-Wizard-package>:$PYTHONPATH
 ## Usage
 ```python
 from wizard.atoms import SymbolInfo, MaterialCalculator
-from pynep.calculate import NEP
+from calorine.calculators import CPUNEP
 
 def main():
     # Create calculator object 
-    calc = NEP('nep.txt')
+    calc = CPUNEP('nep.txt')
     
     # Set properties-related parameters
     millers = [(1,1,0),(0,0,1),(1,1,1),(1,1,2)]
