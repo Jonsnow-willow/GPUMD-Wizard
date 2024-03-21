@@ -1,6 +1,6 @@
 from wizard.atoms import SymbolInfo
 from wizard.calculator import MaterialCalculator
-from pynep.calculate import NEP
+from calorine.calculators import CPUNEP
 
 def main():
     symbol_infos = [
@@ -25,7 +25,7 @@ def main():
     nths = [1,2,3,4,5]
     for symbol_info in symbol_infos:
         atoms = symbol_info.create_bulk_atoms()
-        calc = NEP('nep.txt')
+        calc = CPUNEP('nep.txt')
         material_calculator = MaterialCalculator(atoms, calc, symbol_info)
         material_calculator.lattice_constant()
         material_calculator.eos_curve()
