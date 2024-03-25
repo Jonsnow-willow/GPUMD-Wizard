@@ -787,6 +787,7 @@ class MaterialCalculator():
         position = np.dot(fractional_position, self.atoms.get_cell())
         insert_atom = Atom(symbol, position)
         atoms.append(insert_atom)
+        atoms.calc = self.calc
         relax(atoms, **relax_params)
         formation_energy = atoms.get_potential_energy() - atoms_energy - new_atom_e
 
