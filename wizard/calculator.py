@@ -923,8 +923,8 @@ class MaterialCalculator():
             f.write(unit_screw)
             initial_screw = read_xyz(f.name)
         for i in initial_screw:
-            i.calc = self.calc
             i.set_chemical_symbols(sym)
+            i.calc = self.calc
 
         initial = initial_screw[0]
         final = initial_screw[1]
@@ -936,7 +936,7 @@ class MaterialCalculator():
         final.set_cell(initial_cell, scale_atoms=True)
         relax(final, method='ucf')
 
-        images = [initial] + [initial.copy() for i in range(9)] + [final]
+        images = [initial] + [initial.copy() for i in range(15)] + [final]
         for i in images:
             i.calc = self.calc
         neb = NEB(images, allow_shared_calculator=True)
@@ -974,8 +974,8 @@ class MaterialCalculator():
             f.write(unit_screw)
             initial_screw = read_xyz(f.name)
         for i in initial_screw:
-            i.calc = self.calc
             i.set_chemical_symbols(sym)
+            i.calc = self.calc
 
         initial = initial_screw[0]
         final = initial_screw[2]
@@ -987,7 +987,7 @@ class MaterialCalculator():
         final.set_cell(initial_cell, scale_atoms=True)
         relax(final, method='ucf')
 
-        images = [initial] + [initial.copy() for i in range(9)] + [final]
+        images = [initial] + [initial.copy() for i in range(15)] + [final]
         for i in images:
             i.calc = self.calc
         neb = NEB(images, allow_shared_calculator=True)
