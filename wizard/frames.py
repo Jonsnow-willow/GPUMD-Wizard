@@ -41,6 +41,16 @@ class MultiMol():
                     break
         return select_set
     
+    def select_by_symbols(self, *symbols):
+        select_set = []
+        for atoms in self.frames:
+            chemical_symbols = atoms.get_chemical_symbols()
+            if any(chemical_symbol not in symbols for chemical_symbol in chemical_symbols):
+                continue
+            else:
+                select_set.append(atoms)
+        return select_set
+    
     def select_by_config_type(self, config_type):
         select_set = []
         for atoms in self.frames:
