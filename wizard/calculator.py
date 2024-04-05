@@ -4,6 +4,7 @@ from ase.optimize import FIRE
 from ase.constraints import FixAtoms
 from ase.neb import NEB
 from ase.build import surface
+from ase.units import J
 from wizard.io import get_nth_nearest_neighbor_index, relax, dump_xyz, read_xyz, plot_band_structure
 from calorine.tools import get_elastic_stiffness_tensor, get_force_constants, relax_structure
 from wizard.phono import PhonoCalc
@@ -648,21 +649,28 @@ class MaterialCalculator():
         plot_band_structure(atoms, self.formula)
         
        
-    def formation_energy_surface(self, miller = (1, 0, 0), layers = 10, relax_params = {}):
+    def formation_energy_surface(self, hkl = (1, 0, 0), layers = 10, relax_params = {}):
         atoms = self.atoms.copy()
         atom_energy = self.atom_energy
-        slab = surface(atoms, miller, layers = layers, vacuum=10) 
+        slab = surface(atoms, hkl, layers = layers, vacuum=10) 
         Morph(slab).shuffle_symbols()
         slab.calc = self.calc
         relax(slab, **relax_params)
         box = slab.get_cell()
-        S = (box[0][0] * box[1][1] - box[0][1] * box[1][0]) * 2
+        S = (box[0][0] * box[1][1] - box[0][1] * box[1][0])
         slab_energy = slab.get_potential_energy()
-        formation_energy = (slab_energy - atom_energy * len(slab)) / S
-        
+        formation_energy = (slab_energy - atom_energy * len(slab)) / S / 2
+
+        if self.structure == 'hcp':
+            hk, l = hkl[:2], hkl[2]
+            hkl_str = '-'.join(map(str, sorted(hk, reverse=True)))
+            hkl_str += f'-{l}'
+        else:
+            hkl_str = '-'.join(map(str, sorted(hkl, reverse=True)))
+
         dump_xyz('MaterialProperties.xyz', slab)
         with open('MaterialProperties.out', 'a') as f:
-            print(f' {self.formula:<7}{miller} Surface_Energy: {formation_energy * 1000:.4f} meV/A^2', file=f)
+            print(f' {self.formula:<7}{hkl_str} Surface_Energy: {formation_energy / J / 1e-20 :.4f} J/m^2', file=f)
         return formation_energy * 1000
 
     def formation_energy_vacancy(self, vac_index = 0, relax_params = {}):
