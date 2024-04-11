@@ -602,11 +602,11 @@ class MaterialCalculator():
                         f"{'':<11}Ground_State_Energy: {atom_energy:.4f} eV\n")
         return atom_energy, cell_lengths
     
-    def elastic_constant(self):
+    def elastic_constant(self, epsilon = 0.01):
         atoms = self.atoms.copy()
         Morph(atoms).shuffle_symbols()
         atoms.calc = self.calc
-        Cij = get_elastic_stiffness_tensor(atoms)
+        Cij = get_elastic_stiffness_tensor(atoms, epsilon=epsilon)
         dump_xyz('MaterialProperties.xyz', atoms)
         with open('MaterialProperties.out', 'a') as f:
             f.write(f" {self.formula:<10}C11: {Cij[0][0]:>7.2f} GPa\n"
