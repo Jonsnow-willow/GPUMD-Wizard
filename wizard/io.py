@@ -558,27 +558,25 @@ def active_learning(frames, main_potential, potentials, error_min, error_max = 1
         Train_set = random.sample(Train_set, n)
     return Train_set
 
-def plot_thermo_out(filenames, column=2, num=1):
-    mpl.rcParams['font.size'] = 16
-    plt.figure(figsize=(8, 6))
+def plot_thermo_out(filename, column=2, num=1):
+    plt.rcParams["figure.figsize"] = (8, 6)
+    plt.rcParams.update({"font.size": 16, "text.usetex": False})
     fig, ax = plt.subplots()
-    for filename in filenames:
-        with open(filename, 'r') as f:
-            lines = f.readlines()
-        lines = [line.strip() for line in lines]
-        lines = [line.split() for line in lines]
-        lines = [line for line in lines if len(line) == 12]  
-        lines = [[float(i) for i in line] for line in lines]
-        data = np.array(lines)
-        thermo = data[:, column] / num
-        ax.plot(thermo, label=filename)
+    with open(filename, 'r') as f:
+        lines = f.readlines()
+    lines = [line.strip() for line in lines]
+    lines = [line.split() for line in lines]
+    lines = [line for line in lines if len(line) == 12]  
+    lines = [[float(i) for i in line] for line in lines]
+    data = np.array(lines)
+    thermo = data[:, column] / num
+    ax.plot(thermo, label=filename)
     ax.yaxis.set_major_formatter('{:.3f}'.format) 
     ax.set_xlabel('step(100)')  
     ax.set_ylabel('eV/atom')
     ax.legend()
     plt.tight_layout() 
     plt.savefig('thermo.png')
-    return thermo
 
 def plot_training_result(dirname = '', type = 'train'):
     plt.rcParams["figure.figsize"] = (6, 6)
@@ -645,9 +643,10 @@ def plot_training_result(dirname = '', type = 'train'):
     plt.show()
 
 def plot_force_results(frames, calcs, labels = None, e_val = [None, None], f_val = [None, None]):
-    plt.rcParams["figure.figsize"] = (12, 6)
-    plt.rcParams.update({"font.size": 10, "text.usetex": False})
-    fig, axes = plt.subplots(1, 2)
+    plt.rcParams["figure.figsize"] = (12, 5)
+    plt.rcParams.update({"font.size": 18, "text.usetex": False})
+    fig, axes = plt.subplots(1, 2) 
+    plt.subplots_adjust(wspace=0.3, bottom=0.2)
     cmap = plt.get_cmap("tab10")
   
     print(len(frames))  
@@ -699,6 +698,8 @@ def plot_force_results(frames, calcs, labels = None, e_val = [None, None], f_val
     axes[0].set_ylabel("NEP energy (eV/atom)")
     axes[1].set_xlabel("DFT force (eV/Å)")
     axes[1].set_ylabel("NEP force (eV/Å)")
+    axes[0].text(0.05, 0.95, '(a)', transform=axes[0].transAxes, verticalalignment='top')
+    axes[1].text(0.05, 0.95, '(b)', transform=axes[1].transAxes, verticalalignment='top')
 
     handles = [plt.Line2D([0], [0], color=color, marker='o', linestyle='') for label, color in label_colors.items()]
     plt.legend(handles, label_colors.keys())
