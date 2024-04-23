@@ -1013,5 +1013,3 @@ class MaterialCalculator():
         plt.savefig(f'{self.formula}_screw_one_move.png')
         plt.close()
         return energies
-
-   
