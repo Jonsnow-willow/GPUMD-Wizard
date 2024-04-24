@@ -673,11 +673,11 @@ class MaterialCalculator():
             print(f' {self.formula:<7}{hkl_str} Surface_Energy: {formation_energy / J / 1e-20 :.4f} J/m^2', file=f)
         return formation_energy * 1000
 
-    def formation_energy_vacancy(self, vac_index = 0, relax_params = {}):
+    def formation_energy_vacancy(self, index = 0, relax_params = {}):
         atoms = self.atoms.copy()
         atoms.calc = self.calc
         atom_energy = self.atom_energy
-        Morph(atoms).create_vacancy(vac_index)
+        Morph(atoms).create_vacancy(index = index)
         relax(atoms, **relax_params)
         formation_energy = atoms.get_potential_energy() - atom_energy * len(atoms)
 
@@ -686,11 +686,11 @@ class MaterialCalculator():
             print(f' {self.formula:<7}Formation_Energy_Vacancy: {formation_energy:.4f} eV', file=f)
         return formation_energy
 
-    def formation_energy_divacancies(self, nth = 1, relax_params = {}):
+    def formation_energy_divacancies(self, nth = 1, index = 0, relax_params = {}):
         atoms = self.atoms.copy()
         atoms.calc = self.calc
         atom_energy = self.atom_energy
-        Morph(atoms).create_divacancies(nth = nth)
+        Morph(atoms).create_divacancies(index1= index, nth = nth)
         relax(atoms, **relax_params)
         formation_energy = atoms.get_potential_energy() - atom_energy * len(atoms)
 
@@ -699,14 +699,14 @@ class MaterialCalculator():
             f.write(f' {self.formula:<7}{nth}th Formation_Energy_Divacancies: {formation_energy:.4f} eV\n')
         return formation_energy
 
-    def migration_energy_vacancy(self, fmax = 0.02, steps = 500):
+    def migration_energy_vacancy(self, index0 = 0, index1 = 1, fmax = 0.02, steps = 500):
         atoms = self.atoms.copy() 
-        symbol = atoms[0].symbol
-        atoms[1].symbol = symbol
+        symbol = atoms[index0].symbol
+        atoms[index1].symbol = symbol
         initial = atoms.copy()
-        del initial[0]
+        del initial[index0]
         final = atoms.copy()
-        del final[1]
+        del final[index1]
 
         initial.calc = self.calc
         relax(initial)
@@ -718,7 +718,7 @@ class MaterialCalculator():
         images = [initial] + [initial.copy() for _ in range(11)] + [final]
         for i in images:
             i.calc = self.calc
-        neb = NEB(images, allow_shared_calculator=True)
+        neb = NEB(images,climb=True, allow_shared_calculator=True)
         neb.interpolate()
         
         optimizer = FIRE(neb)
