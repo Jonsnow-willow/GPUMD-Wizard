@@ -903,6 +903,7 @@ class MaterialCalculator():
             energies.append(defects_energy)
             dump_xyz('MaterialProperties.xyz', slab_shift)
 
+        energies = [e - energies[0] for e in energies]
         with open('MaterialProperties.out', 'a') as f:
             print(f' {self.formula:<7}{miller} Stacking_Fault: {max(energies) * 1000:.4f} meV/A^2', file=f)
 
