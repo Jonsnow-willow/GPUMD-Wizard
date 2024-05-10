@@ -702,7 +702,7 @@ def plot_force_results(frames, calcs, labels = None, e_val = [None, None], f_val
     axes[1].text(0.05, 0.95, '(b)', transform=axes[1].transAxes, verticalalignment='top')
 
     handles = [plt.Line2D([0], [0], color=color, marker='o', linestyle='') for label, color in label_colors.items()]
-    plt.legend(handles, label_colors.keys())
+    plt.legend(handles, label_colors.keys(), loc = "upper right")
     plt.savefig("force_results.png")
     plt.show()
     plt.close()
