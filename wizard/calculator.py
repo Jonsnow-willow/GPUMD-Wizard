@@ -878,7 +878,6 @@ class MaterialCalculator():
         ''' 
         atoms = self.atoms.copy()
         atoms.calc = self.calc
-        atom_energy = atoms.get_potential_energy() / len(atoms)
 
         slab = cut(atoms, a, b, clength=None, origo=(0,0,0), nlayers = 18, extend=1.0, tolerance=0.01, maxatoms=None)
         rotate(slab, a,(1,0,0),b,(0,1,0), center=(0,0,0))
