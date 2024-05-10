@@ -899,7 +899,7 @@ class MaterialCalculator():
             slab_shift.positions[shift_indices] += [slide_steps * i, 0,0]
             slab_shift.calc = self.calc
             relax(slab_shift, method='fixed_line')
-            defects_energy = (slab_shift.get_potential_energy() - atom_energy * len(slab_shift)) / S
+            defects_energy = slab_shift.get_potential_energy() / S
             energies.append(defects_energy)
             dump_xyz('MaterialProperties.xyz', slab_shift)
 
