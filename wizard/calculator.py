@@ -604,7 +604,6 @@ class MaterialCalculator():
     
     def elastic_constant(self, epsilon = 0.01):
         atoms = self.atoms.copy()
-        Morph(atoms).shuffle_symbols()
         atoms.calc = self.calc
         Cij = get_elastic_stiffness_tensor(atoms, epsilon=epsilon)
         dump_xyz('MaterialProperties.xyz', atoms)
