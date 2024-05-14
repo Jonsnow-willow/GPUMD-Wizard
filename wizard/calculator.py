@@ -646,8 +646,7 @@ class MaterialCalculator():
         calc = self.calc
         PhonoCalc(atoms, calc).get_band_structure()
         plot_band_structure(atoms, self.formula)
-        
-       
+             
     def formation_energy_surface(self, hkl = (1, 0, 0), layers = 10, relax_params = {}):
         atoms = self.atoms.copy()
         atom_energy = self.atom_energy
