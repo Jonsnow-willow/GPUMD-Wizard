@@ -79,7 +79,6 @@ class PhonoCalc:
             special_points = cell.get_bravais_lattice().get_special_points()
         if labels_path is None:
             labels_path = ase.dft.kpoints.parse_path_string(cell.bandpath().path)
-        print(special_points)
         labels, path = [], []
         for label_path in labels_path:
             p = []
