@@ -69,20 +69,23 @@ class PhonoCalc:
             print(traceback.format_exc())
             print('Fail to collect force constants')
 
-    def get_band_structure(self):
+    def get_band_structure(self, special_points = None, labels_path = None):
         lattice = self.atoms.get_cell().T
         positions = self.atoms.get_scaled_positions()
         numbers = self.atoms.get_atomic_numbers()
         atoms_cell = (lattice, positions, numbers)
         cell = Cell(spglib.find_primitive(atoms_cell)[0])
-        special_points = cell.get_bravais_lattice().get_special_points()
-        labels_path = ase.dft.kpoints.parse_path_string(cell.bandpath().path)
+        if special_points is None:
+            special_points = cell.get_bravais_lattice().get_special_points()
+        if labels_path is None:
+            labels_path = ase.dft.kpoints.parse_path_string(cell.bandpath().path)
+        print(special_points)
         labels, path = [], []
         for label_path in labels_path:
             p = []
             for l in label_path:
                 labels.append(l)
-                p.append(special_points[l].tolist())
+                p.append(list(special_points[l]))
             path.append(p)
         qpoints, connections = get_band_qpoints_and_path_connections(path, npoints=51)
         self.phonon.run_band_structure(qpoints, path_connections=connections, labels=labels)
