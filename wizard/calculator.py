@@ -641,10 +641,10 @@ class MaterialCalculator():
             for volume, energy in zip(volumes, energies):
                 f.write(f"{volume:.2f}   {energy:.4f}\n")
 
-    def phonon_dispersion(self):
+    def phonon_dispersion(self, special_points = None, labels_path = None):
         atoms = self.atoms.copy()
         calc = self.calc
-        PhonoCalc(atoms, calc).get_band_structure()
+        PhonoCalc(atoms, calc).get_band_structure(special_points=special_points, labels_path=labels_path)
         plot_band_structure(atoms, self.formula)
              
     def formation_energy_surface(self, hkl = (1, 0, 0), layers = 10, relax_params = {}):
