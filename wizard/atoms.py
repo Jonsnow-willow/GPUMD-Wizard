@@ -102,6 +102,7 @@ class Morph():
                 element_indices = [i for i, atom in enumerate(atoms) if atom.symbol == symbol]
                 element_positions = atoms.positions[element_indices]
                 index = element_indices[np.argmin(np.sum((element_positions - center)**2, axis=1))]
+                print(index)
 
         mass = atoms[index].mass
         vx = pow(2 * energy / mass , 0.5) * direction[0] / pow(np.sum(direction ** 2), 0.5) / 10.18
