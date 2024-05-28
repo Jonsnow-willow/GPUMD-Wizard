@@ -70,13 +70,16 @@ class Morph():
 
     def gpumd(self, dirname = 'relax', run_in = ['potential nep.txt', 'velocity 300', 'time_step 1', 
              'ensemble npt_scr 300 300 200 0 500 2000', 'dump_thermo 1000', 'dump_restart 30000', 
-             'dump_exyz 10000','run 30000'], nep_path = 'nep.txt', write_in = False):
+             'dump_exyz 10000','run 30000'], nep_path = 'nep.txt', 
+             electron_stopping_path = 'electron_stopping_fit.txt', write_in = False):
         atoms = self.atoms
         if os.path.exists(dirname):
             raise FileExistsError('Directory already exists')
         os.makedirs(dirname)
         if os.path.exists(nep_path):
             shutil.copy(nep_path, dirname)
+        if os.path.exists(electron_stopping_path):
+            shutil.copy(electron_stopping_path, dirname)
         else:
             raise FileNotFoundError('nep.txt does not exist')
         original_directory = os.getcwd()
