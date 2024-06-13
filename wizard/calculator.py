@@ -625,19 +625,20 @@ class MaterialCalculator():
         origin_cell = atoms.cell.copy()
         for scale in np.arange(0.9, 1.10, 0.01):
             atoms.set_cell(scale * origin_cell, scale_atoms = True)
-            volumes.append(atoms.get_volume())
+            volumes.append(atoms.get_volume() / len(atoms))
             energies.append(atoms.get_potential_energy() / len(atoms))
             dump_xyz('MaterialProperties.xyz', atoms)
             
         fig, ax = plt.subplots()
-        font_size = 15
+        plt.subplots_adjust(left=0.15, right=0.95, top=0.95, bottom=0.15)
+        font_size = 12
         ax.plot(volumes, energies, '-o')
-        ax.set_xlabel('Volume(A^3)', fontsize=font_size)
+        ax.set_xlabel('Volume(A$^3$/atom)', fontsize=font_size)
         ax.set_ylabel('Energy (eV/atom)', fontsize=font_size)
         fig.savefig(os.path.join('eos_curve_png',f'{self.formula}_eos_curve.png'))
         plt.close()
         with open(os.path.join('eos_curve_out',f'{self.formula}_eos_curve.out'), 'w') as f:
-            f.write("Volume(A^3)   Energy(eV/atom)\n")
+            f.write("Volume(A^3/atom)   Energy(eV/atom)\n")
             for volume, energy in zip(volumes, energies):
                 f.write(f"{volume:.2f}   {energy:.4f}\n")
 
