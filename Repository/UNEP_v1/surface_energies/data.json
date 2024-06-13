@@ -1,0 +1,1214 @@
+[
+    {
+        "gamma_DFT": 1.63,
+        "gamma_NEP": 1.6549834200713793,
+        "hkl": "(310)",
+        "species": "Pd"
+    },
+    {
+        "gamma_DFT": 1.3618501276800001,
+        "gamma_NEP": 1.3375422849038483,
+        "hkl": "(111)",
+        "species": "Pd"
+    },
+    {
+        "gamma_DFT": 1.57,
+        "gamma_NEP": 1.5899666444607223,
+        "hkl": "(110)",
+        "species": "Pd"
+    },
+    {
+        "gamma_DFT": 1.57,
+        "gamma_NEP": 1.5866586572726469,
+        "hkl": "(311)",
+        "species": "Pd"
+    },
+    {
+        "gamma_DFT": 1.53,
+        "gamma_NEP": 1.5732225773341868,
+        "hkl": "(331)",
+        "species": "Pd"
+    },
+    {
+        "gamma_DFT": 1.64,
+        "gamma_NEP": 1.6481101141891203,
+        "hkl": "(320)",
+        "species": "Pd"
+    },
+    {
+        "gamma_DFT": 1.59,
+        "gamma_NEP": 1.615668731029874,
+        "hkl": "(321)",
+        "species": "Pd"
+    },
+    {
+        "gamma_DFT": 1.52,
+        "gamma_NEP": 1.4960258666463293,
+        "hkl": "(100)",
+        "species": "Pd"
+    },
+    {
+        "gamma_DFT": 1.63,
+        "gamma_NEP": 1.65326643755037,
+        "hkl": "(210)",
+        "species": "Pd"
+    },
+    {
+        "gamma_DFT": 1.45,
+        "gamma_NEP": 1.4840139937928631,
+        "hkl": "(322)",
+        "species": "Pd"
+    },
+    {
+        "gamma_DFT": 1.61,
+        "gamma_NEP": 1.615296727379349,
+        "hkl": "(211)",
+        "species": "Pd"
+    },
+    {
+        "gamma_DFT": 1.46,
+        "gamma_NEP": 1.4663627417792018,
+        "hkl": "(332)",
+        "species": "Pd"
+    },
+    {
+        "gamma_DFT": 1.5,
+        "gamma_NEP": 1.5279574592701166,
+        "hkl": "(221)",
+        "species": "Pd"
+    },
+    {
+        "gamma_DFT": 0.33,
+        "gamma_NEP": 0.32118435488433494,
+        "hkl": "(311)",
+        "species": "Pb"
+    },
+    {
+        "gamma_DFT": 0.33,
+        "gamma_NEP": 0.31879081190464253,
+        "hkl": "(110)",
+        "species": "Pb"
+    },
+    {
+        "gamma_DFT": 0.32,
+        "gamma_NEP": 0.3072943805071998,
+        "hkl": "(331)",
+        "species": "Pb"
+    },
+    {
+        "gamma_DFT": 0.256348259328,
+        "gamma_NEP": 0.2552201302499167,
+        "hkl": "(111)",
+        "species": "Pb"
+    },
+    {
+        "gamma_DFT": 0.35,
+        "gamma_NEP": 0.3333454408735683,
+        "hkl": "(310)",
+        "species": "Pb"
+    },
+    {
+        "gamma_DFT": 0.32,
+        "gamma_NEP": 0.32382983041345814,
+        "hkl": "(321)",
+        "species": "Pb"
+    },
+    {
+        "gamma_DFT": 0.33,
+        "gamma_NEP": 0.29294289181090044,
+        "hkl": "(100)",
+        "species": "Pb"
+    },
+    {
+        "gamma_DFT": 0.34,
+        "gamma_NEP": 0.3349388183478852,
+        "hkl": "(320)",
+        "species": "Pb"
+    },
+    {
+        "gamma_DFT": 0.3,
+        "gamma_NEP": 0.3041886495558626,
+        "hkl": "(211)",
+        "species": "Pb"
+    },
+    {
+        "gamma_DFT": 0.35,
+        "gamma_NEP": 0.3443880785550543,
+        "hkl": "(210)",
+        "species": "Pb"
+    },
+    {
+        "gamma_DFT": 0.29,
+        "gamma_NEP": 0.2882089842459795,
+        "hkl": "(322)",
+        "species": "Pb"
+    },
+    {
+        "gamma_DFT": 0.29,
+        "gamma_NEP": 0.29632573203662516,
+        "hkl": "(221)",
+        "species": "Pb"
+    },
+    {
+        "gamma_DFT": 0.29,
+        "gamma_NEP": 0.28356050670137417,
+        "hkl": "(332)",
+        "species": "Pb"
+    },
+    {
+        "gamma_DFT": 3.02,
+        "gamma_NEP": 3.092473375018882,
+        "hkl": "(332)",
+        "species": "Mo"
+    },
+    {
+        "gamma_DFT": 3.06,
+        "gamma_NEP": 3.0543566638371407,
+        "hkl": "(221)",
+        "species": "Mo"
+    },
+    {
+        "gamma_DFT": 3.03,
+        "gamma_NEP": 3.081444612694802,
+        "hkl": "(322)",
+        "species": "Mo"
+    },
+    {
+        "gamma_DFT": 3.1,
+        "gamma_NEP": 3.027791175951005,
+        "hkl": "(210)",
+        "species": "Mo"
+    },
+    {
+        "gamma_DFT": 3.4,
+        "gamma_NEP": 3.4491385766116114,
+        "hkl": "(211)",
+        "species": "Mo"
+    },
+    {
+        "gamma_DFT": 3.02,
+        "gamma_NEP": 2.9448922531918917,
+        "hkl": "(320)",
+        "species": "Mo"
+    },
+    {
+        "gamma_DFT": 3.18,
+        "gamma_NEP": 3.1291655051704366,
+        "hkl": "(100)",
+        "species": "Mo"
+    },
+    {
+        "gamma_DFT": 2.99,
+        "gamma_NEP": 2.979971295003775,
+        "hkl": "(321)",
+        "species": "Mo"
+    },
+    {
+        "gamma_DFT": 2.9640267484800003,
+        "gamma_NEP": 3.1309549108739376,
+        "hkl": "(111)",
+        "species": "Mo"
+    },
+    {
+        "gamma_DFT": 3.09,
+        "gamma_NEP": 3.0727129587851927,
+        "hkl": "(310)",
+        "species": "Mo"
+    },
+    {
+        "gamma_DFT": 3.0,
+        "gamma_NEP": 2.9878513107704587,
+        "hkl": "(331)",
+        "species": "Mo"
+    },
+    {
+        "gamma_DFT": 3.06,
+        "gamma_NEP": 3.090302733087998,
+        "hkl": "(311)",
+        "species": "Mo"
+    },
+    {
+        "gamma_DFT": 2.78,
+        "gamma_NEP": 2.702566915232319,
+        "hkl": "(110)",
+        "species": "Mo"
+    },
+    {
+        "gamma_DFT": 1.9226119449599999,
+        "gamma_NEP": 1.9798131429825263,
+        "hkl": "(111)",
+        "species": "Ni"
+    },
+    {
+        "gamma_DFT": 2.23,
+        "gamma_NEP": 2.3168623288858177,
+        "hkl": "(331)",
+        "species": "Ni"
+    },
+    {
+        "gamma_DFT": 2.3,
+        "gamma_NEP": 2.350609267694261,
+        "hkl": "(311)",
+        "species": "Ni"
+    },
+    {
+        "gamma_DFT": 2.29,
+        "gamma_NEP": 2.3564885175154027,
+        "hkl": "(110)",
+        "species": "Ni"
+    },
+    {
+        "gamma_DFT": 2.39,
+        "gamma_NEP": 2.451202544915723,
+        "hkl": "(320)",
+        "species": "Ni"
+    },
+    {
+        "gamma_DFT": 2.21,
+        "gamma_NEP": 2.2307404887372364,
+        "hkl": "(100)",
+        "species": "Ni"
+    },
+    {
+        "gamma_DFT": 2.32,
+        "gamma_NEP": 2.3887162571219345,
+        "hkl": "(321)",
+        "species": "Ni"
+    },
+    {
+        "gamma_DFT": 2.12,
+        "gamma_NEP": 2.1907997684340508,
+        "hkl": "(322)",
+        "species": "Ni"
+    },
+    {
+        "gamma_DFT": 2.4,
+        "gamma_NEP": 2.45700112502482,
+        "hkl": "(210)",
+        "species": "Ni"
+    },
+    {
+        "gamma_DFT": 2.24,
+        "gamma_NEP": 2.3005027639079745,
+        "hkl": "(211)",
+        "species": "Ni"
+    },
+    {
+        "gamma_DFT": 2.09,
+        "gamma_NEP": 2.1688324525359453,
+        "hkl": "(332)",
+        "species": "Ni"
+    },
+    {
+        "gamma_DFT": 2.17,
+        "gamma_NEP": 2.2634590567909925,
+        "hkl": "(221)",
+        "species": "Ni"
+    },
+    {
+        "gamma_DFT": 0.98,
+        "gamma_NEP": 1.0132823574731782,
+        "hkl": "(211)",
+        "species": "Al"
+    },
+    {
+        "gamma_DFT": 1.02,
+        "gamma_NEP": 1.0141114823233528,
+        "hkl": "(210)",
+        "species": "Al"
+    },
+    {
+        "gamma_DFT": 0.9,
+        "gamma_NEP": 0.9431025900070975,
+        "hkl": "(322)",
+        "species": "Al"
+    },
+    {
+        "gamma_DFT": 0.95,
+        "gamma_NEP": 0.9698373805786038,
+        "hkl": "(221)",
+        "species": "Al"
+    },
+    {
+        "gamma_DFT": 0.91,
+        "gamma_NEP": 0.9340529140187618,
+        "hkl": "(332)",
+        "species": "Al"
+    },
+    {
+        "gamma_DFT": 0.98,
+        "gamma_NEP": 0.9806650673391842,
+        "hkl": "(110)",
+        "species": "Al"
+    },
+    {
+        "gamma_DFT": 0.98,
+        "gamma_NEP": 0.9861480102386243,
+        "hkl": "(311)",
+        "species": "Al"
+    },
+    {
+        "gamma_DFT": 0.96,
+        "gamma_NEP": 0.9995481647772274,
+        "hkl": "(331)",
+        "species": "Al"
+    },
+    {
+        "gamma_DFT": 0.99,
+        "gamma_NEP": 1.0222914603857145,
+        "hkl": "(310)",
+        "species": "Al"
+    },
+    {
+        "gamma_DFT": 0.7690447779840001,
+        "gamma_NEP": 0.8615676535499295,
+        "hkl": "(111)",
+        "species": "Al"
+    },
+    {
+        "gamma_DFT": 0.96,
+        "gamma_NEP": 1.0117629400669337,
+        "hkl": "(321)",
+        "species": "Al"
+    },
+    {
+        "gamma_DFT": 0.91,
+        "gamma_NEP": 0.9276428443817892,
+        "hkl": "(100)",
+        "species": "Al"
+    },
+    {
+        "gamma_DFT": 1.01,
+        "gamma_NEP": 1.017782757881769,
+        "hkl": "(320)",
+        "species": "Al"
+    },
+    {
+        "gamma_DFT": 0.737001245568,
+        "gamma_NEP": 0.7386027996401654,
+        "hkl": "(21-31)",
+        "species": "Mg"
+    },
+    {
+        "gamma_DFT": 0.7049577131520001,
+        "gamma_NEP": 0.7205508382443782,
+        "hkl": "(21-30)",
+        "species": "Mg"
+    },
+    {
+        "gamma_DFT": 0.512696518656,
+        "gamma_NEP": 0.6076776502962473,
+        "hkl": "(0001)",
+        "species": "Mg"
+    },
+    {
+        "gamma_DFT": 0.7530230117760001,
+        "gamma_NEP": 0.7471043517582402,
+        "hkl": "(22-41)",
+        "species": "Mg"
+    },
+    {
+        "gamma_DFT": 0.737001245568,
+        "gamma_NEP": 0.7211169554575341,
+        "hkl": "(2-1-12)",
+        "species": "Mg"
+    },
+    {
+        "gamma_DFT": 0.7049577131520001,
+        "gamma_NEP": 0.7263530575695374,
+        "hkl": "(10-12)",
+        "species": "Mg"
+    },
+    {
+        "gamma_DFT": 0.7690447779840001,
+        "gamma_NEP": 0.7512477111444806,
+        "hkl": "(20-21)",
+        "species": "Mg"
+    },
+    {
+        "gamma_DFT": 0.624848882112,
+        "gamma_NEP": 0.6530318138037198,
+        "hkl": "(10-11)",
+        "species": "Mg"
+    },
+    {
+        "gamma_DFT": 0.592805349696,
+        "gamma_NEP": 0.6428429992874111,
+        "hkl": "(10-10)",
+        "species": "Mg"
+    },
+    {
+        "gamma_DFT": 0.72097947936,
+        "gamma_NEP": 0.726830838404347,
+        "hkl": "(11-20)",
+        "species": "Mg"
+    },
+    {
+        "gamma_DFT": 0.737001245568,
+        "gamma_NEP": 0.7321918858238897,
+        "hkl": "(21-32)",
+        "species": "Mg"
+    },
+    {
+        "gamma_DFT": 0.7530230117760001,
+        "gamma_NEP": 0.7479786205099257,
+        "hkl": "(11-21)",
+        "species": "Mg"
+    },
+    {
+        "gamma_DFT": 1.63,
+        "gamma_NEP": 1.649561121593672,
+        "hkl": "(211)",
+        "species": "Cu"
+    },
+    {
+        "gamma_DFT": 1.45,
+        "gamma_NEP": 1.469790466474005,
+        "hkl": "(322)",
+        "species": "Cu"
+    },
+    {
+        "gamma_DFT": 1.6,
+        "gamma_NEP": 1.6522645847946194,
+        "hkl": "(210)",
+        "species": "Cu"
+    },
+    {
+        "gamma_DFT": 1.48,
+        "gamma_NEP": 1.5137967907181569,
+        "hkl": "(221)",
+        "species": "Cu"
+    },
+    {
+        "gamma_DFT": 1.43,
+        "gamma_NEP": 1.4514899470449878,
+        "hkl": "(332)",
+        "species": "Cu"
+    },
+    {
+        "gamma_DFT": 1.52,
+        "gamma_NEP": 1.5477945087218465,
+        "hkl": "(331)",
+        "species": "Cu"
+    },
+    {
+        "gamma_DFT": 1.56,
+        "gamma_NEP": 1.578835708124823,
+        "hkl": "(110)",
+        "species": "Cu"
+    },
+    {
+        "gamma_DFT": 1.54,
+        "gamma_NEP": 1.5701312155800498,
+        "hkl": "(311)",
+        "species": "Cu"
+    },
+    {
+        "gamma_DFT": 1.59,
+        "gamma_NEP": 1.6393244988467373,
+        "hkl": "(310)",
+        "species": "Cu"
+    },
+    {
+        "gamma_DFT": 1.3458283614720001,
+        "gamma_NEP": 1.3245423512574428,
+        "hkl": "(111)",
+        "species": "Cu"
+    },
+    {
+        "gamma_DFT": 1.47,
+        "gamma_NEP": 1.4860137242902842,
+        "hkl": "(100)",
+        "species": "Cu"
+    },
+    {
+        "gamma_DFT": 1.58,
+        "gamma_NEP": 1.6018280701798617,
+        "hkl": "(321)",
+        "species": "Cu"
+    },
+    {
+        "gamma_DFT": 1.62,
+        "gamma_NEP": 1.6410792417042386,
+        "hkl": "(320)",
+        "species": "Cu"
+    },
+    {
+        "gamma_DFT": 3.48,
+        "gamma_NEP": 3.5711522741276376,
+        "hkl": "(332)",
+        "species": "Cr"
+    },
+    {
+        "gamma_DFT": 3.34,
+        "gamma_NEP": 3.526773437845059,
+        "hkl": "(221)",
+        "species": "Cr"
+    },
+    {
+        "gamma_DFT": 3.42,
+        "gamma_NEP": 3.5877573324534393,
+        "hkl": "(322)",
+        "species": "Cr"
+    },
+    {
+        "gamma_DFT": 3.54,
+        "gamma_NEP": 3.549531533140786,
+        "hkl": "(210)",
+        "species": "Cr"
+    },
+    {
+        "gamma_DFT": 3.52,
+        "gamma_NEP": 3.756712051639865,
+        "hkl": "(211)",
+        "species": "Cr"
+    },
+    {
+        "gamma_DFT": 3.45,
+        "gamma_NEP": 3.4262500873011,
+        "hkl": "(320)",
+        "species": "Cr"
+    },
+    {
+        "gamma_DFT": 3.63,
+        "gamma_NEP": 3.632571017617069,
+        "hkl": "(100)",
+        "species": "Cr"
+    },
+    {
+        "gamma_DFT": 3.45,
+        "gamma_NEP": 3.4706002742306823,
+        "hkl": "(321)",
+        "species": "Cr"
+    },
+    {
+        "gamma_DFT": 3.428657968512,
+        "gamma_NEP": 3.576133606397378,
+        "hkl": "(111)",
+        "species": "Cr"
+    },
+    {
+        "gamma_DFT": 3.52,
+        "gamma_NEP": 3.5866889431868905,
+        "hkl": "(310)",
+        "species": "Cr"
+    },
+    {
+        "gamma_DFT": 3.46,
+        "gamma_NEP": 3.4552419921425304,
+        "hkl": "(331)",
+        "species": "Cr"
+    },
+    {
+        "gamma_DFT": 3.46,
+        "gamma_NEP": 3.638821068731662,
+        "hkl": "(311)",
+        "species": "Cr"
+    },
+    {
+        "gamma_DFT": 3.22,
+        "gamma_NEP": 3.115726767667935,
+        "hkl": "(110)",
+        "species": "Cr"
+    },
+    {
+        "gamma_DFT": 1.6983072180480001,
+        "gamma_NEP": 1.698061341649967,
+        "hkl": "(21-32)",
+        "species": "Zr"
+    },
+    {
+        "gamma_DFT": 1.714328984256,
+        "gamma_NEP": 1.7714223363607635,
+        "hkl": "(11-21)",
+        "species": "Zr"
+    },
+    {
+        "gamma_DFT": 1.650241919424,
+        "gamma_NEP": 1.6933482691662982,
+        "hkl": "(11-20)",
+        "species": "Zr"
+    },
+    {
+        "gamma_DFT": 1.6662636856320001,
+        "gamma_NEP": 1.519962182847347,
+        "hkl": "(10-10)",
+        "species": "Zr"
+    },
+    {
+        "gamma_DFT": 1.6021766208000001,
+        "gamma_NEP": 1.4249711229226691,
+        "hkl": "(0001)",
+        "species": "Zr"
+    },
+    {
+        "gamma_DFT": 1.5701330883840001,
+        "gamma_NEP": 1.4986402668777703,
+        "hkl": "(10-11)",
+        "species": "Zr"
+    },
+    {
+        "gamma_DFT": 1.634220153216,
+        "gamma_NEP": 1.5557704935299488,
+        "hkl": "(20-21)",
+        "species": "Zr"
+    },
+    {
+        "gamma_DFT": 1.76239428288,
+        "gamma_NEP": 1.6838580581592026,
+        "hkl": "(10-12)",
+        "species": "Zr"
+    },
+    {
+        "gamma_DFT": 1.6822854518400001,
+        "gamma_NEP": 1.7029500654506395,
+        "hkl": "(21-30)",
+        "species": "Zr"
+    },
+    {
+        "gamma_DFT": 1.6983072180480001,
+        "gamma_NEP": 1.768151753065514,
+        "hkl": "(22-41)",
+        "species": "Zr"
+    },
+    {
+        "gamma_DFT": 1.714328984256,
+        "gamma_NEP": 1.6473354809204255,
+        "hkl": "(2-1-12)",
+        "species": "Zr"
+    },
+    {
+        "gamma_DFT": 1.76239428288,
+        "gamma_NEP": 1.7404983693743772,
+        "hkl": "(21-31)",
+        "species": "Zr"
+    },
+    {
+        "gamma_DFT": 1.6,
+        "gamma_NEP": 1.6601234908336004,
+        "hkl": "(221)",
+        "species": "Pt"
+    },
+    {
+        "gamma_DFT": 1.56,
+        "gamma_NEP": 1.5813060963340844,
+        "hkl": "(332)",
+        "species": "Pt"
+    },
+    {
+        "gamma_DFT": 1.76,
+        "gamma_NEP": 1.7976839698273368,
+        "hkl": "(211)",
+        "species": "Pt"
+    },
+    {
+        "gamma_DFT": 1.89,
+        "gamma_NEP": 1.9121629303707353,
+        "hkl": "(210)",
+        "species": "Pt"
+    },
+    {
+        "gamma_DFT": 1.59,
+        "gamma_NEP": 1.5966197459304239,
+        "hkl": "(322)",
+        "species": "Pt"
+    },
+    {
+        "gamma_DFT": 1.77,
+        "gamma_NEP": 1.8025903074461094,
+        "hkl": "(321)",
+        "species": "Pt"
+    },
+    {
+        "gamma_DFT": 1.86,
+        "gamma_NEP": 1.7667026333291556,
+        "hkl": "(100)",
+        "species": "Pt"
+    },
+    {
+        "gamma_DFT": 1.89,
+        "gamma_NEP": 1.9138698793027717,
+        "hkl": "(320)",
+        "species": "Pt"
+    },
+    {
+        "gamma_DFT": 1.79,
+        "gamma_NEP": 1.7927364510101829,
+        "hkl": "(311)",
+        "species": "Pt"
+    },
+    {
+        "gamma_DFT": 1.87,
+        "gamma_NEP": 1.7830053470893041,
+        "hkl": "(110)",
+        "species": "Pt"
+    },
+    {
+        "gamma_DFT": 1.71,
+        "gamma_NEP": 1.7452991127747357,
+        "hkl": "(331)",
+        "species": "Pt"
+    },
+    {
+        "gamma_DFT": 1.4900242573440001,
+        "gamma_NEP": 1.4287100003551305,
+        "hkl": "(111)",
+        "species": "Pt"
+    },
+    {
+        "gamma_DFT": 1.88,
+        "gamma_NEP": 1.9108767632664585,
+        "hkl": "(310)",
+        "species": "Pt"
+    },
+    {
+        "gamma_DFT": 0.77,
+        "gamma_NEP": 0.8086317922459171,
+        "hkl": "(322)",
+        "species": "Ag"
+    },
+    {
+        "gamma_DFT": 0.9,
+        "gamma_NEP": 0.9090117141692441,
+        "hkl": "(210)",
+        "species": "Ag"
+    },
+    {
+        "gamma_DFT": 0.87,
+        "gamma_NEP": 0.8822185621343939,
+        "hkl": "(211)",
+        "species": "Ag"
+    },
+    {
+        "gamma_DFT": 0.79,
+        "gamma_NEP": 0.7998777735466902,
+        "hkl": "(332)",
+        "species": "Ag"
+    },
+    {
+        "gamma_DFT": 0.82,
+        "gamma_NEP": 0.8326652189380142,
+        "hkl": "(221)",
+        "species": "Ag"
+    },
+    {
+        "gamma_DFT": 0.7690447779840001,
+        "gamma_NEP": 0.7316759965282759,
+        "hkl": "(111)",
+        "species": "Ag"
+    },
+    {
+        "gamma_DFT": 0.89,
+        "gamma_NEP": 0.9072329309907928,
+        "hkl": "(310)",
+        "species": "Ag"
+    },
+    {
+        "gamma_DFT": 0.85,
+        "gamma_NEP": 0.8578325756328113,
+        "hkl": "(331)",
+        "species": "Ag"
+    },
+    {
+        "gamma_DFT": 0.86,
+        "gamma_NEP": 0.8653471854824755,
+        "hkl": "(311)",
+        "species": "Ag"
+    },
+    {
+        "gamma_DFT": 0.87,
+        "gamma_NEP": 0.8873354755360227,
+        "hkl": "(110)",
+        "species": "Ag"
+    },
+    {
+        "gamma_DFT": 0.89,
+        "gamma_NEP": 0.9045566679181019,
+        "hkl": "(320)",
+        "species": "Ag"
+    },
+    {
+        "gamma_DFT": 0.82,
+        "gamma_NEP": 0.825225695269083,
+        "hkl": "(100)",
+        "species": "Ag"
+    },
+    {
+        "gamma_DFT": 0.86,
+        "gamma_NEP": 0.8789717944804758,
+        "hkl": "(321)",
+        "species": "Ag"
+    },
+    {
+        "gamma_DFT": 0.78,
+        "gamma_NEP": 0.8241991682657366,
+        "hkl": "(221)",
+        "species": "Au"
+    },
+    {
+        "gamma_DFT": 0.75,
+        "gamma_NEP": 0.791426232688054,
+        "hkl": "(332)",
+        "species": "Au"
+    },
+    {
+        "gamma_DFT": 0.82,
+        "gamma_NEP": 0.8496025066630157,
+        "hkl": "(211)",
+        "species": "Au"
+    },
+    {
+        "gamma_DFT": 0.75,
+        "gamma_NEP": 0.798893025891459,
+        "hkl": "(322)",
+        "species": "Au"
+    },
+    {
+        "gamma_DFT": 0.91,
+        "gamma_NEP": 0.9384174657729454,
+        "hkl": "(210)",
+        "species": "Au"
+    },
+    {
+        "gamma_DFT": 0.86,
+        "gamma_NEP": 0.8878580964415711,
+        "hkl": "(100)",
+        "species": "Au"
+    },
+    {
+        "gamma_DFT": 0.85,
+        "gamma_NEP": 0.8884656064668924,
+        "hkl": "(321)",
+        "species": "Au"
+    },
+    {
+        "gamma_DFT": 0.91,
+        "gamma_NEP": 0.9372546571885871,
+        "hkl": "(320)",
+        "species": "Au"
+    },
+    {
+        "gamma_DFT": 0.83,
+        "gamma_NEP": 0.8712847523056733,
+        "hkl": "(331)",
+        "species": "Au"
+    },
+    {
+        "gamma_DFT": 0.87,
+        "gamma_NEP": 0.8937757980010158,
+        "hkl": "(311)",
+        "species": "Au"
+    },
+    {
+        "gamma_DFT": 0.91,
+        "gamma_NEP": 0.8917646006916882,
+        "hkl": "(110)",
+        "species": "Au"
+    },
+    {
+        "gamma_DFT": 0.7049577131520001,
+        "gamma_NEP": 0.7204339327145662,
+        "hkl": "(111)",
+        "species": "Au"
+    },
+    {
+        "gamma_DFT": 0.91,
+        "gamma_NEP": 0.943158281427631,
+        "hkl": "(310)",
+        "species": "Au"
+    },
+    {
+        "gamma_DFT": 2.49,
+        "gamma_NEP": 2.6769666520159165,
+        "hkl": "(320)",
+        "species": "V"
+    },
+    {
+        "gamma_DFT": 2.38,
+        "gamma_NEP": 2.776909872521163,
+        "hkl": "(100)",
+        "species": "V"
+    },
+    {
+        "gamma_DFT": 2.65,
+        "gamma_NEP": 2.719963224154498,
+        "hkl": "(321)",
+        "species": "V"
+    },
+    {
+        "gamma_DFT": 2.7076784891520003,
+        "gamma_NEP": 2.7880588847411754,
+        "hkl": "(111)",
+        "species": "V"
+    },
+    {
+        "gamma_DFT": 2.47,
+        "gamma_NEP": 2.7670284946266794,
+        "hkl": "(310)",
+        "species": "V"
+    },
+    {
+        "gamma_DFT": 2.61,
+        "gamma_NEP": 2.704076105441529,
+        "hkl": "(331)",
+        "species": "V"
+    },
+    {
+        "gamma_DFT": 2.41,
+        "gamma_NEP": 2.458452036991817,
+        "hkl": "(110)",
+        "species": "V"
+    },
+    {
+        "gamma_DFT": 2.66,
+        "gamma_NEP": 2.788714147696519,
+        "hkl": "(332)",
+        "species": "V"
+    },
+    {
+        "gamma_DFT": 2.65,
+        "gamma_NEP": 2.755028810571944,
+        "hkl": "(221)",
+        "species": "V"
+    },
+    {
+        "gamma_DFT": 2.71,
+        "gamma_NEP": 2.796627908853091,
+        "hkl": "(322)",
+        "species": "V"
+    },
+    {
+        "gamma_DFT": 2.51,
+        "gamma_NEP": 2.7456632580544973,
+        "hkl": "(210)",
+        "species": "V"
+    },
+    {
+        "gamma_DFT": 2.69,
+        "gamma_NEP": 2.715482864024757,
+        "hkl": "(211)",
+        "species": "V"
+    },
+    {
+        "gamma_DFT": 2.47,
+        "gamma_NEP": 2.7677626944828626,
+        "hkl": "(100)",
+        "species": "Ta"
+    },
+    {
+        "gamma_DFT": 2.6,
+        "gamma_NEP": 2.678188824164179,
+        "hkl": "(321)",
+        "species": "Ta"
+    },
+    {
+        "gamma_DFT": 2.48,
+        "gamma_NEP": 2.6363963135785164,
+        "hkl": "(320)",
+        "species": "Ta"
+    },
+    {
+        "gamma_DFT": 2.56,
+        "gamma_NEP": 2.67728284329524,
+        "hkl": "(331)",
+        "species": "Ta"
+    },
+    {
+        "gamma_DFT": 2.34,
+        "gamma_NEP": 2.3999450248388348,
+        "hkl": "(110)",
+        "species": "Ta"
+    },
+    {
+        "gamma_DFT": 2.7,
+        "gamma_NEP": 2.84458613375992,
+        "hkl": "(311)",
+        "species": "Ta"
+    },
+    {
+        "gamma_DFT": 2.54,
+        "gamma_NEP": 2.8159933534320327,
+        "hkl": "(310)",
+        "species": "Ta"
+    },
+    {
+        "gamma_DFT": 2.7076784891520003,
+        "gamma_NEP": 2.8351367552490156,
+        "hkl": "(111)",
+        "species": "Ta"
+    },
+    {
+        "gamma_DFT": 2.63,
+        "gamma_NEP": 2.751775601024268,
+        "hkl": "(221)",
+        "species": "Ta"
+    },
+    {
+        "gamma_DFT": 2.65,
+        "gamma_NEP": 2.806976600990515,
+        "hkl": "(332)",
+        "species": "Ta"
+    },
+    {
+        "gamma_DFT": 2.67,
+        "gamma_NEP": 2.7090226012091763,
+        "hkl": "(211)",
+        "species": "Ta"
+    },
+    {
+        "gamma_DFT": 2.53,
+        "gamma_NEP": 2.7273640188645736,
+        "hkl": "(210)",
+        "species": "Ta"
+    },
+    {
+        "gamma_DFT": 2.034764308416,
+        "gamma_NEP": 1.9977907332391314,
+        "hkl": "(11-20)",
+        "species": "Ti"
+    },
+    {
+        "gamma_DFT": 1.938633711168,
+        "gamma_NEP": 2.2374061476554057,
+        "hkl": "(11-21)",
+        "species": "Ti"
+    },
+    {
+        "gamma_DFT": 2.0828296070400003,
+        "gamma_NEP": 2.2284577317724055,
+        "hkl": "(21-32)",
+        "species": "Ti"
+    },
+    {
+        "gamma_DFT": 2.0027207760000003,
+        "gamma_NEP": 2.147092914539271,
+        "hkl": "(2-1-12)",
+        "species": "Ti"
+    },
+    {
+        "gamma_DFT": 2.259069035328,
+        "gamma_NEP": 2.368645139609129,
+        "hkl": "(10-11)",
+        "species": "Ti"
+    },
+    {
+        "gamma_DFT": 2.2270255029120003,
+        "gamma_NEP": 2.2576535269600417,
+        "hkl": "(10-10)",
+        "species": "Ti"
+    },
+    {
+        "gamma_DFT": 2.1469166718720003,
+        "gamma_NEP": 2.3033881104666807,
+        "hkl": "(0001)",
+        "species": "Ti"
+    },
+    {
+        "gamma_DFT": 2.259069035328,
+        "gamma_NEP": 2.3994176893532657,
+        "hkl": "(20-21)",
+        "species": "Ti"
+    },
+    {
+        "gamma_DFT": 2.1629384380800003,
+        "gamma_NEP": 2.2514734579421933,
+        "hkl": "(10-12)",
+        "species": "Ti"
+    },
+    {
+        "gamma_DFT": 2.0988513732480003,
+        "gamma_NEP": 2.1471039567416916,
+        "hkl": "(21-31)",
+        "species": "Ti"
+    },
+    {
+        "gamma_DFT": 2.1469166718720003,
+        "gamma_NEP": 2.293216419190337,
+        "hkl": "(22-41)",
+        "species": "Ti"
+    },
+    {
+        "gamma_DFT": 2.1308949056640003,
+        "gamma_NEP": 2.1516956696013696,
+        "hkl": "(21-30)",
+        "species": "Ti"
+    },
+    {
+        "gamma_DFT": 3.4607015009280007,
+        "gamma_NEP": 3.726045641965023,
+        "hkl": "(111)",
+        "species": "W"
+    },
+    {
+        "gamma_DFT": 3.71,
+        "gamma_NEP": 3.7540224442217167,
+        "hkl": "(310)",
+        "species": "W"
+    },
+    {
+        "gamma_DFT": 3.48,
+        "gamma_NEP": 3.542058237130312,
+        "hkl": "(331)",
+        "species": "W"
+    },
+    {
+        "gamma_DFT": 3.64,
+        "gamma_NEP": 3.7058823126748863,
+        "hkl": "(311)",
+        "species": "W"
+    },
+    {
+        "gamma_DFT": 3.23,
+        "gamma_NEP": 3.191922924170662,
+        "hkl": "(110)",
+        "species": "W"
+    },
+    {
+        "gamma_DFT": 3.57,
+        "gamma_NEP": 3.53264441436233,
+        "hkl": "(320)",
+        "species": "W"
+    },
+    {
+        "gamma_DFT": 3.95,
+        "gamma_NEP": 3.8883685362947773,
+        "hkl": "(100)",
+        "species": "W"
+    },
+    {
+        "gamma_DFT": 3.46,
+        "gamma_NEP": 3.5287874313573635,
+        "hkl": "(321)",
+        "species": "W"
+    },
+    {
+        "gamma_DFT": 3.56,
+        "gamma_NEP": 3.655073317758209,
+        "hkl": "(322)",
+        "species": "W"
+    },
+    {
+        "gamma_DFT": 3.67,
+        "gamma_NEP": 3.6633103263469287,
+        "hkl": "(210)",
+        "species": "W"
+    },
+    {
+        "gamma_DFT": 3.39,
+        "gamma_NEP": 3.5181593020080775,
+        "hkl": "(211)",
+        "species": "W"
+    },
+    {
+        "gamma_DFT": 3.54,
+        "gamma_NEP": 3.6726816790729244,
+        "hkl": "(332)",
+        "species": "W"
+    },
+    {
+        "gamma_DFT": 3.57,
+        "gamma_NEP": 3.6292500369402956,
+        "hkl": "(221)",
+        "species": "W"
+    }
+]
