@@ -1,7 +1,6 @@
 *.pyc
 
 .DS_Store
-tools
-test
-PyNEP/
-HEA-Jesper
+Manual/Train_NEP_Model.ipynb
+wizard/evolution.py
+Repository/UNEP_v1
