@@ -78,10 +78,10 @@ class Morph():
         os.makedirs(dirname)
         if os.path.exists(nep_path):
             shutil.copy(nep_path, dirname)
-        if os.path.exists(electron_stopping_path):
-            shutil.copy(electron_stopping_path, dirname)
         else:
             raise FileNotFoundError('nep.txt does not exist')
+        if os.path.exists(electron_stopping_path):
+            shutil.copy(electron_stopping_path, dirname)
         original_directory = os.getcwd()
         os.chdir(dirname)
         write_run(run_in)
