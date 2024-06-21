@@ -101,6 +101,7 @@ class Morph():
             center = np.diag(atoms.get_cell()) / 2.0
             if symbol is None:
                 index = np.argmin(np.sum((atoms.positions - center)**2, axis=1))
+                print(index)
             else:
                 element_indices = [i for i, atom in enumerate(atoms) if atom.symbol == symbol]
                 element_positions = atoms.positions[element_indices]
