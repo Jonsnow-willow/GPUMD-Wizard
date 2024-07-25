@@ -82,6 +82,13 @@ if __name__ == "__main__":
     main()
 ```
 
+## Authors:
+
+| Name                  | contact                           |
+| --------------------- | --------------------------------- |
+| Jiahui Liu            | https://github.com/Jonsnow-willow |
+| Qi You                | https://github.com/YouQixiaowu    |
+
 ## Citations
 
 | Reference             | cite for what?                    |
