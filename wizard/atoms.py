@@ -20,12 +20,12 @@ class SymbolInfo:
             self.symbols.append(symbol)
             self.compositions.append(int(composition) if composition else 1)
     
-    def create_bulk_atoms(self, supercell = (3, 3, 3), cubic = True):
+    def create_bulk_atoms(self, supercell = (3, 3, 3)):
         symbol, structure, lc = self.symbols[0], self.structure, self.lattice_constant
         if structure == 'hcp':
             atoms = bulk(symbol, structure, a = lc[0], c = lc[1]) * supercell
         else:
-            atoms = bulk(symbol, structure, a = lc[0], cubic = cubic) * supercell
+            atoms = bulk(symbol, structure, a = lc[0], cubic = True) * supercell
         if len(self.symbols) > 1:
             if len(atoms) < sum(self.compositions):
                 raise ValueError('The number of atoms in the unit cell is less than the number of symbols.')
