@@ -2,6 +2,7 @@ from ase import Atoms, Atom
 from ase.build import bulk
 from ase.optimize import QuasiNewton, FIRE, LBFGS
 from ase.constraints import ExpCellFilter, FixedLine
+from ase.data import chemical_symbols, reference_states
 from wizard.io import get_nth_nearest_neighbor_index, dump_xyz, write_run
 import numpy as np
 import random
@@ -25,7 +26,7 @@ class SymbolInfo:
         if structure == 'hcp':
             atoms = bulk(symbol, structure, a = lc[0], c = lc[1]) * supercell
         else:
-            atoms = bulk(symbol, structure, a = lc[0], cubic=True) * supercell
+            atoms = bulk(symbol, structure, a = lc[0], cubic = True) * supercell
         if len(self.symbols) > 1:
             if len(atoms) < sum(self.compositions):
                 raise ValueError('The number of atoms in the unit cell is less than the number of symbols.')
@@ -36,6 +37,24 @@ class SymbolInfo:
             atoms.set_chemical_symbols(symbols[:len(atoms)])
         return atoms
     
+    def create_prim_atoms(self):
+        symbol, structure, lc = self.symbols[0], self.structure, self.lattice_constant
+        ref_structure = None
+        for chemical_symbol, reference_state in zip(chemical_symbols, reference_states):
+            if symbol == chemical_symbol:
+               ref_structure = reference_state['symmetry']
+               break
+        if structure == ref_structure:
+            atoms = bulk(symbol)
+        elif self.structure == 'hcp':
+            atoms = bulk(symbol, structure, a = lc[0], c = lc[1])
+        else:
+            atoms = bulk(symbol, structure, a = lc[0])
+        return atoms
+
+    def __str__(self):
+        return f"Formula: {self.formula}, Structure: {self.structure}, Lattice constant: {self.lattice_constant}"
+
 class Morph():
     def __init__(self, atoms):
         if not isinstance(atoms, Atoms):
