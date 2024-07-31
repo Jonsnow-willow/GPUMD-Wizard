@@ -2,7 +2,6 @@ from ase import Atoms, Atom
 from ase.build import bulk
 from ase.optimize import QuasiNewton, FIRE, LBFGS
 from ase.constraints import ExpCellFilter, FixedLine
-from ase.data import chemical_symbols, reference_states
 from wizard.io import get_nth_nearest_neighbor_index, dump_xyz, write_run
 import numpy as np
 import random
@@ -21,12 +20,12 @@ class SymbolInfo:
             self.symbols.append(symbol)
             self.compositions.append(int(composition) if composition else 1)
     
-    def create_bulk_atoms(self, supercell = (3, 3, 3)):
+    def create_bulk_atoms(self, supercell = (3, 3, 3), cubic = True):
         symbol, structure, lc = self.symbols[0], self.structure, self.lattice_constant
         if structure == 'hcp':
             atoms = bulk(symbol, structure, a = lc[0], c = lc[1]) * supercell
         else:
-            atoms = bulk(symbol, structure, a = lc[0], cubic = True) * supercell
+            atoms = bulk(symbol, structure, a = lc[0], cubic = cubic) * supercell
         if len(self.symbols) > 1:
             if len(atoms) < sum(self.compositions):
                 raise ValueError('The number of atoms in the unit cell is less than the number of symbols.')
@@ -35,21 +34,6 @@ class SymbolInfo:
             symbols = np.repeat(self.symbols, element_counts)
             np.random.shuffle(symbols)
             atoms.set_chemical_symbols(symbols[:len(atoms)])
-        return atoms
-    
-    def create_prim_atoms(self):
-        symbol, structure, lc = self.symbols[0], self.structure, self.lattice_constant
-        ref_structure = None
-        for chemical_symbol, reference_state in zip(chemical_symbols, reference_states):
-            if symbol == chemical_symbol:
-               ref_structure = reference_state['symmetry']
-               break
-        if structure == ref_structure:
-            atoms = bulk(symbol)
-        elif self.structure == 'hcp':
-            atoms = bulk(symbol, structure, a = lc[0], c = lc[1])
-        else:
-            atoms = bulk(symbol, structure, a = lc[0])
         return atoms
 
     def __str__(self):
