@@ -1,13 +1,8 @@
-from ase.data import chemical_symbols, reference_states
-from wizard.molecular_dynamics import MolecularDynamics
-from wizard.atoms import Morph, SymbolInfo
-from wizard.frames import MultiMol
-from calorine.calculators import CPUNEP
-from ase.build import bulk
+from wizard.atoms import SymbolInfo
 import itertools
 
 class Generator:
-    def __init__(self, elements = [], symbols= None, structures = ['bcc', 'fcc', 'hcp'], adjust_ratios = False):
+    def __init__(self, elements = [], symbols= None, structures = ['bcc', 'fcc', 'hcp'], adjust_ratios = None):
         self.symbol_infos = []
         self.elements = elements
         self.structures = structures
@@ -18,10 +13,11 @@ class Generator:
             if symbols:
                 combinations += [(a, b) for a in symbols for b in elements]
         formulas = []
-        if (adjust_ratios):
+        if adjust_ratios is not None:
+            ratio = int(adjust_ratios)
             for a, b in combinations:
-                for i in range(1, 5):
-                    formulas.append(f"{a}{i}{b}{5-i}")
+                for i in range(1, ratio):
+                    formulas.append(f"{a}{i}{b}{ratio-i}")
         else:
             formulas = [''.join(combination) for combination in combinations]
         for element in elements:
