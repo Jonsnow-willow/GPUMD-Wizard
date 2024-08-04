@@ -542,22 +542,6 @@ def symbol_to_string(symbols):
         result_string += f'{element}{count}'
     return result_string
 
-def active_learning(frames, main_potential, potentials, error_min, error_max = 100, n = 1000000):
-    Train_set = []
-    for atoms in frames:
-        diff = []
-        atoms.calc = main_potential
-        f_0 = np.concatenate(atoms.get_forces())
-        for potential in potentials:
-            atoms.calc = potential
-            diff.append(np.concatenate(atoms.get_forces()) - f_0)
-        diff_array = np.concatenate(diff)
-        if np.any((diff_array > error_min) & (diff_array < error_max)):
-            Train_set.append(atoms)
-    if len(Train_set) > n:
-        Train_set = random.sample(Train_set, n)
-    return Train_set
-
 def plot_thermo_out(filename, column=2, num=1):
     plt.rcParams["figure.figsize"] = (8, 6)
     plt.rcParams.update({"font.size": 16, "text.usetex": False})
