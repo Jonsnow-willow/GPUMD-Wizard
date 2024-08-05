@@ -97,6 +97,8 @@ class MultiMol():
     def select_by_coherent_energy(self, calc, coh = {}, e_min = 0, emax = 10000):
         select_set = []
         for atoms in self.frames:
+            if len(set(atoms.symbols)) == 1:
+                continue
             atoms.calc = calc
             energy = atoms.get_potential_energy()
             for atom in atoms:
