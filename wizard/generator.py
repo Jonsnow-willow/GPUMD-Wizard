@@ -44,7 +44,7 @@ class Generator:
         for symbol_info in self.symbol_infos:
             atoms = symbol_info.create_bulk_atoms(supercell[symbol_info.structure])
             atoms.calc = calc
-            relax(atoms, steps=50)
+            relax(atoms, steps=100)
             frames.append(atoms)
         return frames
        
