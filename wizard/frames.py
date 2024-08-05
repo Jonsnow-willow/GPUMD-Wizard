@@ -58,21 +58,15 @@ class MultiMol():
                 select_set.append(atoms)
         return select_set
     
-    def select_by_max_distance(self, distance = 3):
+    def select_by_1th_distance(self, min = 3.5, max = 100):
         select_set = []
         for atoms in self.frames:
             distances = atoms.get_all_distances(mic=True)
-            max_distance = np.max(distances)
-            if max_distance > distance:
-                select_set.append(atoms)
-        return select_set
-    
-    def select_by_min_distance(self, distance = 1.5):
-        select_set = []
-        for atoms in self.frames:
-            distances = atoms.get_all_distances(mic=True)
-            min_distance = np.min(distances)
-            if min_distance < distance:
+            non_zero_distances = distances[distances > 0]
+            if non_zero_distances.size == 0:
+                continue
+            min_distance = np.min(non_zero_distances)
+            if min_distance > min and min_distance < max:
                 select_set.append(atoms)
         return select_set
     
