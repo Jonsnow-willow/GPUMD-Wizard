@@ -168,7 +168,7 @@ class MultiMol():
                 Morph(atoms_copy).create_vacancies(n)
                 if calc is not None:
                     atoms_copy.calc = calc
-                    relax(atoms_copy, steps=50)
+                    relax(atoms_copy, steps=100)
                 frames.append(atoms_copy)
         return frames
     
