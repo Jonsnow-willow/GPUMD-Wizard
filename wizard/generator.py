@@ -39,12 +39,13 @@ class Generator:
     def get_symbol_infos(self):
         return self.symbol_infos
     
-    def get_bulk_structures(self, calc, supercell = {'bcc': (3,3,3), 'fcc': (3,3,3), 'hcp': (3,3,3)}):
+    def get_bulk_structures(self, calc = None, supercell = {'bcc': (3,3,3), 'fcc': (3,3,3), 'hcp': (3,3,3)}):
         frames = []
         for symbol_info in self.symbol_infos:
             atoms = symbol_info.create_bulk_atoms(supercell[symbol_info.structure])
-            atoms.calc = calc
-            relax(atoms, steps=100)
+            if calc is not None:
+                atoms.calc = calc
+                relax(atoms, steps=100)
             frames.append(atoms)
         return frames
        
