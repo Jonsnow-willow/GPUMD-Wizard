@@ -139,6 +139,18 @@ class Morph():
         random.shuffle(s)
         atoms.set_chemical_symbols(s)
 
+    def random_center(self, index = None):
+        atoms = self.atoms
+        if index is None:
+            index = np.random.randint(0, len(atoms))
+        center = atoms.cell.diagonal() / 2
+        diff = center - atoms[index].position
+        for atom in atoms:
+            atom.position += diff
+
+        for atom in atoms:
+            atom.position %= atoms.cell.diagonal()
+
     def prop_element_set(self, symbols = []):
         atoms = self.atoms
         n_atoms = len(atoms)
