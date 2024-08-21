@@ -29,7 +29,7 @@ class MolecularDynamics:
         cell[2, 2] += A_per_step
         self.atoms.set_cell(cell, scale_atoms = False)
 
-    def NVE(self, temperature_K = 300, steps = 10000, dump_interval = 1000, timestep = 1):
+    def NVE(self, temperature_K = 300, steps = 5000, dump_interval = 1000, timestep = 1):
         atoms = self.atoms
         if self.calc is None:
             dirname = f"gpumd_{datetime.now().strftime('%Y%m%d%H%M%S')}"
@@ -47,7 +47,7 @@ class MolecularDynamics:
             dyn.attach(self.dump_interval, interval=dump_interval)
             dyn.run(steps)
 
-    def NVT(self, temperature_K = 300, steps = 10000, dump_interval = 1000, timestep = 1, A_per_step = None):
+    def NVT(self, temperature_K = 300, steps = 5000, dump_interval = 1000, timestep = 1, A_per_step = None):
         atoms = self.atoms
         if self.calc is None:
             dirname = f"gpumd_{datetime.now().strftime('%Y%m%d%H%M%S')}"
@@ -68,7 +68,7 @@ class MolecularDynamics:
                 dyn.attach(lambda: self.deform(A_per_step))
             dyn.run(steps)
 
-    def NPT(self, temperature_K = 300, pressure = 0, steps = 10000, dump_interval = 1000, timestep = 1):
+    def NPT(self, temperature_K = 300, pressure = 0, steps = 5000, dump_interval = 1000, timestep = 1):
         atoms = self.atoms
         if self.calc is None:
             dirname = f"gpumd_{datetime.now().strftime('%Y%m%d%H%M%S')}"
@@ -89,7 +89,7 @@ class MolecularDynamics:
             dyn.attach(self.dump_interval, interval=dump_interval)
             dyn.run(steps)
 
-    def MCMD(self, temperature_K = 300, pressure = 0, steps = 10000, dump_interval = 1000, timestep = 1):
+    def MCMD(self, temperature_K = 300, pressure = 0, steps = 5000, dump_interval = 1000, timestep = 1):
         atoms = self.atoms
         if self.calc is None:
             dirname = f"gpumd_{datetime.now().strftime('%Y%m%d%H%M%S')}"
