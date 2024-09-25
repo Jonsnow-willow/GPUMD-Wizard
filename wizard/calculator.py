@@ -456,28 +456,38 @@ class MaterialCalculator():
         atom_energy = self.atom_energy
         cell_lengths = atoms.cell.cellpar()
         dump_xyz('MaterialProperties.xyz', atoms)
+        
+        output = ""
+        if self.structure == 'hcp':
+            output += f" {self.formula:<10}Lattice_Constants: a: {cell_lengths[0]:.4f} A    c: {cell_lengths[2]:.4f} A\n"
+            output += f"{'':<11}Ground_State_Energy: {atom_energy:.4f} eV\n"
+        else:
+            output += f" {self.formula:<10}Lattice_Constants: {round(sum(cell_lengths[:3])/3, 3):.4f} A\n"
+            output += f"{'':<11}Ground_State_Energy: {atom_energy:.4f} eV\n"
+        
         with open('MaterialProperties.out', "a") as f:
-            if self.structure == 'hcp':
-                f.write(f" {self.formula:<10}Lattice_Constants: a: {cell_lengths[0]:.4f} A    c: {cell_lengths[2]:.4f} A\n" 
-                        f"{'':<11}Ground_State_Energy: {atom_energy:.4f} eV\n")
-            else:
-                f.write(f" {self.formula:<10}Lattice_Constants: {round(sum(cell_lengths[:3])/3, 3):.4f} A\n" 
-                        f"{'':<11}Ground_State_Energy: {atom_energy:.4f} eV\n")
-        return atom_energy, cell_lengths
+            f.write(output)
+        
+        return output
     
     def elastic_constant(self, epsilon = 0.01):
         atoms = self.atoms.copy()
         atoms.calc = self.calc
         Cij = get_elastic_stiffness_tensor(atoms, epsilon=epsilon)
         dump_xyz('MaterialProperties.xyz', atoms)
+        
+        output = ""
+        output += f" {self.formula:<10}C11: {Cij[0][0]:>7.2f} GPa\n"
+        output += f"{'':<11}C12: {Cij[0][1]:>7.2f} GPa\n"
+        output += f"{'':<11}C13: {Cij[0][2]:>7.2f} GPa\n"
+        output += f"{'':<11}C33: {Cij[2][2]:>7.2f} GPa\n"
+        output += f"{'':<11}C44: {Cij[3][3]:>7.2f} GPa\n"
+        output += f"{'':<11}C66: {Cij[5][5]:>7.2f} GPa\n"
+        
         with open('MaterialProperties.out', 'a') as f:
-            f.write(f" {self.formula:<10}C11: {Cij[0][0]:>7.2f} GPa\n"
-                    f"{'':<11}C12: {Cij[0][1]:>7.2f} GPa\n"
-                    f"{'':<11}C13: {Cij[0][2]:>7.2f} GPa\n"
-                    f"{'':<11}C33: {Cij[2][2]:>7.2f} GPa\n"
-                    f"{'':<11}C44: {Cij[3][3]:>7.2f} GPa\n"
-                    f"{'':<11}C66: {Cij[5][5]:>7.2f} GPa\n")
-        return Cij
+            f.write(output)
+        
+        return output
     
     def eos_curve(self):
         atoms = self.atoms.copy()
