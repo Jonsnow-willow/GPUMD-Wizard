@@ -86,7 +86,7 @@ if __name__ == "__main__":
 
 | Name                  | contact                           |
 | --------------------- | --------------------------------- |
-| Jiahui Liu            | https://github.com/Jonsnow-willow |
+| Jiahui Liu            | jiahui.liu.willow@gmail.com       |
 
 ## Citations
 
