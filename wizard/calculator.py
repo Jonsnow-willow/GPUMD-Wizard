@@ -508,18 +508,23 @@ class MaterialCalculator():
         ax.plot(volumes, energies, '-o')
         ax.set_xlabel('Volume(A$^3$/atom)', fontsize=font_size)
         ax.set_ylabel('Energy (eV/atom)', fontsize=font_size)
-        fig.savefig(os.path.join('eos_curve_png',f'{self.formula}_eos_curve.png'))
-        plt.close()
+        ax.set_title(f'{self.formula} {self.structure} EOS Curve', fontsize=font_size)
+        fig_path = os.path.join('eos_curve_png',f'{self.formula}_eos_curve.png')
+        fig.savefig(fig_path)
+        plt.close(fig)
         with open(os.path.join('eos_curve_out',f'{self.formula}_eos_curve.out'), 'w') as f:
             f.write("Volume(A^3/atom)   Energy(eV/atom)\n")
             for volume, energy in zip(volumes, energies):
                 f.write(f"{volume:.2f}   {energy:.4f}\n")
 
+        return fig_path
+
     def phonon_dispersion(self, special_points = None, labels_path = None):
         atoms = self.atoms.copy()
         calc = self.calc
         PhonoCalc(atoms, calc).get_band_structure(special_points=special_points, labels_path=labels_path)
-        plot_band_structure(atoms, self.formula)
+        fig_path = plot_band_structure(atoms, self.formula, self.structure)
+        return fig_path
              
     def formation_energy_surface(self, hkl = (1, 0, 0), layers = 10, relax_params = {}):
         atoms = self.atoms.copy()
