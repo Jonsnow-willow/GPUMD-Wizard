@@ -104,12 +104,10 @@ class Morph():
             center = np.diag(atoms.get_cell()) / 2.0
             if symbol is None:
                 index = np.argmin(np.sum((atoms.positions - center)**2, axis=1))
-                print(index)
             else:
                 element_indices = [i for i, atom in enumerate(atoms) if atom.symbol == symbol]
                 element_positions = atoms.positions[element_indices]
                 index = element_indices[np.argmin(np.sum((element_positions - center)**2, axis=1))]
-                print(index)
 
         mass = atoms[index].mass
         vx = pow(2 * energy / mass , 0.5) * direction[0] / pow(np.sum(direction ** 2), 0.5) / 10.18
@@ -120,6 +118,7 @@ class Morph():
         atoms_masses = np.array(atoms.get_masses())
         atoms.info['velocities'] += delta_momentum / atoms_masses[:, np.newaxis]
         atoms.info['velocities'][index] = [vx, vy, vz]
+        print(index, atoms[index].symbol, atoms[index].position, atoms[index].mass, atoms.info['velocities'][index])
         
     def velocity(self, vx, vy, vz, group = 0):
         atoms = self.atoms
