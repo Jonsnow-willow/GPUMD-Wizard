@@ -118,8 +118,12 @@ class Morph():
         atoms_masses = np.array(atoms.get_masses())
         atoms.info['velocities'] += delta_momentum / atoms_masses[:, np.newaxis]
         atoms.info['velocities'][index] = [vx, vy, vz]
-        print(index, atoms[index].symbol, atoms[index].position, atoms[index].mass, atoms.info['velocities'][index])
-        
+        print(f'Index: {index}')
+        print(f'Symbol: {atoms[index].symbol}')
+        print(f'Position: {atoms[index].position[0]:.2f}, {atoms[index].position[1]:.2f}, {atoms[index].position[2]:.2f}')
+        print(f'Mass: {atoms[index].mass:.2f}')
+        print(f'Velocity: {atoms.info["velocities"][index][0]:.2f}, {atoms.info["velocities"][index][1]:.2f}, {atoms.info["velocities"][index][2]:.2f}')
+       
     def velocity(self, vx, vy, vz, group = 0):
         atoms = self.atoms
         if atoms.info['velocities'] is None:
