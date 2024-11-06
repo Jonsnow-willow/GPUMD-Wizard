@@ -451,6 +451,10 @@ class MaterialCalculator():
             f.write(f" {self.formula:<7}Atom_Energy: {iso_atom_energy:.4f} eV\n")
         return iso_atom_energy
 
+    def get_energy(self):
+        energy = self.atom_energy
+        return energy
+
     def lattice_constant(self):
         atoms = self.atoms
         atom_energy = self.atom_energy
