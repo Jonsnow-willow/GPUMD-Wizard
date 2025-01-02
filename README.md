@@ -95,6 +95,7 @@ if __name__ == "__main__":
 | [1-2]                 | for any work that used `GPUMD`   |
 | [3]                   | NEP + ZBL |
 | [4]                   | UNEP |
+| [5]                   | MoNbTaVW |
 
 ## References
 
@@ -110,3 +111,7 @@ Phys. Rev. B **108**, 054312 (2023).
 [4] Keke Song, Rui Zhao, Jiahui Liu, Yanzhou Wang, Eric Lindgren, Yong Wang, Shunda Chen, Ke Xu, Ting Liang, Penghua Ying, Nan Xu, Zhiqiang Zhao, Jiuyang Shi, Junjie Wang, Shuang Lyu, Zezhu Zeng, Shirong Liang, Haikuan Dong, Ligang Sun, Yue Chen, Zhuhua Zhang, Wanlin Guo, Ping Qian, Jian Sun, Paul Erhart, Tapio Ala-Nissila, Yanjing Su, Zheyong Fan,
 [General-purpose machine-learned potential for 16 elemental metals and their alloys](https://doi.org/10.1038/s41467-024-54554-x),
 Nature Communications **15**, 10208 (2024).
+
+[5] Jiahui Liu, Jesper Byggmästar, Zheyong Fan, Bing Bai, Ping Qian, and Yanjing Su,
+[Utilizing a machine-learned potential to explore enhanced radiation tolerance in the MoNbTaVW high-entropy alloy](https://arxiv.org/abs/2411.02834),
+arXiv preprint arXiv:2411.02834 (2024).
