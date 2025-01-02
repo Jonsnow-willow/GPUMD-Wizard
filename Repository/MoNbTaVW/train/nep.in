@@ -1,0 +1,12 @@
+version    4
+zbl        2
+type       5 V Nb Mo Ta W
+cutoff     5 5
+n_max      6 6
+l_max      4 2 1
+lambda_1   0.02
+lambda_2   0.02
+neuron     80
+batch      30000
+population 60
+generation 500000
