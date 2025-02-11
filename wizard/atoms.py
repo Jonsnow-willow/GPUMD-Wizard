@@ -226,6 +226,14 @@ class Morph():
     def create_vacancy(self, index = 0):
         del self.atoms[index]
 
+    def create_random_interstitial(self, symbols, num=1):
+        atoms_to_insert = []
+        for _ in range(num):
+            symbol = random.choice(symbols)
+            atom = Atom(symbol=symbol)
+            atoms_to_insert.append(atom)
+        self.insert_atoms(atoms_to_insert)
+        
     def create_divacancies(self, index1 = 0, nth = 1):
         index2 = get_nth_nearest_neighbor_index(self.atoms, index1, nth)
         if index2 < index1:
