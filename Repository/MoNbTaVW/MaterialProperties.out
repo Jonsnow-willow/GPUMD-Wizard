@@ -1,0 +1,63 @@
+ V         Lattice_Constants: 2.9970 A
+           Ground_State_Energy: -8.9915 eV
+ V         C11:  281.38 GPa
+           C12:  153.00 GPa
+           C13:  153.00 GPa
+           C33:  281.38 GPa
+           C44:   22.45 GPa
+           C66:   22.45 GPa
+ V      Formation_Energy_Vacancy: 2.5920 eV
+ V      Migration_Energy_(V-Vacancy): 0.5321 eV
+ V      (1, 1, 1) Formation_Energy_Sia: 3.059 eV
+ Nb        Lattice_Constants: 3.3080 A
+           Ground_State_Energy: -10.2170 eV
+ Nb        C11:  240.30 GPa
+           C12:  131.63 GPa
+           C13:  131.63 GPa
+           C33:  240.30 GPa
+           C44:   12.34 GPa
+           C66:   12.34 GPa
+ Nb     Formation_Energy_Vacancy: 2.8217 eV
+ Nb     Migration_Energy_(Nb-Vacancy): 0.6807 eV
+ Nb     (1, 1, 1) Formation_Energy_Sia: 4.627 eV
+ Mo        Lattice_Constants: 3.1630 A
+           Ground_State_Energy: -10.9367 eV
+ Mo        C11:  472.77 GPa
+           C12:  156.10 GPa
+           C13:  156.10 GPa
+           C33:  472.77 GPa
+           C44:  107.55 GPa
+           C66:  107.55 GPa
+ Mo     Formation_Energy_Vacancy: 2.7945 eV
+ Mo     Migration_Energy_(Mo-Vacancy): 1.4436 eV
+ Mo     (1, 1, 1) Formation_Energy_Sia: 8.25 eV
+ Ta        Lattice_Constants: 3.3210 A
+           Ground_State_Energy: -11.8115 eV
+ Ta        C11:  252.76 GPa
+           C12:  160.73 GPa
+           C13:  160.73 GPa
+           C33:  252.76 GPa
+           C44:   71.04 GPa
+           C66:   71.04 GPa
+ Ta     Formation_Energy_Vacancy: 2.9664 eV
+ Ta     Migration_Energy_(Ta-Vacancy): 0.8665 eV
+ Ta     (1, 1, 1) Formation_Energy_Sia: 5.271 eV
+ W         Lattice_Constants: 3.1850 A
+           Ground_State_Energy: -12.9560 eV
+ W         C11:  528.52 GPa
+           C12:  200.58 GPa
+           C13:  200.58 GPa
+           C33:  528.52 GPa
+           C44:  148.63 GPa
+           C66:  148.63 GPa
+ W      Formation_Energy_Vacancy: 3.2432 eV
+ W      Migration_Energy_(W-Vacancy): 2.0499 eV
+ W      (1, 1, 1) Formation_Energy_Sia: 10.75 eV
+ VNbMoTaW  Lattice_Constants: 9.5850 A
+           Ground_State_Energy: -11.0102 eV
+ VNbMoTaW  C11:  338.53 GPa
+           C12:  173.16 GPa
+           C13:  172.47 GPa
+           C33:  335.62 GPa
+           C44:   42.26 GPa
+           C66:   42.35 GPa
