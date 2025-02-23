@@ -193,6 +193,27 @@ class MultiMol():
         select_set = [i for i in self.frames if i not in frames]
         return select_set
     
+    def unwrap(self):
+        diffs = []
+        for i in range(1, len(self.frames)):
+            cell = self.frames[i].get_cell().diagonal()
+            diff = self.frames[i].positions - self.frames[i-1].positions
+            diff -= np.round(diff / cell) * cell 
+            diffs.append(diff)
+        for i in range(1, len(self.frames)):
+            self.frames[i].positions = self.frames[i-1].positions + diffs[i-1]
+            
+    def find_msd(self, Nc=100):
+        Nd = len(self.frames)        
+        MSDs = []
+        for n in range(Nc):
+            msd = 0
+            for m in range(Nd-n):
+                msd += np.sum((self.frames[m].positions - self.frames[m+n].positions)**2)
+            msd /= (Nd-n) * len(self.frames[0])
+            MSDs.append(msd)    
+        return MSDs
+
     def plot_force_results(self, calcs, labels = None, e_val = [None, None], f_val = [None, None]):
         plt.rcParams["figure.figsize"] = (12, 6)
         plt.rcParams.update({"font.size": 10, "text.usetex": False})
