@@ -6,7 +6,7 @@ from ase.neb import NEB
 from ase.build import surface
 from ase.units import J
 from wizard.io import get_nth_nearest_neighbor_index, relax, dump_xyz, read_xyz, plot_band_structure
-from calorine.tools import get_elastic_stiffness_tensor, get_force_constants, relax_structure
+from calorine.tools import get_elastic_stiffness_tensor
 from wizard.phono import PhonoCalc
 from wizard.atoms import Morph
 import matplotlib
