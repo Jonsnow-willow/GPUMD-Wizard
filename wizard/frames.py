@@ -203,16 +203,38 @@ class MultiMol():
         for i in range(1, len(self.frames)):
             self.frames[i].positions = self.frames[i-1].positions + diffs[i-1]
             
-    def find_msd(self, Nc=100):
+    def find_msd(self, Nc=100, *symbols):
         Nd = len(self.frames)        
-        MSDs = []
-        for n in range(Nc):
-            msd = 0
-            for m in range(Nd-n):
-                msd += np.sum((self.frames[m].positions - self.frames[m+n].positions)**2)
-            msd /= (Nd-n) * len(self.frames[0])
-            MSDs.append(msd)    
-        return MSDs
+        if not symbols:
+            MSDs = []
+            AtomsNumber = len(self.frames[0])
+            for n in range(Nc):
+                msd = 0
+                for m in range(Nd-n):
+                    msd += np.sum((self.frames[m].positions - self.frames[m+n].positions)**2)
+                msd /= (Nd-n) * AtomsNumber
+                MSDs.append(msd)    
+            return MSDs
+        else:
+            MSDs = {}
+            for symbol in symbols:
+                index = [atom.index for atom in self.frames[0] if atom.symbol == symbol]
+                AtomsNumber = len(index)
+                MSDs[symbol] = []
+                for n in range(Nc):
+                    msd = 0
+                    for m in range(Nd-n):
+                        msd += np.sum((self.frames[m].positions[index] - self.frames[m+n].positions[index])**2)
+                    msd /= (Nd-n) * AtomsNumber
+                    MSDs[symbol].append(msd)
+            MSDs['average'] = []
+            for n in range(Nc):
+                msd = 0
+                for m in range(Nd-n):
+                    msd += np.sum((self.frames[m].positions - self.frames[m+n].positions)**2)
+                msd /= (Nd-n) * len(self.frames[0])
+                MSDs['average'].append(msd)
+            return MSDs
 
     def plot_force_results(self, calcs, labels = None, e_val = [None, None], f_val = [None, None]):
         plt.rcParams["figure.figsize"] = (12, 6)
