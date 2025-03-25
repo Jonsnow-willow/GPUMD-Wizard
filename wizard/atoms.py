@@ -73,8 +73,7 @@ class Morph():
 
     def gpumd(self, dirname = 'relax', run_in = ['potential nep.txt', 'velocity 300', 'time_step 1', 
              'ensemble npt_scr 300 300 200 0 500 2000', 'dump_thermo 1000', 'dump_restart 30000', 
-             'dump_exyz 10000','run 30000'], nep_path = 'nep.txt', 
-             electron_stopping_path = 'electron_stopping_fit.txt', write_in = False):
+             'dump_exyz 10000','run 30000'], nep_path = 'nep.txt', electron_stopping_path = 'electron_stopping_fit.txt'):
         atoms = self.atoms
         if os.path.exists(dirname):
             raise FileExistsError('Directory already exists')
@@ -89,10 +88,27 @@ class Morph():
         os.chdir(dirname)
         write_run(run_in)
         dump_xyz('model.xyz', atoms)
-        if write_in:
-           pass
+        os.system('gpumd')
+        os.chdir(original_directory)
+
+    def write_input(self, dirname = 'relax', run_in = ['potential nep.txt', 'velocity 300', 'time_step 1', 
+             'ensemble npt_scr 300 300 200 0 500 2000', 'dump_thermo 1000', 'dump_restart 30000', 
+             'dump_exyz 10000','run 30000'], nep_path = 'nep.txt', 
+             electron_stopping_path = 'electron_stopping_fit.txt'):
+        atoms = self.atoms
+        if os.path.exists(dirname):
+            raise FileExistsError('Directory already exists')
+        os.makedirs(dirname)
+        if os.path.exists(nep_path):
+            shutil.copy(nep_path, dirname)
         else:
-            os.system('gpumd')
+            raise FileNotFoundError('nep.txt does not exist')
+        if os.path.exists(electron_stopping_path):
+            shutil.copy(electron_stopping_path, dirname)
+        original_directory = os.getcwd()
+        os.chdir(dirname)
+        write_run(run_in)
+        dump_xyz('model.xyz', atoms)
         os.chdir(original_directory)
 
     def set_pka(self, energy, direction, index = None, symbol = None):
