@@ -117,7 +117,7 @@ class Morph():
             raise ValueError('The velocities of atoms are not set.')
         
         if index is None:
-            center = np.diag(atoms.get_cell()) / 2.0
+            center = np.dot([0.5, 0.5, 0.5], atoms.get_cell())
             if symbol is None:
                 index = np.argmin(np.sum((atoms.positions - center)**2, axis=1))
             else:
