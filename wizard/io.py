@@ -379,7 +379,7 @@ def plot_band_structure(atoms, formula, structure):
     max_dist = distances[-1][-1]
     xscale = max_freq / max_dist * 1.5
     distances_scaled = [d * xscale for d in distances]
-
+    
     n = 0
     axs[0].set_ylabel("Frequency", fontsize=14)
     for i, path in enumerate(labels_path):
@@ -582,6 +582,8 @@ def plot_training_result(dirname = '', type = 'train'):
     axes[0, 1].annotate("(b)", xy=(0.0, 1.1), xycoords="axes fraction", va="top", ha="right")
     axes[0, 1].set_xlabel("DFT energy (eV/atom)")
     axes[0, 1].set_ylabel("NEP energy (eV/atom)")
+    rmse = np.sqrt(np.mean((energy[:, 0] - energy[:, 1])**2)) * 1000
+    print(f"RMSE: {rmse:.3f} meV/atom")
     x_min = np.min(energy[:, 1]) * 1.1
     x_max = np.max(energy[:, 1]) * 1.1
     y_min = np.min(energy[:, 1]) * 1.1
@@ -599,6 +601,8 @@ def plot_training_result(dirname = '', type = 'train'):
     x_max = np.max(force[:, 3:6]) * 1.1
     y_min = np.min(force[:, 3:6]) * 1.1
     y_max = np.max(force[:, 3:6]) * 1.1
+    rmse = np.sqrt(np.mean((force[:, 0:3] - force[:, 3:6])**2)) * 1000
+    print(f"RMSE: {rmse:.3f} meV/Å")
 
     axes[1, 0].set_xlim(x_min, x_max)
     axes[1, 0].set_ylim(y_min, y_max)
@@ -614,6 +618,8 @@ def plot_training_result(dirname = '', type = 'train'):
     x_max = np.max(virial[:, 0:6]) * 1.1
     y_min = np.min(virial[:, 0:6]) * 1.1
     y_max = np.max(virial[:, 0:6]) * 1.1
+    rmse = np.sqrt(np.mean((virial[:, :half] - virial[:, half:])**2)) * 1000
+    print(f"RMSE: {rmse:.3f} meV/atom")
 
     axes[1, 1].set_xlim(x_min, x_max)
     axes[1, 1].set_ylim(y_min, y_max)
