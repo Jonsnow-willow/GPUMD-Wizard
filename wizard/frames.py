@@ -134,6 +134,17 @@ class MultiMol():
                     ref_force.append(atoms.info['forces'][atom.index])
                     model_force.append(atoms.get_forces()[atom.index])
         return np.array([ref_force, model_force])
+    
+    def calc(self, calc):
+        frames = []
+        for atoms in self.frames:
+            atoms_copy = atoms.copy()
+            atoms_copy.calc = calc
+            atoms_copy.info['energy'] = atoms_copy.get_potential_energy()
+            atoms_copy.info['forces'] = atoms_copy.get_forces()
+            atoms_copy.info['stress'] = atoms_copy.get_stress()
+            frames.append(atoms_copy)
+        return frames
 
     def deform(self, scale = np.arange(0.95, 1.06, 0.05)):
         frames = []
@@ -298,3 +309,5 @@ class MultiMol():
         plt.savefig("force_results.png")
         plt.show()
         plt.close()
+
+
