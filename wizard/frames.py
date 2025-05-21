@@ -213,7 +213,33 @@ class MultiMol():
             diffs.append(diff)
         for i in range(1, len(self.frames)):
             self.frames[i].positions = self.frames[i-1].positions + diffs[i-1]
-            
+                 
+    def find_asd(self, *symbols):
+        if not symbols:
+            MSDs = []
+            AtomsNumber = len(self.frames[0])
+            for n in range(len(self.frames)):
+                displacement = self.frames[0].positions - self.frames[n].positions
+                msd = np.sum(displacement ** 2) / AtomsNumber
+                MSDs.append(msd)    
+            return MSDs
+        else:
+            MSDs = {}
+            for symbol in symbols:
+                index = [atom.index for atom in self.frames[0] if atom.symbol == symbol]
+                AtomsNumber = len(index)
+                MSDs[symbol] = []
+                for n in range(len(self.frames)):
+                    displacement = self.frames[0].positions[index] - self.frames[n].positions[index]
+                    msd = np.sum(displacement ** 2) / AtomsNumber
+                    MSDs[symbol].append(msd)
+            MSDs['average'] = []
+            for n in range(len(self.frames)):
+                displacement = self.frames[0].positions - self.frames[n].positions
+                msd = np.sum(displacement ** 2) / len(self.frames[0])
+                MSDs['average'].append(msd)
+            return MSDs
+        
     def find_msd(self, Nc=100, *symbols):
         Nd = len(self.frames)        
         if not symbols:
