@@ -59,6 +59,11 @@ def collate_fn(batch):
     neighbors_angular_batch = []
     distances_angular_batch = []
     
+    # 新增：径向类型信息
+    type_i_radial_list = []
+    type_j_radial_list = []
+    distances_radial_flat = []
+    
     triplet_indices = []
     r_ij_list = []
     r_ik_list = []
@@ -78,6 +83,16 @@ def collate_fn(batch):
         neighbors_radial_batch.append(nbs_rad_updated)
         distances_radial_batch.append(dists_rad)
 
+        # 生成径向类型信息
+        types_i = types[i]
+        for atom_idx in range(n_atoms[i]):
+            for nb_idx in range(nbs_rad.shape[1]):
+                if nbs_rad[atom_idx, nb_idx] != -1:
+                    neighbor_atom = nbs_rad[atom_idx, nb_idx].item()
+                    type_i_radial_list.append(types_i[atom_idx])
+                    type_j_radial_list.append(types_i[neighbor_atom])
+                    distances_radial_flat.append(dists_rad[atom_idx, nb_idx])
+
         nbs_ang = neighbors_angular[i]
         dists_ang = distances_angular[i]  # [N_atoms, NN_angular, 3]
         valid_mask_ang = nbs_ang != -1
@@ -86,8 +101,7 @@ def collate_fn(batch):
         neighbors_angular_batch.append(nbs_ang_updated)
         distances_angular_batch.append(dists_ang)
 
-        types_i = types[i]
-        
+        # 三体信息生成（保持不变）
         for atom_idx in range(n_atoms[i]):
             global_atom_idx = atom_offset + atom_idx
             neighbors = nbs_ang[atom_idx]
@@ -123,6 +137,12 @@ def collate_fn(batch):
     neighbors_angular_batch = torch.cat(neighbors_angular_batch, dim=0)
     distances_angular_batch = torch.cat(distances_angular_batch, dim=0)
 
+    # 处理径向类型信息
+    distances_radial_flat = torch.stack(distances_radial_flat) if distances_radial_flat else torch.zeros(0, dtype=torch.float32)
+    type_i_radial = torch.tensor(type_i_radial_list, dtype=torch.long) if type_i_radial_list else torch.zeros(0, dtype=torch.long)
+    type_j_radial = torch.tensor(type_j_radial_list, dtype=torch.long) if type_j_radial_list else torch.zeros(0, dtype=torch.long)
+
+    # 处理三体信息
     triplet_index = torch.tensor(triplet_indices, dtype=torch.long) if triplet_indices else torch.zeros((0, 3), dtype=torch.long)
     r_ij = torch.stack(r_ij_list) if r_ij_list else torch.zeros(0, dtype=torch.float32)
     r_ik = torch.stack(r_ik_list) if r_ik_list else torch.zeros(0, dtype=torch.float32)
@@ -132,21 +152,20 @@ def collate_fn(batch):
     type_k = torch.tensor(type_k_list, dtype=torch.long) if type_k_list else torch.zeros(0, dtype=torch.long)
 
     return {
-        "positions": positions_batch,                   # [N_atoms_total, 3]
-        "types": types_batch,                           # [N_atoms_total]
-        "neighbors_radial": neighbors_radial_batch,     # [N_atoms_total, NN_radial]
-        "distances_radial": distances_radial_batch,     # [N_atoms_total, NN_radial]
-        "neighbors_angular": neighbors_angular_batch,   # [N_atoms_total, NN_angular]
-        "distances_angular": distances_angular_batch,   # [N_atoms_total, NN_angular, 3]
-        "n_atoms": torch.tensor(n_atoms),
+        "positions": positions_batch,                   
+        "types": types_batch,                           
+        "n_atoms": torch.tensor(n_atoms),              
         "batch_size": len(batch),
-        "triplet_index": triplet_index,                 # [N_triplets, 3]
-        "r_ij": r_ij,                                   # [N_triplets]
-        "r_ik": r_ik,                                   # [N_triplets]
-        "cos_theta": cos_theta,                         # [N_triplets]
-        "type_i": type_i,                               # [N_triplets]
-        "type_j": type_j,                               # [N_triplets]
-        "type_k": type_k,                               # [N_triplets]
+        "r_ij_radial": distances_radial_flat,        
+        "type_i_radial": type_i_radial,               
+        "type_j_radial": type_j_radial,               
+        "triplet_index": triplet_index,               
+        "r_ij": r_ij,                                
+        "r_ik": r_ik,                               
+        "cos_theta": cos_theta,                      
+        "type_i": type_i,                           
+        "type_j": type_j,                           
+        "type_k": type_k,                           
     }
 
 class StructureDataset(Dataset):
