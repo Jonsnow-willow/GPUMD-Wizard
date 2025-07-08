@@ -41,23 +41,25 @@ class RadialDescriptor(nn.Module):
     def get_attention(self, type_i, type_j):
         return self.c_table[type_i, type_j]  
     
-    def forward(self, radial_types, radial_neighbors, radial_distances, radial_type_j):
+    def forward(self, types, radial_neighbors, radial_distances):
         n_atoms, n_radial = radial_neighbors.shape
         valid_mask = radial_neighbors != -1  # [N_atoms, N_radial]
         
         if not valid_mask.any():
-            return torch.zeros(n_atoms, self.n_desc, device=radial_types.device)
+            return torch.zeros(n_atoms, self.n_desc, device=types.device)
 
-        valid_distances = radial_distances[valid_mask]  # [N_valid_edges]
-        valid_type_i = radial_types.unsqueeze(1).expand(-1, n_radial)[valid_mask]  # [N_valid_edges]
-        valid_type_j = radial_type_j[valid_mask]  # [N_valid_edges]
+        valid_distances = radial_distances[valid_mask]  #
+        valid_type_i = types.unsqueeze(1).expand(-1, n_radial)[valid_mask]  
+        
+        valid_neighbors = radial_neighbors[valid_mask]  
+        valid_type_j = types[valid_neighbors]    
         
         f = chebyshev_basis(valid_distances, self.r_c, self.k_max)  # [N_valid_edges, k_max]
         c = self.get_attention(valid_type_i, valid_type_j)  # [N_valid_edges, n_desc, k_max]
         edge_descriptors = torch.sum(c * f.unsqueeze(1), dim=-1)  # [N_valid_edges, n_desc]
         
-        g = torch.zeros(n_atoms, self.n_desc, device=radial_types.device)
-        atom_indices = torch.arange(n_atoms, device=radial_types.device).unsqueeze(1).expand(-1, n_radial)[valid_mask]
+        g = torch.zeros(n_atoms, self.n_desc, device=types.device)
+        atom_indices = torch.arange(n_atoms, device=types.device).unsqueeze(1).expand(-1, n_radial)[valid_mask]
         g.index_add_(0, atom_indices, edge_descriptors)
         
         return g  # [N_atoms, n_desc]
@@ -117,13 +119,12 @@ class Descriptor(nn.Module):
 
     def forward(self, batch):
         g_radial = self.radial(
-            batch["radial_types"],      # [N_atoms]
+            batch["types"],      # [N_atoms]
             batch["radial_neighbors"],  # [N_atoms, N_radial]
             batch["radial_distances"], # [N_atoms, N_radial]
-            batch["radial_type_j"]      # [N_atoms, N_radial]
         )  # [N_atoms, n_desc_radial]
         
-        n_atoms_total = torch.sum(batch["n_atoms"]).item()
+        n_atoms_total = torch.sum(batch["n_atoms_per_structure"]).item()
         g_angular = self.angular(
             n_atoms_total,                # int
             batch["triplet_index"],       # [N_triplets, 3]
