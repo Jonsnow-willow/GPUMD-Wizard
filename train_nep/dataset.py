@@ -3,7 +3,7 @@ from ase.neighborlist import neighbor_list
 from torch.utils.data import Dataset
 from wizard.io import read_xyz
 
-def find_neighbor(atoms, cutoff):
+def find_neighbor_radial(atoms, cutoff):
     i, j, d = neighbor_list('ijd', atoms, cutoff)
     n_atoms = len(atoms)
     neighbors = [[] for _ in range(n_atoms)]
@@ -11,6 +11,16 @@ def find_neighbor(atoms, cutoff):
     for idx in range(len(i)):
         neighbors[i[idx]].append(j[idx])
         distances[i[idx]].append(d[idx])
+    return neighbors, distances
+
+def find_neighbor_angular(atoms, cutoff):
+    i, j, D = neighbor_list('ijD', atoms, cutoff)
+    n_atoms = len(atoms)
+    neighbors = [[] for _ in range(n_atoms)]
+    distances = [[] for _ in range(n_atoms)]
+    for idx in range(len(i)):
+        neighbors[i[idx]].append(j[idx])
+        distances[i[idx]].append(D[idx]) # [NN_angular, 3]
     return neighbors, distances
 
 def pad_neighbors(neighbors, max_nbs=None, pad_value=-1):
@@ -51,7 +61,6 @@ def collate_fn(batch):
     atom_offset = 0
 
     for i in range(len(batch)):
-
         nbs_rad = neighbors_radial[i]
         dists_rad = distances_radial[i]
         valid_mask_rad = nbs_rad != -1
@@ -76,12 +85,12 @@ def collate_fn(batch):
     distances_angular_batch = torch.cat(distances_angular_batch, dim=0)
 
     return {
-        "positions": positions_batch,
-        "types": types_batch,
-        "neighbors_radial": neighbors_radial_batch,
-        "distances_radial": distances_radial_batch,
-        "neighbors_angular": neighbors_angular_batch,
-        "distances_angular": distances_angular_batch,
+        "positions": positions_batch,                   # [N_atoms_total, 3]
+        "types": types_batch,                           # [N_atoms_total]
+        "neighbors_radial": neighbors_radial_batch,     # [N_atoms_total, NN_radial]
+        "distances_radial": distances_radial_batch,     # [N_atoms_total, NN_radial]
+        "neighbors_angular": neighbors_angular_batch,   # [N_atoms_total, NN_angular]
+        "distances_angular": distances_angular_batch,   # [N_atoms_total, NN_angular, 3]
         "n_atoms": torch.tensor(n_atoms),
         "batch_size": len(batch)
     }
@@ -99,13 +108,13 @@ class StructureDataset(Dataset):
         coords = atoms.get_positions()
         types = atoms.get_atomic_numbers()
 
-        neighbors_rad, distances_rad = find_neighbor(atoms, self.cutoff_radial)
+        neighbors_rad, distances_rad = find_neighbor_radial(atoms, self.cutoff_radial)
         neighbors_rad_pad = pad_neighbors(neighbors_rad, max_nbs=self.NN_radial)
         distances_rad_pad = pad_distances(distances_rad, max_nbs=self.NN_radial)
 
-        neighbors_ang, distances_ang = find_neighbor(atoms, self.cutoff_angular)
+        neighbors_ang, distances_ang = find_neighbor_angular(atoms, self.cutoff_angular)
         neighbors_ang_pad = pad_neighbors(neighbors_ang, max_nbs=self.NN_angular)
-        distances_ang_pad = pad_distances(distances_ang, max_nbs=self.NN_angular)
+        distances_ang_pad = pad_distances(distances_ang, max_nbs=self.NN_angular, pad_value=[0, 0, 0])
 
         return {
             "positions": torch.tensor(coords, dtype=torch.float32),
@@ -113,7 +122,7 @@ class StructureDataset(Dataset):
             "neighbors_radial": neighbors_rad_pad,
             "distances_radial": distances_rad_pad,
             "neighbors_angular": neighbors_ang_pad,
-            "distances_angular": distances_ang_pad,
+            "distances_angular": distances_ang_pad,  # [N_atoms, NN_angular, 3]
         }
     
     def __len__(self):
