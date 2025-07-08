@@ -54,12 +54,6 @@ def collate_fn(batch):
     neighbors_angular = [item["neighbors_angular"] for item in batch]
     distances_angular = [item["distances_angular"] for item in batch]
 
-    neighbors_radial_batch = []
-    distances_radial_batch = []
-    neighbors_angular_batch = []
-    distances_angular_batch = []
-    
-    # 新增：径向类型信息
     type_i_radial_list = []
     type_j_radial_list = []
     distances_radial_flat = []
@@ -77,14 +71,8 @@ def collate_fn(batch):
     for i in range(len(batch)):
         nbs_rad = neighbors_radial[i]
         dists_rad = distances_radial[i]
-        valid_mask_rad = nbs_rad != -1
-        nbs_rad_updated = nbs_rad.clone()
-        nbs_rad_updated[valid_mask_rad] += atom_offset
-        neighbors_radial_batch.append(nbs_rad_updated)
-        distances_radial_batch.append(dists_rad)
-
-        # 生成径向类型信息
         types_i = types[i]
+
         for atom_idx in range(n_atoms[i]):
             for nb_idx in range(nbs_rad.shape[1]):
                 if nbs_rad[atom_idx, nb_idx] != -1:
@@ -94,14 +82,8 @@ def collate_fn(batch):
                     distances_radial_flat.append(dists_rad[atom_idx, nb_idx])
 
         nbs_ang = neighbors_angular[i]
-        dists_ang = distances_angular[i]  # [N_atoms, NN_angular, 3]
-        valid_mask_ang = nbs_ang != -1
-        nbs_ang_updated = nbs_ang.clone()
-        nbs_ang_updated[valid_mask_ang] += atom_offset
-        neighbors_angular_batch.append(nbs_ang_updated)
-        distances_angular_batch.append(dists_ang)
-
-        # 三体信息生成（保持不变）
+        dists_ang = distances_angular[i]
+        
         for atom_idx in range(n_atoms[i]):
             global_atom_idx = atom_offset + atom_idx
             neighbors = nbs_ang[atom_idx]
@@ -132,17 +114,10 @@ def collate_fn(batch):
 
         atom_offset += n_atoms[i]
 
-    neighbors_radial_batch = torch.cat(neighbors_radial_batch, dim=0)
-    distances_radial_batch = torch.cat(distances_radial_batch, dim=0)
-    neighbors_angular_batch = torch.cat(neighbors_angular_batch, dim=0)
-    distances_angular_batch = torch.cat(distances_angular_batch, dim=0)
-
-    # 处理径向类型信息
     distances_radial_flat = torch.stack(distances_radial_flat) if distances_radial_flat else torch.zeros(0, dtype=torch.float32)
     type_i_radial = torch.tensor(type_i_radial_list, dtype=torch.long) if type_i_radial_list else torch.zeros(0, dtype=torch.long)
     type_j_radial = torch.tensor(type_j_radial_list, dtype=torch.long) if type_j_radial_list else torch.zeros(0, dtype=torch.long)
 
-    # 处理三体信息
     triplet_index = torch.tensor(triplet_indices, dtype=torch.long) if triplet_indices else torch.zeros((0, 3), dtype=torch.long)
     r_ij = torch.stack(r_ij_list) if r_ij_list else torch.zeros(0, dtype=torch.float32)
     r_ik = torch.stack(r_ik_list) if r_ik_list else torch.zeros(0, dtype=torch.float32)
