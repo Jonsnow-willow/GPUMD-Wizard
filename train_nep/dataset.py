@@ -76,10 +76,6 @@ def collate_fn(batch):
     neighbors_angular = torch.cat(neighbors_angular_list, dim=0)
     distances_angular = torch.cat(distances_angular_list, dim=0)
 
-    type_j = torch.full_like(neighbors_radial, -1)
-    valid = neighbors_radial != -1
-    type_j[valid] = types[neighbors_radial[valid]]
-
     triplet_indices = []
     r_ij_list = []
     r_ik_list = []
@@ -134,10 +130,8 @@ def collate_fn(batch):
         "n_atoms_per_structure": torch.tensor(n_atoms_per_structure, dtype=torch.long), 
         "batch_size": len(batch),                       # int
 
-        "radial_types": types,                          # [N_atoms_total]
         "radial_neighbors": neighbors_radial,           # [N_atoms_total, NN_radial]
         "radial_distances": distances_radial,           # [N_atoms_total, NN_radial]
-        "radial_type_j": type_j,                        # [N_atoms_total, NN_radial]
         
         "triplet_index": triplet_index,                 # [N_triplets, 3]
         "r_ij": r_ij,                                   # [N_triplets]
