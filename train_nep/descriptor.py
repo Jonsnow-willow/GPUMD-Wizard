@@ -91,9 +91,10 @@ class Descriptor(nn.Module):
             batch["type_i_radial"],      
             batch["type_j_radial"]        
         ) 
-
+        
+        n_atoms_total = torch.sum(batch["n_atoms"]).item()
         g_angular = self.angular(
-            batch["n_atoms"],             # int
+            n_atoms_total,                # int
             batch["triplet_index"],       # [N_triplets, 3]
             batch["r_ij"],                # [N_triplets]
             batch["r_ik"],                # [N_triplets]
