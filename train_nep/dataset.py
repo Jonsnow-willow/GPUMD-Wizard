@@ -1,5 +1,6 @@
 import torch
 from ase.neighborlist import neighbor_list
+from ase.data import atomic_numbers
 from torch.utils.data import Dataset
 from wizard.io import read_xyz
 
@@ -124,7 +125,7 @@ def collate_fn(batch):
     type_i = torch.tensor(type_i_list, dtype=torch.long) if type_i_list else torch.zeros(0, dtype=torch.long)
     type_j = torch.tensor(type_j_list, dtype=torch.long) if type_j_list else torch.zeros(0, dtype=torch.long)
     type_k = torch.tensor(type_k_list, dtype=torch.long) if type_k_list else torch.zeros(0, dtype=torch.long)
-    
+
     return {
         "types": types,                                 # [N_atoms_total]
         "n_atoms_per_structure": torch.tensor(n_atoms_per_structure, dtype=torch.long), 
@@ -143,18 +144,25 @@ def collate_fn(batch):
     }
 
 class StructureDataset(Dataset):
-    def __init__(self, filepath, cutoff_radial, cutoff_angular, NN_radial, NN_angular):
+    def __init__(self, filepath, types, cutoff_radial, cutoff_angular, NN_radial, NN_angular):
         self.structures = read_xyz(filepath)
         self.cutoff_radial = cutoff_radial
         self.cutoff_angular = cutoff_angular
         self.NN_radial = NN_radial
         self.NN_angular = NN_angular
+
+        element_names = types.split()   
+        element_z = [atomic_numbers[sym] for sym in element_names]  
+        self.z2id = {z: idx for idx, z in enumerate(element_z)}     
+        self.id2z = {idx: z for idx, z in enumerate(element_z)}    
         self.data = [self.process(atoms) for atoms in self.structures]
     
     def process(self, atoms):
         n_atoms = len(atoms)
-        types = atoms.get_atomic_numbers()
-        
+        raw_types = atoms.get_atomic_numbers()  
+        types = [self.z2id[int(z)] for z in raw_types]
+        types = torch.tensor(types, dtype=torch.long)
+
         neighbors_rad, distances_rad = find_neighbor_radial(atoms, self.cutoff_radial)
         neighbors_rad_pad = pad_neighbors(neighbors_rad, max_nbs=self.NN_radial)
         distances_rad_pad = pad_distances(distances_rad, max_nbs=self.NN_radial)
@@ -165,7 +173,7 @@ class StructureDataset(Dataset):
 
         return {
             "n_atoms": n_atoms,   
-            "types": torch.tensor(types, dtype=torch.long),
+            "types": types,  
             "neighbors_radial": neighbors_rad_pad,
             "distances_radial": distances_rad_pad,
             "neighbors_angular": neighbors_ang_pad,
