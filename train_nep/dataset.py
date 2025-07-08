@@ -87,10 +87,12 @@ def collate_fn(batch):
     }
 
 class StructureDataset(Dataset):
-    def __init__(self, filepath, cutoff_radial, cutoff_angular):
+    def __init__(self, filepath, cutoff_radial, cutoff_angular, NN_radial, NN_angular):
         self.structures = read_xyz(filepath)
         self.cutoff_radial = cutoff_radial
         self.cutoff_angular = cutoff_angular
+        self.NN_radial = NN_radial
+        self.NN_angular = NN_angular
         self.data = [self.process(atoms) for atoms in self.structures]
     
     def process(self, atoms):
@@ -98,12 +100,13 @@ class StructureDataset(Dataset):
         types = atoms.get_atomic_numbers()
 
         neighbors_rad, distances_rad = find_neighbor(atoms, self.cutoff_radial)
-        neighbors_rad_pad = pad_neighbors(neighbors_rad)
-        distances_rad_pad = pad_distances(distances_rad)
+        neighbors_rad_pad = pad_neighbors(neighbors_rad, max_nbs=self.NN_radial)
+        distances_rad_pad = pad_distances(distances_rad, max_nbs=self.NN_radial)
 
         neighbors_ang, distances_ang = find_neighbor(atoms, self.cutoff_angular)
-        neighbors_ang_pad = pad_neighbors(neighbors_ang)
-        distances_ang_pad = pad_distances(distances_ang)
+        neighbors_ang_pad = pad_neighbors(neighbors_ang, max_nbs=self.NN_angular)
+        distances_ang_pad = pad_distances(distances_ang, max_nbs=self.NN_angular)
+
         return {
             "positions": torch.tensor(coords, dtype=torch.float32),
             "types": torch.tensor(types, dtype=torch.long),
