@@ -49,9 +49,12 @@ def collate_fn(batch):
     
     neighbors_angular_list = []
     distances_angular_list = []
+    
+    n_atoms_per_structure = []
 
     for item in batch:
         types_list.append(item["types"])
+        n_atoms_per_structure.append(item["n_atoms"])
 
         nbs = item["neighbors_radial"].clone()
         valid = nbs != -1
@@ -128,9 +131,9 @@ def collate_fn(batch):
 
     return {
         "types": types,                                 # [N_atoms_total]
-        "n_atoms": types.shape[0],                      # int
+        "n_atoms_per_structure": torch.tensor(n_atoms_per_structure, dtype=torch.long), 
         "batch_size": len(batch),                       # int
-        
+
         "radial_types": types,                          # [N_atoms_total]
         "radial_neighbors": neighbors_radial,           # [N_atoms_total, NN_radial]
         "radial_distances": distances_radial,           # [N_atoms_total, NN_radial]
