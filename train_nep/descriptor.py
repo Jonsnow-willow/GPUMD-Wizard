@@ -87,7 +87,7 @@ class Descriptor(nn.Module):
 
     def forward(self, batch):
         g_radial = self.radial(
-            batch["distances_radial"],    
+            batch["r_ij_radial"],    
             batch["type_i_radial"],      
             batch["type_j_radial"]        
         ) 
