@@ -42,22 +42,41 @@ def pad_distances(distances, max_nbs=None, pad_value=-1):
     return torch.tensor(padded, dtype=torch.float32)
 
 def collate_fn(batch):
-    positions = [item["positions"] for item in batch]
-    positions_batch = torch.cat(positions, dim=0)
-
-    types = [item["types"] for item in batch]
-    types_batch = torch.cat(types, dim=0)
-
-    n_atoms = [len(pos) for pos in positions]
-    neighbors_radial = [item["neighbors_radial"] for item in batch]
-    distances_radial = [item["distances_radial"] for item in batch]
-    neighbors_angular = [item["neighbors_angular"] for item in batch]
-    distances_angular = [item["distances_angular"] for item in batch]
-
-    type_i_radial_list = []
-    type_j_radial_list = []
-    distances_radial_flat = []
+    atom_offset = 0
+    types_list = []
+    neighbors_radial_list = []
+    distances_radial_list = []
     
+    neighbors_angular_list = []
+    distances_angular_list = []
+
+    for item in batch:
+        types_list.append(item["types"])
+
+        nbs = item["neighbors_radial"].clone()
+        valid = nbs != -1
+        nbs[valid] += atom_offset
+        neighbors_radial_list.append(nbs)
+        distances_radial_list.append(item["distances_radial"])
+        
+        nbs_ang = item["neighbors_angular"].clone()
+        valid_ang = nbs_ang != -1
+        nbs_ang[valid_ang] += atom_offset
+        neighbors_angular_list.append(nbs_ang)
+        distances_angular_list.append(item["distances_angular"])
+        
+        atom_offset += item["n_atoms"]
+
+    types = torch.cat(types_list, dim=0)
+    neighbors_radial = torch.cat(neighbors_radial_list, dim=0)
+    distances_radial = torch.cat(distances_radial_list, dim=0)
+    neighbors_angular = torch.cat(neighbors_angular_list, dim=0)
+    distances_angular = torch.cat(distances_angular_list, dim=0)
+
+    type_j = torch.full_like(neighbors_radial, -1)
+    valid = neighbors_radial != -1
+    type_j[valid] = types[neighbors_radial[valid]]
+
     triplet_indices = []
     r_ij_list = []
     r_ik_list = []
@@ -66,57 +85,38 @@ def collate_fn(batch):
     type_j_list = []
     type_k_list = []
     
-    atom_offset = 0
-
-    for i in range(len(batch)):
-        nbs_rad = neighbors_radial[i]
-        dists_rad = distances_radial[i]
-        types_i = types[i]
-
-        for atom_idx in range(n_atoms[i]):
-            for nb_idx in range(nbs_rad.shape[1]):
-                if nbs_rad[atom_idx, nb_idx] != -1:
-                    neighbor_atom = nbs_rad[atom_idx, nb_idx].item()
-                    type_i_radial_list.append(types_i[atom_idx])
-                    type_j_radial_list.append(types_i[neighbor_atom])
-                    distances_radial_flat.append(dists_rad[atom_idx, nb_idx])
-
-        nbs_ang = neighbors_angular[i]
-        dists_ang = distances_angular[i]
+    n_atoms_total = types.shape[0]
+    
+    for atom_i in range(n_atoms_total):
+        neighbors_i = neighbors_angular[atom_i]
+        distances_i = distances_angular[atom_i]  # [NN_angular, 3]
         
-        for atom_idx in range(n_atoms[i]):
-            global_atom_idx = atom_offset + atom_idx
-            neighbors = nbs_ang[atom_idx]
+        valid_mask = neighbors_i != -1
+        valid_neighbors = neighbors_i[valid_mask]
+        valid_distances = distances_i[valid_mask]  # [n_valid, 3]
+        
+        if len(valid_neighbors) < 2:
+            continue
             
-            valid_neighbors = neighbors[neighbors != -1]
-            if len(valid_neighbors) < 2:
-                continue
+        for j_idx in range(len(valid_neighbors)):
+            for k_idx in range(j_idx + 1, len(valid_neighbors)):
+                j = valid_neighbors[j_idx].item()
+                k = valid_neighbors[k_idx].item()
                 
-            for j_idx, j in enumerate(valid_neighbors):
-                for k_idx, k in enumerate(valid_neighbors):
-                    if j_idx >= k_idx:  
-                        continue
-                    
-                    rij_vec = dists_ang[atom_idx, j_idx]  
-                    rik_vec = dists_ang[atom_idx, k_idx]  
-                    
-                    rij = torch.norm(rij_vec)
-                    rik = torch.norm(rik_vec)
-                    cos_theta = torch.dot(rij_vec, rik_vec) / (rij * rik + 1e-8)
-                    
-                    triplet_indices.append([global_atom_idx, atom_offset + j, atom_offset + k])
-                    r_ij_list.append(rij)
-                    r_ik_list.append(rik)
-                    cos_theta_list.append(cos_theta)
-                    type_i_list.append(types_i[atom_idx])
-                    type_j_list.append(types_i[j])
-                    type_k_list.append(types_i[k])
-
-        atom_offset += n_atoms[i]
-
-    distances_radial_flat = torch.stack(distances_radial_flat) if distances_radial_flat else torch.zeros(0, dtype=torch.float32)
-    type_i_radial = torch.tensor(type_i_radial_list, dtype=torch.long) if type_i_radial_list else torch.zeros(0, dtype=torch.long)
-    type_j_radial = torch.tensor(type_j_radial_list, dtype=torch.long) if type_j_radial_list else torch.zeros(0, dtype=torch.long)
+                rij_vec = valid_distances[j_idx]  # [3]
+                rik_vec = valid_distances[k_idx]  # [3]
+                
+                rij = torch.norm(rij_vec)
+                rik = torch.norm(rik_vec)
+                cos_theta = torch.dot(rij_vec, rik_vec) / (rij * rik + 1e-8)
+                
+                triplet_indices.append([atom_i, j, k])
+                r_ij_list.append(rij)
+                r_ik_list.append(rik)
+                cos_theta_list.append(cos_theta)
+                type_i_list.append(types[atom_i])
+                type_j_list.append(types[j])
+                type_k_list.append(types[k])
 
     triplet_index = torch.tensor(triplet_indices, dtype=torch.long) if triplet_indices else torch.zeros((0, 3), dtype=torch.long)
     r_ij = torch.stack(r_ij_list) if r_ij_list else torch.zeros(0, dtype=torch.float32)
@@ -127,20 +127,22 @@ def collate_fn(batch):
     type_k = torch.tensor(type_k_list, dtype=torch.long) if type_k_list else torch.zeros(0, dtype=torch.long)
 
     return {
-        "positions": positions_batch,                   
-        "types": types_batch,                           
-        "n_atoms": torch.tensor(n_atoms),              
-        "batch_size": len(batch),
-        "r_ij_radial": distances_radial_flat,        
-        "type_i_radial": type_i_radial,               
-        "type_j_radial": type_j_radial,               
-        "triplet_index": triplet_index,               
-        "r_ij": r_ij,                                
-        "r_ik": r_ik,                               
-        "cos_theta": cos_theta,                      
-        "type_i": type_i,                           
-        "type_j": type_j,                           
-        "type_k": type_k,                           
+        "types": types,                                 # [N_atoms_total]
+        "n_atoms": types.shape[0],                      # int
+        "batch_size": len(batch),                       # int
+        
+        "radial_types": types,                          # [N_atoms_total]
+        "radial_neighbors": neighbors_radial,           # [N_atoms_total, NN_radial]
+        "radial_distances": distances_radial,           # [N_atoms_total, NN_radial]
+        "radial_type_j": type_j,                        # [N_atoms_total, NN_radial]
+        
+        "triplet_index": triplet_index,                 # [N_triplets, 3]
+        "r_ij": r_ij,                                   # [N_triplets]
+        "r_ik": r_ik,                                   # [N_triplets]
+        "cos_theta": cos_theta,                         # [N_triplets]
+        "type_i": type_i,                               # [N_triplets]
+        "type_j": type_j,                               # [N_triplets]
+        "type_k": type_k,                               # [N_triplets]
     }
 
 class StructureDataset(Dataset):
@@ -153,9 +155,9 @@ class StructureDataset(Dataset):
         self.data = [self.process(atoms) for atoms in self.structures]
     
     def process(self, atoms):
-        coords = atoms.get_positions()
+        n_atoms = len(atoms)
         types = atoms.get_atomic_numbers()
-
+        
         neighbors_rad, distances_rad = find_neighbor_radial(atoms, self.cutoff_radial)
         neighbors_rad_pad = pad_neighbors(neighbors_rad, max_nbs=self.NN_radial)
         distances_rad_pad = pad_distances(distances_rad, max_nbs=self.NN_radial)
@@ -165,7 +167,7 @@ class StructureDataset(Dataset):
         distances_ang_pad = pad_distances(distances_ang, max_nbs=self.NN_angular, pad_value=[0, 0, 0])
 
         return {
-            "positions": torch.tensor(coords, dtype=torch.float32),
+            "n_atoms": n_atoms,   
             "types": torch.tensor(types, dtype=torch.long),
             "neighbors_radial": neighbors_rad_pad,
             "distances_radial": distances_rad_pad,
