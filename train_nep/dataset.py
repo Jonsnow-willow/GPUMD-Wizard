@@ -124,7 +124,7 @@ def collate_fn(batch):
     type_i = torch.tensor(type_i_list, dtype=torch.long) if type_i_list else torch.zeros(0, dtype=torch.long)
     type_j = torch.tensor(type_j_list, dtype=torch.long) if type_j_list else torch.zeros(0, dtype=torch.long)
     type_k = torch.tensor(type_k_list, dtype=torch.long) if type_k_list else torch.zeros(0, dtype=torch.long)
-
+    
     return {
         "types": types,                                 # [N_atoms_total]
         "n_atoms_per_structure": torch.tensor(n_atoms_per_structure, dtype=torch.long), 
