@@ -45,6 +45,7 @@ def pad_distances(distances, max_nbs=None, pad_value=-1):
 def collate_fn(batch):
     atom_offset = 0
     types_list = []
+    positions_list = []
     neighbors_radial_list = []
     distances_radial_list = []
     
@@ -55,6 +56,7 @@ def collate_fn(batch):
 
     for item in batch:
         types_list.append(item["types"])
+        positions_list.append(item["positions"])
         n_atoms_per_structure.append(item["n_atoms"])
 
         nbs = item["neighbors_radial"].clone()
@@ -72,6 +74,7 @@ def collate_fn(batch):
         atom_offset += item["n_atoms"]
 
     types = torch.cat(types_list, dim=0)
+    positions = torch.cat(positions_list, dim=0)
     neighbors_radial = torch.cat(neighbors_radial_list, dim=0)
     distances_radial = torch.cat(distances_radial_list, dim=0)
     neighbors_angular = torch.cat(neighbors_angular_list, dim=0)
@@ -128,6 +131,7 @@ def collate_fn(batch):
 
     return {
         "types": types,                                 # [N_atoms_total]
+        "positions": positions,                         # [N_atoms_total, 3]
         "n_atoms_per_structure": torch.tensor(n_atoms_per_structure, dtype=torch.long), 
         "batch_size": len(batch),                       # int
 
@@ -162,6 +166,8 @@ class StructureDataset(Dataset):
         raw_types = atoms.get_atomic_numbers()  
         types = [self.z2id[int(z)] for z in raw_types]
         types = torch.tensor(types, dtype=torch.long)
+        
+        positions = torch.tensor(atoms.get_positions(), dtype=torch.float32)
 
         neighbors_rad, distances_rad = find_neighbor_radial(atoms, self.cutoff_radial)
         neighbors_rad_pad = pad_neighbors(neighbors_rad, max_nbs=self.NN_radial)
@@ -173,7 +179,8 @@ class StructureDataset(Dataset):
 
         return {
             "n_atoms": n_atoms,   
-            "types": types,  
+            "types": types,
+            "positions": positions,  # [N_atoms, 3]
             "neighbors_radial": neighbors_rad_pad,
             "distances_radial": distances_rad_pad,
             "neighbors_angular": neighbors_ang_pad,
