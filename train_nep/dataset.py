@@ -176,7 +176,7 @@ def collate_fn(batch):
     if any(is_virial):
         result["virial"] = torch.stack([v if v is not None else torch.zeros(9, dtype=torch.float32) for v in virial_list])
         result["is_virial"] = torch.tensor(is_virial, dtype=torch.bool)
-    
+
     return result
 
 class StructureDataset(Dataset):
