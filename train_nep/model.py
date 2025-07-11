@@ -64,8 +64,8 @@ class NEP(nn.Module):
             virial = -torch.einsum('ni,nj->ij', positions, forces)
         
         result = {
-            "energy_atom": e_atom,          
-            "energy_total": e_total,         
+            "energies": e_atom,          
+            "energy": e_total,         
         }
         if forces is not None:
             result["forces"] = forces        

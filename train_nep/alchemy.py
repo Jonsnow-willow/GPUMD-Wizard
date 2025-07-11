@@ -27,7 +27,7 @@ class Alchemy:
 
         if 'energy' in prediction and 'energy' in batch and 'is_energy' in batch:
             mask = batch['is_energy']
-            pred = prediction['energy_total'][mask]
+            pred = prediction['energy'][mask]
             target = batch['energy'][mask]
             energy_loss = self.loss_fn(pred, target)
             loss += weights.get('energy', 1.0) * energy_loss

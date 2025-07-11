@@ -30,6 +30,7 @@ TRAIN_CONFIG = {
     "device": "cuda",  
     "optimizer": {"type": "Adam", "lr": 1e-3},
     "loss_fn": "MSELoss",  
+    "batch_size": 16,  
 }
 
 def get_nep_config():
