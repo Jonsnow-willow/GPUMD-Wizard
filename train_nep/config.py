@@ -10,7 +10,6 @@ CUTOFF_CONFIG = {
 DESCRIPTOR_CONFIG = {
     "n_desc_radial": 8,    
     "k_max_radial": 8,     
-
     "n_desc_angular": 8,   
     "k_max_angular": 8,    
     "l_max": 4,           
@@ -25,6 +24,14 @@ MODEL_CONFIG = {
     "hidden_dims": [30]    
 }
 
+TRAIN_CONFIG = {
+    "save_path": "nep_model.pt",
+    "early_stopping_patience": 10,
+    "device": "cuda",  
+    "optimizer": {"type": "Adam", "lr": 1e-3},
+    "loss_fn": "MSELoss",  
+}
+
 def get_nep_config():
     config = {}
     config.update(ELEMENT_CONFIG)
@@ -32,6 +39,7 @@ def get_nep_config():
     config.update(DESCRIPTOR_CONFIG)
     config.update(DATASET_CONFIG)
     config.update(MODEL_CONFIG)
+    config.update(TRAIN_CONFIG)
     
     config["n_types"] = len(config["elements"])
     
