@@ -55,8 +55,8 @@ class RadialDescriptor(nn.Module):
         valid_type_j = types[valid_neighbors]    
         
         f = chebyshev_basis(valid_distances, self.r_c, self.k_max)  # [N_valid_edges, k_max]
-        c = self.get_attention(valid_type_i, valid_type_j)  # [N_valid_edges, n_desc, k_max]
-        edge_descriptors = torch.sum(c * f.unsqueeze(1), dim=-1)  # [N_valid_edges, n_desc]
+        c = self.get_attention(valid_type_i, valid_type_j)          # [N_valid_edges, n_desc, k_max]
+        edge_descriptors = torch.sum(c * f.unsqueeze(1), dim=-1)    # [N_valid_edges, n_desc]
         
         g = torch.zeros(n_atoms, self.n_desc, device=types.device)
         atom_indices = torch.arange(n_atoms, device=types.device).unsqueeze(1).expand(-1, n_radial)[valid_mask]
@@ -92,10 +92,10 @@ class AngularDescriptor(nn.Module):
 
         P_l = legendre_basis(cos_theta, self.l_max)                    # [N_triplets, l_max]
         ang = g_ij * g_ik                                              # [N_triplets, n_desc]
-        ang = ang.unsqueeze(-1) * P_l.unsqueeze(1)                    # [N_triplets, n_desc, l_max]
+        ang = ang.unsqueeze(-1) * P_l.unsqueeze(1)                     # [N_triplets, n_desc, l_max]
 
         q = torch.zeros(n_atoms, self.n_desc, self.l_max, device=ang.device)
-        i_idx = triplet_index[:, 0]                                   # [N_triplets]
+        i_idx = triplet_index[:, 0]                                    # [N_triplets]
         q.index_add_(0, i_idx, ang)  
 
         return q 
@@ -119,9 +119,9 @@ class Descriptor(nn.Module):
 
     def forward(self, batch):
         g_radial = self.radial(
-            batch["types"],      # [N_atoms]
-            batch["radial_neighbors"],  # [N_atoms, N_radial]
-            batch["radial_distances"], # [N_atoms, N_radial]
+            batch["types"],              # [N_atoms]
+            batch["radial_neighbors"],   # [N_atoms, N_radial]
+            batch["radial_distances"],   # [N_atoms, N_radial]
         )  # [N_atoms, n_desc_radial]
         
         n_atoms_total = torch.sum(batch["n_atoms_per_structure"]).item()
