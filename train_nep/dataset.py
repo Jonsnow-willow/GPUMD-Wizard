@@ -148,25 +148,27 @@ def collate_fn(batch):
     }
 
 class StructureDataset(Dataset):
-    def __init__(self, filepath, types, cutoff_radial, cutoff_angular, NN_radial, NN_angular):
+    def __init__(self, filepath, para):
         self.structures = read_xyz(filepath)
-        self.cutoff_radial = cutoff_radial
-        self.cutoff_angular = cutoff_angular
-        self.NN_radial = NN_radial
-        self.NN_angular = NN_angular
+        self.para = para
+        
+        self.elements = para["elements"]
+        self.cutoff_radial = para["rcut_radial"]
+        self.cutoff_angular = para["rcut_angular"]
+        self.NN_radial = para["NN_radial"]
+        self.NN_angular = para["NN_angular"]
 
-        element_names = types.split()   
-        element_z = [atomic_numbers[sym] for sym in element_names]  
-        self.z2id = {z: idx for idx, z in enumerate(element_z)}     
-        self.id2z = {idx: z for idx, z in enumerate(element_z)}    
+        element_atomic_numbers = [atomic_numbers[element] for element in self.elements]  
+        self.z2id = {z: idx for idx, z in enumerate(element_atomic_numbers)}     
+        self.id2z = {idx: z for idx, z in enumerate(element_atomic_numbers)}    
+
         self.data = [self.process(atoms) for atoms in self.structures]
     
     def process(self, atoms):
         n_atoms = len(atoms)
-        raw_types = atoms.get_atomic_numbers()  
-        types = [self.z2id[int(z)] for z in raw_types]
+        atomic_number_list = atoms.get_atomic_numbers()  
+        types = [self.z2id[int(z)] for z in atomic_number_list]
         types = torch.tensor(types, dtype=torch.long)
-        
         positions = torch.tensor(atoms.get_positions(), dtype=torch.float32)
 
         neighbors_rad, distances_rad = find_neighbor_radial(atoms, self.cutoff_radial)
@@ -180,7 +182,7 @@ class StructureDataset(Dataset):
         return {
             "n_atoms": n_atoms,   
             "types": types,
-            "positions": positions,  # [N_atoms, 3]
+            "positions": positions,                  # [N_atoms, 3]
             "neighbors_radial": neighbors_rad_pad,
             "distances_radial": distances_rad_pad,
             "neighbors_angular": neighbors_ang_pad,
