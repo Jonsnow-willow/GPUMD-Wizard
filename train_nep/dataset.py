@@ -53,6 +53,13 @@ def collate_fn(batch):
     distances_angular_list = []
     
     n_atoms_per_structure = []
+    
+    energy_list = []
+    is_energy = []
+    forces_list = []
+    is_forces = []
+    virial_list = []
+    is_virial = []
 
     for item in batch:
         types_list.append(item["types"])
@@ -64,13 +71,25 @@ def collate_fn(batch):
         nbs[valid] += atom_offset
         neighbors_radial_list.append(nbs)
         distances_radial_list.append(item["distances_radial"])
-        
+
         nbs_ang = item["neighbors_angular"].clone()
         valid_ang = nbs_ang != -1
         nbs_ang[valid_ang] += atom_offset
         neighbors_angular_list.append(nbs_ang)
         distances_angular_list.append(item["distances_angular"])
-        
+
+        e = item.get("energy", None)
+        energy_list.append(e)
+        is_energy.append(e is not None)
+
+        f = item.get("forces", None)
+        forces_list.append(f)
+        is_forces.append(f is not None)
+
+        v = item.get("virial", None)
+        virial_list.append(v)
+        is_virial.append(v is not None)
+
         atom_offset += item["n_atoms"]
 
     types = torch.cat(types_list, dim=0)
@@ -92,7 +111,7 @@ def collate_fn(batch):
     
     for atom_i in range(n_atoms_total):
         neighbors_i = neighbors_angular[atom_i]
-        distances_i = distances_angular[atom_i]  # [NN_angular, 3]
+        distances_i = distances_angular[atom_i]    # [NN_angular, 3]
         
         valid_mask = neighbors_i != -1
         valid_neighbors = neighbors_i[valid_mask]
@@ -129,7 +148,7 @@ def collate_fn(batch):
     type_j = torch.tensor(type_j_list, dtype=torch.long) if type_j_list else torch.zeros(0, dtype=torch.long)
     type_k = torch.tensor(type_k_list, dtype=torch.long) if type_k_list else torch.zeros(0, dtype=torch.long)
 
-    return {
+    result = {
         "types": types,                                 # [N_atoms_total]
         "positions": positions,                         # [N_atoms_total, 3]
         "n_atoms_per_structure": torch.tensor(n_atoms_per_structure, dtype=torch.long), 
@@ -146,6 +165,19 @@ def collate_fn(batch):
         "type_j": type_j,                               # [N_triplets]
         "type_k": type_k,                               # [N_triplets]
     }
+    
+    if any(is_energy):
+        result["energy"] = torch.stack([e if e is not None else torch.tensor(0.0, dtype=torch.float32) for e in energy_list])
+        result["is_energy"] = torch.tensor(is_energy, dtype=torch.bool)
+    if any(is_forces):
+        result["forces"] = torch.cat([f if f is not None else torch.zeros(n_atoms_per_structure[i], 3, dtype=torch.float32)
+                                    for i, f in enumerate(forces_list)], dim=0)
+        result["is_forces"] = torch.tensor(is_forces, dtype=torch.bool)  
+    if any(is_virial):
+        result["virial"] = torch.stack([v if v is not None else torch.zeros(9, dtype=torch.float32) for v in virial_list])
+        result["is_virial"] = torch.tensor(is_virial, dtype=torch.bool)
+    
+    return result
 
 class StructureDataset(Dataset):
     def __init__(self, filepath, para):
@@ -179,15 +211,32 @@ class StructureDataset(Dataset):
         neighbors_ang_pad = pad_neighbors(neighbors_ang, max_nbs=self.NN_angular)
         distances_ang_pad = pad_distances(distances_ang, max_nbs=self.NN_angular, pad_value=[0, 0, 0])
 
-        return {
-            "n_atoms": n_atoms,   
-            "types": types,
+        result = {
+            "n_atoms": n_atoms,                      # [N_atoms]      
+            "types": types,                          # [N_atoms]      
             "positions": positions,                  # [N_atoms, 3]
             "neighbors_radial": neighbors_rad_pad,
             "distances_radial": distances_rad_pad,
             "neighbors_angular": neighbors_ang_pad,
             "distances_angular": distances_ang_pad,  # [N_atoms, NN_angular, 3]
         }
+        
+        if 'energy' in atoms.info and atoms.info['energy'] is not None:
+            result["energy"] = torch.tensor(atoms.info['energy'], dtype=torch.float32)
+        
+        if 'forces' in atoms.info and atoms.info['forces'] is not None:
+            forces = torch.tensor(atoms.info['forces'], dtype=torch.float32)  # [N_atoms, 3]
+            result["forces"] = forces
+        
+        if 'stress' in atoms.info and atoms.info['stress'] is not None:
+            stress = atoms.info['stress']
+            if len(stress) == 6:
+                virial = -stress[[0, 5, 4, 5, 1, 3, 4, 3, 2]] * atoms.get_volume()
+            else:
+                virial = -stress.reshape(-1) * atoms.get_volume()
+            result["virial"] = torch.tensor(virial, dtype=torch.float32)  # [9]
+        
+        return result
     
     def __len__(self):
         return len(self.data)
