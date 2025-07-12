@@ -27,8 +27,13 @@ class Alchemy:
 
         if 'energy' in prediction and 'energy' in batch and 'is_energy' in batch:
             mask = batch['is_energy']
-            pred = prediction['energy'][mask]
-            target = batch['energy'][mask]
+            pred = prediction['energy'][mask]  
+            target = batch['energy'][mask]       
+
+            n_atoms_per_structure = batch['n_atoms_per_structure'][mask]
+            pred = pred / n_atoms_per_structure.float()
+            target = target / n_atoms_per_structure.float()
+
             energy_loss = self.loss_fn(pred, target)
             loss += weights.get('energy', 1.0) * energy_loss
             loss_dict['energy_loss'] = energy_loss.item()
@@ -44,6 +49,11 @@ class Alchemy:
             mask = batch['is_virial']
             pred = prediction['virial'][mask]
             target = batch['virial'][mask]
+
+            n_atoms_per_structure = batch['n_atoms_per_structure'][mask]
+            pred = pred / n_atoms_per_structure.float().unsqueeze(-1)  
+            target = target / n_atoms_per_structure.float().unsqueeze(-1)
+
             virial_loss = self.loss_fn(pred, target)
             loss += weights.get('virial', 1.0) * virial_loss
             loss_dict['virial_loss'] = virial_loss.item()
