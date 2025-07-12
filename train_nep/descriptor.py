@@ -99,7 +99,7 @@ class AngularDescriptor(nn.Module):
         
         for atom_i in range(n_atoms):
             neighbors_i = angular_neighbors[atom_i]
-            valid_neighbors_i = neighbors_i[valid_mask[atom_i]]  # 只取有效邻居
+            valid_neighbors_i = neighbors_i[valid_mask[atom_i]]
             
             if len(valid_neighbors_i) < 2:
                 continue
