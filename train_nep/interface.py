@@ -1,23 +1,33 @@
 from ase.calculators.calculator import Calculator, all_changes
 from ase.data import atomic_numbers
 import torch
-from .config import get_nep_config
 from .dataset import StructureDataset, collate_fn
+from .model import NEP
 
 class NEPCalculator(Calculator):
     implemented_properties = ['energy', 'forces', 'stress']
 
-    def __init__(self, model, device='cpu', para=None, **kwargs):
+    def __init__(self, model_path, para=None, device='cpu', **kwargs):
         super().__init__(**kwargs)
-        self.model = model
+        self.para = para
+        self.model = NEP(para)
+        checkpoint = torch.load(model_path, map_location=device)
+        if 'model_state_dict' in checkpoint:
+            self.model.load_state_dict(checkpoint['model_state_dict'])
+        else:
+            self.model.load_state_dict(checkpoint)
+            
         self.device = device
         self.model.to(self.device)
         self.model.eval()
-        if para is None:
-            para = get_nep_config()
-        self.para = para
-        elements = para["elements"]
-        element_atomic_numbers = [atomic_numbers[element] for element in elements]
+
+        self.elements = para["elements"]
+        self.cutoff_radial = para["rcut_radial"]
+        self.cutoff_angular = para["rcut_angular"]
+        self.NN_radial = para["NN_radial"]
+        self.NN_angular = para["NN_angular"]
+        
+        element_atomic_numbers = [atomic_numbers[element] for element in self.elements]
         self.z2id = {z: idx for idx, z in enumerate(element_atomic_numbers)}
 
     def calculate(self, atoms=None, properties=['energy'], system_changes=all_changes):
@@ -26,14 +36,16 @@ class NEPCalculator(Calculator):
         for k, v in batch.items():
             if isinstance(v, torch.Tensor):
                 batch[k] = v.to(self.device)
-        with torch.no_grad():
-            pred = self.model(batch)
+
+        batch['positions'].requires_grad_(True)
+        pred = self.model(batch)
+
         if 'energy' in pred:
-            self.results['energy'] = float(pred['energy'].cpu().numpy()[0])
+            self.results['energy'] = float(pred['energy'].cpu().detach().numpy()[0])
         if 'forces' in pred:
-            self.results['forces'] = pred['forces'].cpu().numpy()[0]
+            self.results['forces'] = pred['forces'].cpu().detach().numpy()
         if 'virial' in pred:
-            self.results['stress'] = pred['virial'].cpu().numpy()[0]
+            self.results['stress'] = pred['virial'].cpu().detach().numpy()[0]
     
     def ase_atoms_to_batch(self, atoms):
         item = StructureDataset.process(self, atoms)
