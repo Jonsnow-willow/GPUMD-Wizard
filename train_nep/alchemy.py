@@ -6,8 +6,7 @@ import wandb
 class Alchemy:
     def __init__(
         self, model, training_set, val_set=None, optimizer=None, loss_fn=None,
-        device=None, save_path="nep_model.pt", early_stopping_patience=10, log_dir="runs/nep"
-    ):
+        device=None, save_path="nep_model.pt", early_stopping_patience=10):
         self.model = model
         self.training_set = training_set
         self.val_set = val_set
