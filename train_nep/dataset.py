@@ -33,7 +33,6 @@ def collate_fn(batch):
     energy_list = []
     is_energy = []
     forces_list = []
-    is_forces = []
     virial_list = []
     is_virial = []
 
@@ -58,7 +57,6 @@ def collate_fn(batch):
 
         f = item.get("forces", None)
         forces_list.append(f)
-        is_forces.append(f is not None)
 
         v = item.get("virial", None)
         virial_list.append(v)
@@ -83,10 +81,9 @@ def collate_fn(batch):
     if any(is_energy):
         result["energy"] = torch.stack([e if e is not None else torch.tensor(0.0, dtype=torch.float32) for e in energy_list])
         result["is_energy"] = torch.tensor(is_energy, dtype=torch.bool)
-    if any(is_forces):
-        result["forces"] = torch.cat([f if f is not None else torch.zeros(n_atoms_per_structure[i], 3, dtype=torch.float32)
-                                    for i, f in enumerate(forces_list)], dim=0)
-        result["is_forces"] = torch.tensor(is_forces, dtype=torch.bool)  
+    
+    result["forces"] = torch.cat(forces_list, dim=0)
+    
     if any(is_virial):
         result["virial"] = torch.stack([v if v is not None else torch.zeros(9, dtype=torch.float32) for v in virial_list])
         result["is_virial"] = torch.tensor(is_virial, dtype=torch.bool)
@@ -134,9 +131,19 @@ class StructureDataset(Dataset):
         if 'energy' in atoms.info and atoms.info['energy'] is not None:
             result["energy"] = torch.tensor(atoms.info['energy'], dtype=torch.float32)
         
-        if 'forces' in atoms.info and atoms.info['forces'] is not None:
-            forces = torch.tensor(atoms.info['forces'], dtype=torch.float32)  # [N_atoms, 3]
-            result["forces"] = forces
+        # check forces
+        if 'forces' not in atoms.info or atoms.info['forces'] is None:
+            raise ValueError(f"Forces data is missing for structure with {n_atoms} atoms")
+        
+        forces = atoms.info['forces']
+        if not hasattr(forces, '__len__') or len(forces) != n_atoms:
+            raise ValueError(f"Forces shape mismatch: expected {n_atoms} atoms, got forces shape {getattr(forces, 'shape', len(forces) if hasattr(forces, '__len__') else 'unknown')}")
+        
+        forces = torch.tensor(forces, dtype=torch.float32)  # [N_atoms, 3]
+        if forces.shape != (n_atoms, 3):
+            raise ValueError(f"Forces shape incorrect: expected ({n_atoms}, 3), got {forces.shape}")
+        
+        result["forces"] = forces
         
         if 'stress' in atoms.info and atoms.info['stress'] is not None:
             stress = atoms.info['stress']
