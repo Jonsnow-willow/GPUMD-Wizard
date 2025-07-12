@@ -33,10 +33,9 @@ class Alchemy:
             loss += weights.get('energy', 1.0) * energy_loss
             loss_dict['energy_loss'] = energy_loss.item()
 
-        if 'forces' in prediction and 'forces' in batch and 'is_forces' in batch:
-            mask = batch['is_forces']
-            pred = prediction['forces'][mask]
-            target = batch['forces'][mask]
+        if 'forces' in prediction and 'forces' in batch:
+            pred = prediction['forces']
+            target = batch['forces']
             forces_loss = self.loss_fn(pred, target)
             loss += weights.get('forces', 1.0) * forces_loss
             loss_dict['forces_loss'] = forces_loss.item()
