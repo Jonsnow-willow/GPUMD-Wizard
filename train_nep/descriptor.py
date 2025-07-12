@@ -50,19 +50,19 @@ class RadialDescriptor(nn.Module):
 
         atom_indices = torch.arange(n_atoms, device=types.device).unsqueeze(1).expand(-1, nn_radial)  # [N_atoms, NN_radial]
         
-        valid_atom_indices = atom_indices[valid_mask]  # [N_valid_edges]
-        valid_neighbor_indices = radial_neighbors[valid_mask]  # [N_valid_edges]
+        valid_atom_indices = atom_indices[valid_mask]                               # [N_valid_edges]
+        valid_neighbor_indices = radial_neighbors[valid_mask]                       # [N_valid_edges]
         
-        positions_i = positions[valid_atom_indices]  # [N_valid_edges, 3]
-        positions_j = positions[valid_neighbor_indices]  # [N_valid_edges, 3]
-        type_i = types[valid_atom_indices]  # [N_valid_edges]
-        type_j = types[valid_neighbor_indices]  # [N_valid_edges]
+        positions_i = positions[valid_atom_indices]                                 # [N_valid_edges, 3]
+        positions_j = positions[valid_neighbor_indices]                             # [N_valid_edges, 3]
+        type_i = types[valid_atom_indices]                                          # [N_valid_edges]
+        type_j = types[valid_neighbor_indices]                                      # [N_valid_edges]
         
-        radial_distances = torch.norm(positions_j - positions_i, dim=-1)  # [N_valid_edges]
+        radial_distances = torch.norm(positions_j - positions_i, dim=-1)            # [N_valid_edges]
         
-        f = chebyshev_basis(radial_distances, self.r_c, self.k_max)  # [N_valid_edges, k_max]
-        c = self.get_attention(type_i, type_j)                      # [N_valid_edges, n_desc, k_max]
-        edge_descriptors = torch.sum(c * f.unsqueeze(1), dim=-1)    # [N_valid_edges, n_desc]
+        f = chebyshev_basis(radial_distances, self.r_c, self.k_max)                 # [N_valid_edges, k_max]
+        c = self.get_attention(type_i, type_j)                                      # [N_valid_edges, n_desc, k_max]
+        edge_descriptors = torch.sum(c * f.unsqueeze(1), dim=-1)                    # [N_valid_edges, n_desc]
         
         g = torch.zeros(n_atoms, self.n_desc, device=types.device)
         g.index_add_(0, valid_atom_indices, edge_descriptors)
