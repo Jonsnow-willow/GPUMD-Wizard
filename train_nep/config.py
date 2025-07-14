@@ -29,7 +29,7 @@ TRAIN_CONFIG = {
     "early_stopping_patience": 10,
     "device": "cuda",  
     "optimizer": {"type": "Adam", "lr": 1e-3},
-    "loss_fn": "MSELoss",  
+    "loss_fn": "MAELoss",  
     "batch_size": 16,  
 }
 
