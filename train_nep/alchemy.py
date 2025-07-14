@@ -11,7 +11,7 @@ class Alchemy:
         self.training_set = training_set
         self.val_set = val_set
         self.optimizer = optimizer if optimizer is not None else torch.optim.Adam(model.parameters(), lr=1e-3)
-        self.loss_fn = loss_fn if loss_fn is not None else nn.MSELoss()
+        self.loss_fn = loss_fn if loss_fn is not None else nn.L1Loss()
         self.device = device if device is not None else torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.save_path = save_path
         self.early_stopping_patience = early_stopping_patience
