@@ -39,7 +39,7 @@ class RadialDescriptor(nn.Module):
         )
     
     def get_attention(self, type_i, type_j):
-        return self.c_table[torch.min(type_i, type_j), torch.max(type_i, type_j)]
+        return self.c_table[type_i, type_j]  
     
     def forward(self, types, positions, radial_neighbors):
         n_atoms, nn_radial = radial_neighbors.shape
@@ -83,7 +83,7 @@ class AngularDescriptor(nn.Module):
         )
 
     def get_attention(self, type_i, type_j):
-        return self.c_table[torch.min(type_i, type_j), torch.max(type_i, type_j)]
+        return self.c_table[type_i, type_j]  
     
     def compute_radial_for_triplets(self, r, type_i, type_j):
         f = chebyshev_basis(r, self.r_c, self.k_max)     
