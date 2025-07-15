@@ -17,6 +17,10 @@ class NEP(nn.Module):
         input_dim = self.n_desc_radial + self.n_desc_angular * self.l_max
         hidden_dims = para["hidden_dims"]
         
+        self.register_buffer('desc_scale', torch.ones(input_dim)) 
+        self.register_buffer('desc_var_sum', torch.zeros(input_dim))  
+        self.register_buffer('desc_count', torch.tensor(0.0)) 
+        
         self.element_mlps = nn.ModuleDict()
         for _, element in enumerate(self.elements):
             layers = []
@@ -29,6 +33,21 @@ class NEP(nn.Module):
             self.element_mlps[element] = nn.Sequential(*layers)
         
         self.shared_bias = nn.Parameter(torch.zeros(1))
+    
+    def update_descriptor_statistics(self, g_total):
+        batch_size = g_total.shape[0]
+        batch_var = g_total.var(dim=0, unbiased=False)
+
+        self.desc_var_sum += batch_var * batch_size
+        self.desc_count += batch_size
+        if self.desc_count > 0:
+            std = torch.sqrt(self.desc_var_sum / self.desc_count)
+            self.desc_scale = 1.0 / torch.clamp(std, min=1e-8)  
+        
+    def normalize_descriptors(self, g_total):
+        if self.training:
+            self.update_descriptor_statistics(g_total)
+        return g_total * self.desc_scale
     
     def forward(self, batch):
         positions = batch["positions"]
@@ -46,6 +65,7 @@ class NEP(nn.Module):
         n_atoms = g_radial.shape[0]
         g_angular_flat = g_angular.reshape(n_atoms, -1)          # [N_atoms, n_desc_angular * l_max]
         g_total = torch.cat([g_radial, g_angular_flat], dim=-1)  # [N_atoms, input_dim]
+        g_total = self.normalize_descriptors(g_total)
 
         e_atom = torch.zeros(n_atoms, device=g_total.device)
         for i, element in enumerate(self.elements):
@@ -86,26 +106,6 @@ class NEP(nn.Module):
         if virial is not None:
             result["virial"] = virial        
         return result
-
-    def get_element_parameters(self, element):
-        if element in self.element_mlps:
-            return list(self.element_mlps[element].parameters())
-        else:
-            raise ValueError(f"Element {element} not found in model")
-    
-    def freeze_element(self, element):
-        if element in self.element_mlps:
-            for param in self.element_mlps[element].parameters():
-                param.requires_grad = False
-        else:
-            raise ValueError(f"Element {element} not found in model")
-    
-    def unfreeze_element(self, element):
-        if element in self.element_mlps:
-            for param in self.element_mlps[element].parameters():
-                param.requires_grad = True
-        else:
-            raise ValueError(f"Element {element} not found in model")
       
     def get_model_info(self):
         total_params = sum(p.numel() for p in self.parameters())
@@ -147,3 +147,38 @@ class NEP(nn.Module):
             'l_max': self.l_max,
             'total_descriptor_dim': input_dim
         }
+    
+    def save_to_nep_format(self, filepath):
+        with open(filepath, 'w') as f:
+            f.write(f"nep4 {len(self.elements)} " + " ".join(self.elements) + "\n")
+            f.write(f"cutoff {self.para['rcut_radial']} {self.para['rcut_angular']} {self.para['NN_radial']} {self.para['NN_angular']}\n")
+            f.write(f"n_max {self.para["n_desc_radial"]-1} {self.para["n_desc_angular"]-1}\n")
+            f.write(f"basis_size {self.para["k_max_radial"]-1} {self.para["k_max_angular"]-1}\n")
+            f.write(f"l_max {self.para["l_max"]}\n")
+            f.write(f"ANN {self.para["hidden_dims"][0]} 0\n")
+
+            for element in self.elements:
+                element_params = []
+                for param in self.element_mlps[element].parameters():
+                    element_params.extend(param.data.flatten().tolist())
+                for param_value in element_params:
+                    f.write(f"{param_value:15.7e}\n")
+
+            bias_value = self.shared_bias.data.item()
+            f.write(f"{bias_value:15.7e}\n")
+
+            radial_c_params = self.descriptor.radial.c_table.data.flatten()
+            for param_value in radial_c_params:
+                f.write(f"{param_value:15.7e}\n")
+
+            angular_c_params = self.descriptor.angular.c_table.data.flatten()
+            for param_value in angular_c_params:
+                f.write(f"{param_value:15.7e}\n")
+
+            input_dim = self.n_desc_radial + self.n_desc_angular * self.l_max
+            for d in range(input_dim):
+                scale_factor = self.desc_scale[d].item()  
+                f.write(f"{scale_factor:15.7e}\n")
+
+
+
