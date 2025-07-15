@@ -10,7 +10,6 @@ class NEPCalculator(Calculator):
         self.model = NEP.from_checkpoint(model_path, device=device)
         self.para = self.model.para
         self.model.eval()    
-        self.model.to(device)
 
     def calculate(self, atoms=None, properties=['energy'], system_changes=all_changes):
         super().calculate(atoms, properties, system_changes)
