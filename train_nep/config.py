@@ -1,22 +1,22 @@
 ELEMENT_CONFIG = {
-    "elements": ['Pb', 'Te'], 
+    "elements": ['Te', 'Pb'], 
 }
 
 CUTOFF_CONFIG = {
-    "rcut_radial": 6.0,   
+    "rcut_radial": 8.0,   
     "rcut_angular": 4.0,  
 }
 
 DESCRIPTOR_CONFIG = {
-    "n_desc_radial": 8,    
-    "k_max_radial": 8,     
+    "n_desc_radial": 4,    
+    "k_max_radial": 4,     
     "n_desc_angular": 8,   
     "k_max_angular": 8,    
     "l_max": 4,           
 }
 
 DATASET_CONFIG = {
-    "NN_radial": 50,       
+    "NN_radial": 100,       
     "NN_angular": 30,      
 }
 
