@@ -91,21 +91,18 @@ def collate_fn(batch):
     return result
 
 class StructureDataset(Dataset):
-    def __init__(self, filepath, para):
-        self.structures = read_xyz(filepath)
+    def __init__(self, frames, para):
+        self.frames = frames
         self.para = para
-        
         self.elements = para["elements"]
         self.cutoff_radial = para["rcut_radial"]
         self.cutoff_angular = para["rcut_angular"]
         self.NN_radial = para["NN_radial"]
         self.NN_angular = para["NN_angular"]
-
         element_atomic_numbers = [atomic_numbers[element] for element in self.elements]  
         self.z2id = {z: idx for idx, z in enumerate(element_atomic_numbers)}     
         self.id2z = {idx: z for idx, z in enumerate(element_atomic_numbers)}    
-
-        self.data = [self.process(atoms) for atoms in self.structures]
+        self.data = [self.process(atoms) for atoms in self.frames]
     
     def process(self, atoms):
         n_atoms = len(atoms)
