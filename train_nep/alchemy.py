@@ -3,7 +3,6 @@ import torch.nn as nn
 import os
 from importlib import util
 
-
 has_wandb = util.find_spec("wandb") is not None
 if has_wandb:
     import wandb
@@ -150,6 +149,7 @@ class Alchemy:
         
         torch.save({
             'model_state_dict': self.model.state_dict(),
+            'para': self.model.para,
             'optimizer_state_dict': self.optimizer.state_dict(),
             'best_val_loss': self.best_val_loss,
             'epoch': getattr(self, 'current_epoch', 0)
@@ -181,24 +181,8 @@ class Alchemy:
             else:
                 self.save()
         
-        # 如果使用了wandb，则结束wandb会话
         if self.use_wandb:
             wandb.finish()
             
         print("\n训练完成!")
         print(f"最佳验证损失: {self.best_val_loss:.6f}")
-    
-    def load(self, path):
-        if not os.path.exists(path):
-            raise FileNotFoundError(f"检查点文件不存在: {path}")
-            
-        checkpoint = torch.load(path, map_location=self.device)
-        
-        if 'model_state_dict' in checkpoint:
-            self.model.load_state_dict(checkpoint['model_state_dict'])
-            self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-            self.best_val_loss = checkpoint.get('best_val_loss', float('inf'))
-            print(f"✓ 已加载检查点: {path}")
-        else:
-            self.model.load_state_dict(checkpoint)
-            print(f"✓ 已加载模型权重: {path}")
