@@ -12,31 +12,14 @@ class NEPCalculator(Calculator):
         self.para = para
         self.model = NEP(para)
         checkpoint = torch.load(model_path, map_location=device)
-        if 'model_state_dict' in checkpoint:
-            self.model.load_state_dict(checkpoint['model_state_dict'])
-        else:
-            self.model.load_state_dict(checkpoint)
-            
+        self.model.load_state_dict(checkpoint['model_state_dict'])
         self.device = device
         self.model.to(self.device)
         self.model.eval()
 
-        self.elements = para["elements"]
-        self.cutoff_radial = para["rcut_radial"]
-        self.cutoff_angular = para["rcut_angular"]
-        self.NN_radial = para["NN_radial"]
-        self.NN_angular = para["NN_angular"]
-        
-        element_atomic_numbers = [atomic_numbers[element] for element in self.elements]
-        self.z2id = {z: idx for idx, z in enumerate(element_atomic_numbers)}
-
     def calculate(self, atoms=None, properties=['energy'], system_changes=all_changes):
         super().calculate(atoms, properties, system_changes)
         batch = self.ase_atoms_to_batch(atoms)
-        for k, v in batch.items():
-            if isinstance(v, torch.Tensor):
-                batch[k] = v.to(self.device)
-
         batch['positions'].requires_grad_(True)
         pred = self.model(batch)
 
