@@ -19,24 +19,11 @@ class NEPCalculator(Calculator):
             
         self.device = device
         self.model.to(self.device)
-        self.model.eval()
-
-        self.elements = para["elements"]
-        self.cutoff_radial = para["rcut_radial"]
-        self.cutoff_angular = para["rcut_angular"]
-        self.NN_radial = para["NN_radial"]
-        self.NN_angular = para["NN_angular"]
-        
-        element_atomic_numbers = [atomic_numbers[element] for element in self.elements]
-        self.z2id = {z: idx for idx, z in enumerate(element_atomic_numbers)}
+        self.model.eval()    
 
     def calculate(self, atoms=None, properties=['energy'], system_changes=all_changes):
         super().calculate(atoms, properties, system_changes)
         batch = self.ase_atoms_to_batch(atoms)
-        for k, v in batch.items():
-            if isinstance(v, torch.Tensor):
-                batch[k] = v.to(self.device)
-
         batch['positions'].requires_grad_(True)
         pred = self.model(batch)
 
@@ -48,6 +35,6 @@ class NEPCalculator(Calculator):
             self.results['stress'] = pred['virial'].cpu().detach().numpy()[0]
     
     def ase_atoms_to_batch(self, atoms):
-        item = StructureDataset.process(self, atoms)
-        batch = collate_fn([item])
+        item = StructureDataset([atoms], self.para).data
+        batch = collate_fn(item)
         return batch
