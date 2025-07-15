@@ -25,8 +25,10 @@ class NEP(nn.Module):
             for j in range(1, len(hidden_dims)):
                 layers.append(nn.Linear(hidden_dims[j-1], hidden_dims[j]))
                 layers.append(nn.Tanh())
-            layers.append(nn.Linear(hidden_dims[-1], 1))
+            layers.append(nn.Linear(hidden_dims[-1], 1, bias=False))
             self.element_mlps[element] = nn.Sequential(*layers)
+        
+        self.shared_bias = nn.Parameter(torch.zeros(1))
     
     def forward(self, batch):
         positions = batch["positions"]
@@ -51,6 +53,7 @@ class NEP(nn.Module):
             if mask.any():
                 g_element = g_total[mask]  
                 e_element = self.element_mlps[element](g_element).squeeze(-1)  # [N_atoms_element]
+                e_element = e_element + self.shared_bias
                 e_atom[mask] = e_element
         
         n_atoms_per_structure = batch["n_atoms_per_structure"]
@@ -103,19 +106,44 @@ class NEP(nn.Module):
                 param.requires_grad = True
         else:
             raise ValueError(f"Element {element} not found in model")
-    
+      
     def get_model_info(self):
         total_params = sum(p.numel() for p in self.parameters())
+        
         element_params = {}
         for element in self.elements:
             element_params[element] = sum(p.numel() for p in self.element_mlps[element].parameters())
+
+        descriptor_params = sum(p.numel() for p in self.descriptor.parameters())
+        radial_c_params = 0
+        angular_c_params = 0
+        if hasattr(self.descriptor, 'radial') and hasattr(self.descriptor.radial, 'c_table'):
+            radial_c_params = self.descriptor.radial.c_table.numel()
+        if hasattr(self.descriptor, 'angular') and hasattr(self.descriptor.angular, 'c_table'):
+            angular_c_params = self.descriptor.angular.c_table.numel()
+        
+        input_dim = self.n_desc_radial + self.n_desc_angular * self.l_max
         
         print(f"总参数数量: {total_params}")
-        print("每个元素的参数数量:")
+        print(f"描述符参数数量: {descriptor_params}")
+        print(f"  - 径向c_table: {radial_c_params}")
+        print(f"  - 角度c_table: {angular_c_params}")
+        print(f"描述符数量信息:")
+        print(f"  - 径向描述符: {self.n_desc_radial}")
+        print(f"  - 角度描述符: {self.n_desc_angular} × {self.l_max} = {self.n_desc_angular * self.l_max}")
+        print(f"  - 总描述符维度: {input_dim}")
+        print("每个元素MLP的参数数量:")
         for element, count in element_params.items():
             print(f"  {element}: {count}")
         
         return {
             'total_params': total_params,
-            'element_params': element_params
+            'descriptor_params': descriptor_params,
+            'radial_c_params': radial_c_params,
+            'angular_c_params': angular_c_params,
+            'element_params': element_params,
+            'n_desc_radial': self.n_desc_radial,
+            'n_desc_angular': self.n_desc_angular,
+            'l_max': self.l_max,
+            'total_descriptor_dim': input_dim
         }
