@@ -128,6 +128,11 @@ class NEP(nn.Module):
             'total_descriptor_dim': input_dim
         }
     
+    def load_model_weights(self, filepath, device=None):
+        device = device or torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        checkpoint = torch.load(filepath, map_location=device)
+        self.load_state_dict(checkpoint['model_state_dict'])  
+    
     def save_to_nep_format(self, filepath):
         with open(filepath, 'w') as f:
             f.write(f"nep4 {len(self.elements)} " + " ".join(self.elements) + "\n")
