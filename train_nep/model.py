@@ -29,6 +29,20 @@ class NEP(nn.Module):
             self.element_mlps[element] = nn.Sequential(*layers)
         
         self.shared_bias = nn.Parameter(torch.zeros(1))
+
+    @classmethod
+    def from_checkpoint(cls, filepath, device=None):
+        device = device or torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        checkpoint = torch.load(filepath, map_location=device)
+        para = checkpoint['para']
+        model = cls(para)
+        if 'model_state_dict' in checkpoint:
+            model.load_state_dict(checkpoint['model_state_dict'])
+        else:
+            model.load_state_dict(checkpoint)
+        model.to(device)
+        model.eval()
+        return model
         
     def forward(self, batch):
         positions = batch["positions"]
