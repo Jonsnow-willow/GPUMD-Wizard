@@ -10,9 +10,9 @@ CUTOFF_CONFIG = {
 DESCRIPTOR_CONFIG = {
     "n_desc_radial": 5,    
     "n_desc_angular": 5,  
-    "k_max_radial": 8,      
-    "k_max_angular": 8,    
-    "l_max": 5,           
+    "k_max_radial": 9,      
+    "k_max_angular": 9,    
+    "l_max": 4,           
 }
 
 DATASET_CONFIG = {
@@ -21,7 +21,7 @@ DATASET_CONFIG = {
 }
 
 MODEL_CONFIG = {
-    "hidden_dims": [30]    
+    "hidden_dims": [30]
 }
 
 TRAIN_CONFIG = {
