@@ -30,20 +30,6 @@ class NEP(nn.Module):
         
         self.shared_bias = nn.Parameter(torch.zeros(1))
 
-    @classmethod
-    def from_checkpoint(cls, filepath, device=None):
-        device = device or torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        checkpoint = torch.load(filepath, map_location=device)
-        para = checkpoint['para']
-        model = cls(para)
-        if 'model_state_dict' in checkpoint:
-            model.load_state_dict(checkpoint['model_state_dict'])
-        else:
-            model.load_state_dict(checkpoint)
-        model.to(device)
-        model.eval()
-        return model
-        
     def forward(self, batch):
         positions = batch["positions"]
         types = batch["types"] 
@@ -100,6 +86,14 @@ class NEP(nn.Module):
         if virial is not None:
             result["virial"] = virial        
         return result
+    
+    @classmethod
+    def from_checkpoint(cls, filepath, device=None):
+        checkpoint = torch.load(filepath, map_location=device)
+        para = checkpoint['para']
+        model = cls(para)
+        model.load_state_dict(checkpoint['model_state_dict'])
+        return model
       
     def get_model_info(self):
         total_params = sum(p.numel() for p in self.parameters())
@@ -141,11 +135,6 @@ class NEP(nn.Module):
             'l_max': self.l_max,
             'total_descriptor_dim': input_dim
         }
-    
-    def load_model_weights(self, filepath, device=None):
-        device = device or torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        checkpoint = torch.load(filepath, map_location=device)
-        self.load_state_dict(checkpoint['model_state_dict'])  
     
     def save_to_nep_format(self, filepath):
         with open(filepath, 'w') as f:
