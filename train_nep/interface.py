@@ -1,25 +1,16 @@
 from ase.calculators.calculator import Calculator, all_changes
-from ase.data import atomic_numbers
-import torch
 from .dataset import StructureDataset, collate_fn
 from .model import NEP
 
 class NEPCalculator(Calculator):
     implemented_properties = ['energy', 'forces', 'stress']
 
-    def __init__(self, model_path, para=None, device='cpu', **kwargs):
+    def __init__(self, model_path, device='cpu', **kwargs):
         super().__init__(**kwargs)
-        self.para = para
-        self.model = NEP(para)
-        checkpoint = torch.load(model_path, map_location=device)
-        if 'model_state_dict' in checkpoint:
-            self.model.load_state_dict(checkpoint['model_state_dict'])
-        else:
-            self.model.load_state_dict(checkpoint)
-            
-        self.device = device
-        self.model.to(self.device)
+        self.model = NEP.from_checkpoint(model_path, device=device)
+        self.para = self.model.para
         self.model.eval()    
+        self.model.to(device)
 
     def calculate(self, atoms=None, properties=['energy'], system_changes=all_changes):
         super().calculate(atoms, properties, system_changes)
