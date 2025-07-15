@@ -1,0 +1,129 @@
+
+***************************************************************
+*                 Welcome to use GPUMD                        *
+*    (Graphics Processing Units Molecular Dynamics)           *
+*              Master version after 3.9.5                     *
+*              This is the nep executable                     *
+***************************************************************
+
+
+---------------------------------------------------------------
+GPU information:
+---------------------------------------------------------------
+
+number of GPUs = 1
+Device id:                   0
+    Device name:             NVIDIA GeForce RTX 3060 Laptop GPU
+    Compute capability:      8.6
+    Amount of global memory: 5.99951 GB
+    Number of SMs:           30
+
+---------------------------------------------------------------
+Started running nep.
+---------------------------------------------------------------
+
+
+---------------------------------------------------------------
+Started reading nep.in.
+---------------------------------------------------------------
+
+Input or default parameters:
+    (default) model_type = potential.
+    (default) calculation mode = train.
+    (default) use NEP version 4.
+    (input)   number of atom types = 2.
+        (default) type 0 (Te with Z = 52) has force weight of 1.
+        (default) type 1 (Pb with Z = 82) has force weight of 1.
+    (default) will not add the ZBL potential.
+    (default) radial cutoff = 8 A.
+    (default) angular cutoff = 4 A.
+    (default) use global cutoff for NEP.
+    (default) use global cutoff for ZBL.
+    (default) n_max_radial = 4.
+    (default) n_max_angular = 4.
+    (default) basis_size_radial = 8.
+    (default) basis_size_angular = 8.
+    (input)   l_max_3body = 4.
+    (input)   l_max_4body = 0.
+    (input)   l_max_5body = 0.
+    (default) number of neurons = 30.
+    (default) lambda_1 = 0.0314722.
+    (default) lambda_2 = 0.0314722.
+    (default) lambda_e = 1.
+    (default) lambda_f = 1.
+    (default) lambda_v = 0.1.
+    (default) lambda_shear = 1.
+    (default) force_delta = 0.
+    (default) batch size = 1000.
+    (default) population size = 50.
+    (input)   maximum number of generations = 1000.
+Some calculated parameters:
+    number of radial descriptor components = 5.
+    number of angular descriptor components = 20.
+    total number of descriptor components = 25.
+    NN architecture = 25-30-1.
+    number of NN parameters to be optimized = 1621.
+    number of descriptor parameters to be optimized = 360.
+    total number of parameters to be optimized = 1981.
+
+---------------------------------------------------------------
+Finished reading nep.in.
+---------------------------------------------------------------
+
+
+---------------------------------------------------------------
+Started reading train.xyz
+---------------------------------------------------------------
+
+Number of configurations = 25.
+Number of devices = 1
+Number of batches = 1
+Hello, I changed the batch_size from 1000 to 25.
+
+Batch 0:
+Number of configurations = 25.
+
+---------------------------------------------------------------
+Constructing train_set in device  0.
+Total number of atoms = 6250.
+Number of atoms in the largest configuration = 250.
+Number of configurations having virial = 0.
+Radial descriptor with a cutoff of 8 A:
+    Minimum number of neighbors for one atom = 56.
+    Maximum number of neighbors for one atom = 73.
+Angular descriptor with a cutoff of 4 A:
+    Minimum number of neighbors for one atom = 5.
+    Maximum number of neighbors for one atom = 8.
+---------------------------------------------------------------
+
+
+---------------------------------------------------------------
+Time used for initialization = 0.126000 s.
+---------------------------------------------------------------
+
+
+---------------------------------------------------------------
+Started training.
+---------------------------------------------------------------
+
+Step    Total-Loss L1Reg-Loss L2Reg-Loss RMSE-E-Train RMSE-F-Train RMSE-V-Train RMSE-E-Test  RMSE-F-Test  RMSE-V-Test  
+100     0.13484    0.01619    0.01913    0.00212      0.09739      0.00000      0.00000      0.00000      0.00000      
+200     0.12640    0.01672    0.02013    0.00199      0.08756      0.00000      0.00000      0.00000      0.00000      
+300     0.12172    0.01714    0.02091    0.00232      0.08134      0.00000      0.00000      0.00000      0.00000      
+400     0.11927    0.01785    0.02193    0.00105      0.07844      0.00000      0.00000      0.00000      0.00000      
+500     0.11548    0.01827    0.02255    0.00157      0.07309      0.00000      0.00000      0.00000      0.00000      
+600     0.11522    0.01902    0.02342    0.00126      0.07153      0.00000      0.00000      0.00000      0.00000      
+700     0.11190    0.01943    0.02408    0.00157      0.06682      0.00000      0.00000      0.00000      0.00000      
+800     0.11129    0.01998    0.02473    0.00137      0.06520      0.00000      0.00000      0.00000      0.00000      
+900     0.10927    0.02024    0.02513    0.00086      0.06303      0.00000      0.00000      0.00000      0.00000      
+1000    0.10958    0.02078    0.02572    0.00201      0.06107      0.00000      0.00000      0.00000      0.00000      
+
+---------------------------------------------------------------
+Time used for training = 50.160000 s.
+---------------------------------------------------------------
+
+
+---------------------------------------------------------------
+Finished running nep.
+---------------------------------------------------------------
+
