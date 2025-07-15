@@ -8,11 +8,11 @@ CUTOFF_CONFIG = {
 }
 
 DESCRIPTOR_CONFIG = {
-    "n_desc_radial": 4,    
-    "k_max_radial": 4,     
-    "n_desc_angular": 8,   
+    "n_desc_radial": 5,    
+    "n_desc_angular": 5,  
+    "k_max_radial": 8,      
     "k_max_angular": 8,    
-    "l_max": 4,           
+    "l_max": 5,           
 }
 
 DATASET_CONFIG = {
