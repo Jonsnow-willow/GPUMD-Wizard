@@ -2,7 +2,6 @@ import torch
 from ase.neighborlist import neighbor_list
 from ase.data import atomic_numbers
 from torch.utils.data import Dataset
-from wizard.io import read_xyz
 
 def find_neighbor(atoms, cutoff):
     i, j = neighbor_list('ij', atoms, cutoff)
