@@ -18,10 +18,10 @@ class NEP(nn.Module):
         
         layers = []
         layers.append(nn.Linear(input_dim, hidden_dims[0]))
-        layers.append(nn.SiLU())
+        layers.append(nn.Tanh())
         for i in range(1, len(hidden_dims)):
             layers.append(nn.Linear(hidden_dims[i-1], hidden_dims[i]))
-            layers.append(nn.SiLU())
+            layers.append(nn.Tanh())
         layers.append(nn.Linear(hidden_dims[-1], 1))
         self.mlp = nn.Sequential(*layers)
     
