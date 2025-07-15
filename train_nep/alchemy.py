@@ -1,12 +1,18 @@
 import torch
 import torch.nn as nn
 import os
-import wandb
+from importlib import util
+
+
+has_wandb = util.find_spec("wandb") is not None
+if has_wandb:
+    import wandb
 
 class Alchemy:
     def __init__(
         self, model, training_set, val_set=None, optimizer=None, loss_fn=None,
-        device=None, save_path="nep_model.pt", early_stopping_patience=10):
+        device=None, save_path="nep_model.pt", early_stopping_patience=10, 
+        use_wandb=False, wandb_project="NEP"):
         self.model = model
         self.training_set = training_set
         self.val_set = val_set
@@ -18,7 +24,10 @@ class Alchemy:
         self.best_val_loss = float('inf')
         self.patience = 0
         self.model.to(self.device)
-        wandb.init(project="NEP", config={"early_stopping_patience": early_stopping_patience})
+        
+        self.use_wandb = use_wandb and has_wandb
+        if self.use_wandb:
+            wandb.init(project=wandb_project, config={"early_stopping_patience": early_stopping_patience})
 
     def compute_loss(self, prediction, batch, weights=None):
         if weights is None:
@@ -87,7 +96,7 @@ class Alchemy:
         avg_forces_loss = forces_loss_sum / num_batches if num_batches > 0 else 0.0
         avg_virial_loss = virial_loss_sum / num_batches if num_batches > 0 else 0.0
 
-        if epoch is not None:
+        if epoch is not None and self.use_wandb:
             wandb.log({
                 'Loss/train_total': avg_loss,
                 'Loss/train_energy': avg_energy_loss,
@@ -124,7 +133,7 @@ class Alchemy:
         avg_forces_loss = forces_loss_sum / num_batches if num_batches > 0 else 0.0
         avg_virial_loss = virial_loss_sum / num_batches if num_batches > 0 else 0.0
 
-        if epoch is not None:
+        if epoch is not None and self.use_wandb:
             wandb.log({
                 'Loss/val_total': avg_loss,
                 'Loss/val_energy': avg_energy_loss,
@@ -171,7 +180,11 @@ class Alchemy:
                         break
             else:
                 self.save()
-        wandb.finish()
+        
+        # 如果使用了wandb，则结束wandb会话
+        if self.use_wandb:
+            wandb.finish()
+            
         print("\n训练完成!")
         print(f"最佳验证损失: {self.best_val_loss:.6f}")
     
