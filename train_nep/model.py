@@ -93,6 +93,10 @@ class NEP(nn.Module):
         para = checkpoint['para']
         model = cls(para)
         model.load_state_dict(checkpoint['model_state_dict'])
+
+        if device is not None:
+            model.to(device)
+        
         return model
       
     def get_model_info(self):
