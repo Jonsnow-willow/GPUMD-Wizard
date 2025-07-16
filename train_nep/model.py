@@ -116,15 +116,15 @@ class NEP(nn.Module):
         
         input_dim = self.n_desc_radial + self.n_desc_angular * self.l_max
         
-        print(f"总参数数量: {total_params}")
-        print(f"描述符参数数量: {descriptor_params}")
-        print(f"  - 径向c_table: {radial_c_params}")
-        print(f"  - 角度c_table: {angular_c_params}")
-        print(f"描述符数量信息:")
-        print(f"  - 径向描述符: {self.n_desc_radial}")
-        print(f"  - 角度描述符: {self.n_desc_angular} × {self.l_max} = {self.n_desc_angular * self.l_max}")
-        print(f"  - 总描述符维度: {input_dim}")
-        print("每个元素MLP的参数数量:")
+        print(f"Total number of parameters: {total_params}")
+        print(f"Number of descriptor parameters: {descriptor_params}")
+        print(f"  - Radial c_table: {radial_c_params}")
+        print(f"  - Angular c_table: {angular_c_params}")
+        print(f"Descriptor dimension information:")
+        print(f"  - Radial descriptors: {self.n_desc_radial}")
+        print(f"  - Angular descriptors: {self.n_desc_angular} × {self.l_max} = {self.n_desc_angular * self.l_max}")
+        print(f"  - Total descriptor dimension: {input_dim}")
+        print("Number of parameters in each element MLP:")
         for element, count in element_params.items():
             print(f"  {element}: {count}")
             
