@@ -132,17 +132,26 @@ class NEP(nn.Module):
         with open(filepath, 'w') as f:
             f.write(f"nep4 {len(self.elements)} " + " ".join(self.elements) + "\n")
             f.write(f"cutoff {self.para['rcut_radial']} {self.para['rcut_angular']} {self.para['NN_radial']} {self.para['NN_angular']}\n")
-            f.write(f"n_max {int(self.para['n_desc_radial'])-1} {int(self.para['n_desc_angular'])-1}\n")
-            f.write(f"basis_size {int(self.para['k_max_radial'])-1} {int(self.para['k_max_angular'])-1}\n")
+            f.write(f"n_max {int(self.para['n_desc_radial']) - 1} {int(self.para['n_desc_angular']) - 1}\n")
+            f.write(f"basis_size {int(self.para['k_max_radial']) - 1} {int(self.para['k_max_angular']) - 1}\n")
             f.write(f"l_max {int(self.para['l_max'])} 0 0\n")
             f.write(f"ANN {int(self.para['hidden_dims'][0])} 0\n")
 
             for element in self.elements:
-                element_params = []
-                for param in self.element_mlps[element].parameters():
-                    element_params.extend(param.data.flatten().tolist())
-                for param_value in element_params:
-                    f.write(f"{param_value:15.7e}\n")
+                mlp = self.element_mlps[element]
+                for idx, layer in enumerate(mlp):
+                    if isinstance(layer, nn.Linear):
+                        weights = layer.weight.data.flatten().tolist()
+                        for val in weights:
+                            f.write(f"{val:15.7e}\n")
+
+                        if layer.bias is not None:
+                            bias = layer.bias.data
+                            if idx == 0:  
+                                bias = -bias
+                            bias = bias.flatten().tolist()
+                            for val in bias:
+                                f.write(f"{val:15.7e}\n")
 
             bias_value = self.shared_bias.data.item()
             f.write(f"{bias_value:15.7e}\n")
@@ -154,8 +163,6 @@ class NEP(nn.Module):
             n_types = len(self.elements)
 
             radial_params = self.descriptor.radial.c_table.data
-            angular_params = self.descriptor.angular.c_table.data
-
             for n in range(n_max_radial):
                 for k in range(k_max_radial):
                     for t1 in range(n_types):
@@ -163,6 +170,7 @@ class NEP(nn.Module):
                             val = radial_params[t1, t2, n, k].item()
                             f.write(f"{val:15.7e}\n")
 
+            angular_params = self.descriptor.angular.c_table.data
             for n in range(n_max_angular):
                 for k in range(k_max_angular):
                     for t1 in range(n_types):
@@ -172,7 +180,7 @@ class NEP(nn.Module):
 
             input_dim = self.n_desc_radial + self.n_desc_angular * self.l_max
             for _ in range(input_dim):
-                f.write("1\n")
+                f.write(f"{1.0:15.7e}\n")
 
 
 
