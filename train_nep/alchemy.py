@@ -9,12 +9,11 @@ if has_wandb:
 
 class Alchemy:
     def __init__(
-        self, model, training_set, val_set=None, optimizer=None, loss_fn=None,
+        self, model, training_set, optimizer=None, loss_fn=None,
         device=None, save_path="nep_model.pt", early_stopping_patience=10, 
         use_wandb=False, wandb_project="NEP"):
         self.model = model
         self.training_set = training_set
-        self.val_set = val_set
         self.optimizer = optimizer if optimizer is not None else torch.optim.Adam(model.parameters(), lr=1e-3)
         self.loss_fn = loss_fn if loss_fn is not None else nn.L1Loss()
         self.device = device if device is not None else torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -105,43 +104,6 @@ class Alchemy:
             })
         return avg_loss, avg_energy_loss, avg_forces_loss, avg_virial_loss
 
-    def validate(self, weights=None, epoch=None):
-        if self.val_set is None:
-            return None, None, None, None
-        self.model.eval()
-        val_loss = 0
-        num_batches = 0
-        energy_loss_sum = 0
-        forces_loss_sum = 0
-        virial_loss_sum = 0
-        with torch.no_grad():
-            for batch_idx, batch in enumerate(self.val_set, 1):
-                for k, v in batch.items():
-                    if isinstance(v, torch.Tensor):
-                        batch[k] = v.to(self.device)
-                prediction = self.model(batch)
-                loss, loss_dict = self.compute_loss(prediction, batch, weights)
-                val_loss += loss.item()
-                energy_loss_sum += loss_dict.get('energy_loss', 0.0)
-                forces_loss_sum += loss_dict.get('forces_loss', 0.0)
-                virial_loss_sum += loss_dict.get('virial_loss', 0.0)
-                num_batches += 1
-                print(f"  [Val Batch {batch_idx}] Loss = {loss.item():.6f} | Energy = {loss_dict.get('energy_loss', 0.0):.6f} | Forces = {loss_dict.get('forces_loss', 0.0):.6f} | Virial = {loss_dict.get('virial_loss', 0.0):.6f}")
-        avg_loss = val_loss / num_batches if num_batches > 0 else 0.0
-        avg_energy_loss = energy_loss_sum / num_batches if num_batches > 0 else 0.0
-        avg_forces_loss = forces_loss_sum / num_batches if num_batches > 0 else 0.0
-        avg_virial_loss = virial_loss_sum / num_batches if num_batches > 0 else 0.0
-
-        if epoch is not None and self.use_wandb:
-            wandb.log({
-                'Loss/val_total': avg_loss,
-                'Loss/val_energy': avg_energy_loss,
-                'Loss/val_forces': avg_forces_loss,
-                'Loss/val_virial': avg_virial_loss,
-                'epoch': epoch
-            })
-        return avg_loss, avg_energy_loss, avg_forces_loss, avg_virial_loss
-
     def save(self, path=None):
         save_path = path if path is not None else self.save_path
         
@@ -156,33 +118,20 @@ class Alchemy:
         }, save_path)
 
     def fit(self, epochs=100):
-        print(f"开始训练，总共 {epochs} 轮")
-        print(f"设备: {self.device}")
-        print(f"模型参数数量: {sum(p.numel() for p in self.model.parameters())}")
+        print(f"Number of Epoch: {epochs}")
+        print(f"Devices: {self.device}")
+        print(f"Number of Parameters: {sum(p.numel() for p in self.model.parameters())}")
         print("-" * 50)
         for epoch in range(1, epochs + 1):
             self.current_epoch = epoch
             train_loss, train_energy_loss, train_forces_loss, train_virial_loss = self.train_epoch(epoch=epoch)
-            print(f"Epoch {epoch:3d}/{epochs}: Train Loss = {train_loss:.6f} | Energy = {train_energy_loss:.6f} | Forces = {train_forces_loss:.6f} | Virial = {train_virial_loss:.6f}")
-            val_loss, val_energy_loss, val_forces_loss, val_virial_loss = self.validate(epoch=epoch)
-            if val_loss is not None:
-                print(f"{'':16} Val Loss   = {val_loss:.6f} | Energy = {val_energy_loss:.6f} | Forces = {val_forces_loss:.6f} | Virial = {val_virial_loss:.6f}")
-                if val_loss < self.best_val_loss:
-                    self.best_val_loss = val_loss
-                    self.patience = 0
-                    self.save()
-                    print(f"{'':16} ✓ 模型已保存 (best val loss: {val_loss:.6f})")
-                else:
-                    self.patience += 1
-                    print(f"{'':16} Patience: {self.patience}/{self.early_stopping_patience}")
-                    if self.patience >= self.early_stopping_patience:
-                        print(f"\n Early stopping triggered after {epoch} epochs")
-                        break
-            else:
-                self.save()
-        
+            print(f"Epoch {epoch:3d}/{epochs}: "
+                f"Train Loss = {train_loss:.6f} | Energy = {train_energy_loss:.6f} | "
+                f"Forces = {train_forces_loss:.6f} | Virial = {train_virial_loss:.6f}")
+            self.save()        
         if self.use_wandb:
             wandb.finish()
             
-        print("\n训练完成!")
-        print(f"最佳验证损失: {self.best_val_loss:.6f}")
+        print("\ncompleted!")
+
+        
