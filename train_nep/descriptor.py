@@ -145,7 +145,8 @@ class AngularDescriptor(nn.Module):
         P_l = legendre_basis(cos_theta, self.l_max)                    # [N_triplets, l_max]
         ang = g_ij * g_ik                                              # [N_triplets, n_desc]
         ang = ang.unsqueeze(-1) * P_l.unsqueeze(1)                     # [N_triplets, n_desc, l_max]
-
+        ang *= 2
+        
         n_atoms = positions.shape[0]
         q = torch.zeros(n_atoms, self.n_desc, self.l_max, device=ang.device)
         q.index_add_(0, i_idx, ang)  
