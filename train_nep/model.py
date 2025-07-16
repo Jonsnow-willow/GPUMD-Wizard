@@ -99,7 +99,7 @@ class NEP(nn.Module):
         
         return model
       
-    def get_model_info(self):
+    def print_model_info(self):
         total_params = sum(p.numel() for p in self.parameters())
         
         element_params = {}
@@ -127,19 +127,7 @@ class NEP(nn.Module):
         print("每个元素MLP的参数数量:")
         for element, count in element_params.items():
             print(f"  {element}: {count}")
-        
-        return {
-            'total_params': total_params,
-            'descriptor_params': descriptor_params,
-            'radial_c_params': radial_c_params,
-            'angular_c_params': angular_c_params,
-            'element_params': element_params,
-            'n_desc_radial': self.n_desc_radial,
-            'n_desc_angular': self.n_desc_angular,
-            'l_max': self.l_max,
-            'total_descriptor_dim': input_dim
-        }
-    
+            
     def save_to_nep_format(self, filepath):
         with open(filepath, 'w') as f:
             f.write(f"nep4 {len(self.elements)} " + " ".join(self.elements) + "\n")
