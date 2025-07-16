@@ -7,7 +7,7 @@ has_wandb = util.find_spec("wandb") is not None
 if has_wandb:
     import wandb
 
-class Alchemy:
+class Trainer:
     def __init__(
         self, model, training_set, optimizer=None, loss_fn=None,
         device=None, save_path="nep_model.pt", early_stopping_patience=10, 
@@ -133,5 +133,3 @@ class Alchemy:
             wandb.finish()
             
         print("\ncompleted!")
-
-        
