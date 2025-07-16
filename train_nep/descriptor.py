@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import numpy as np
 
 def chebyshev_basis(r, r_c, k_max):
     fc = torch.where(
@@ -21,10 +22,13 @@ def chebyshev_basis(r, r_c, k_max):
 
 def legendre_basis(cos_theta, l_max):
     pl = [torch.ones_like(cos_theta), cos_theta]
-    for l in range(2, l_max):
+    for l in range(2, l_max + 1): 
         temp = ((2 * l - 1) * cos_theta * pl[-1] - (l - 1) * pl[-2]) / l
         pl.append(temp)
-    pl = torch.stack(pl[:l_max], dim=-1)
+    pl = torch.stack(pl[1:l_max+1], dim=-1)  # l=1,…,l_max
+    l_vals = torch.arange(1, l_max+1, device=pl.device).float()
+    coeff = (2 * l_vals + 1) / (4 * np.pi)  
+    pl = pl * coeff
     return pl
 
 class RadialDescriptor(nn.Module):
