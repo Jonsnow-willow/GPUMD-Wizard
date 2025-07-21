@@ -12,7 +12,6 @@ class SNES:
         device=None, 
         save_path="nep_model.pt",
         population_size=50,
-        learning_rate=0.01,
         sigma_init=0.1,
         patience=10
     ):
@@ -23,7 +22,6 @@ class SNES:
         self.save_path = save_path
         
         self.population_size = population_size
-        self.learning_rate = learning_rate
         self.sigma_init = sigma_init
         self.patience = patience
         
@@ -38,8 +36,8 @@ class SNES:
             self.param_sizes.append(size)
             self.total_params += size
 
-        self.theta = self._get_flat_params() 
-        self.sigma = np.full(self.total_params, sigma_init)  
+        self.theta = np.random.uniform(-0.5, 0.5, self.total_params)
+        self.sigma = np.full(self.total_params, 0.1)
         
         self.best_loss = float('inf')
         self.best_params = self.theta.copy()
@@ -144,14 +142,13 @@ class SNES:
         gradient_theta = np.zeros(self.total_params)
         for i in range(self.population_size):
             gradient_theta += utilities[i] * noises[i]
-        self.theta += self.learning_rate * self.sigma * gradient_theta
+        self.theta += self.sigma * gradient_theta
         
         gradient_sigma = np.zeros(self.total_params)
         for i in range(self.population_size):
             gradient_sigma += utilities[i] * (noises[i]**2 - 1) / self.sigma
-        grad_clip = np.clip(self.learning_rate / 2 * gradient_sigma, -5, 5)
-        self.sigma *= np.exp(grad_clip)
-        self.sigma = np.clip(self.sigma, 1e-8, 1.0)
+        learning_rate = (3 + np.log(self.total_params)) / (5 * np.sqrt(self.total_params))
+        self.sigma *= np.exp(learning_rate / 2 * gradient_sigma)
         
         best_idx = np.argmin(fitnesses)
         best_fitness = fitnesses[best_idx]
@@ -197,9 +194,5 @@ class SNES:
             os.makedirs(dir_name, exist_ok=True)
         torch.save({
             'model_state_dict': self.model.state_dict(),
-            #'best_loss': self.best_loss,
-            #'theta': self.theta,
-            #'sigma': self.sigma,
-            #'best_params': self.best_params,
             'para': self.model.para
         }, save_path)
