@@ -1,6 +1,7 @@
 from ase.calculators.calculator import Calculator, all_changes
 from .dataset import StructureDataset, collate_fn
 from .model import NEP
+import numpy as np
 
 class NEPCalculator(Calculator):
     implemented_properties = ['energy', 'forces', 'stress']
@@ -22,7 +23,9 @@ class NEPCalculator(Calculator):
         if 'forces' in pred:
             self.results['forces'] = pred['forces'].cpu().detach().numpy()
         if 'virial' in pred:
-            self.results['stress'] = pred['virial'].cpu().detach().numpy()[0]
+            virial = pred['virial'].cpu().detach().numpy()[0]
+            virial = np.array(virial).reshape(3, 3)
+            self.results['stress'] = - virial / np.linalg.det(atoms.cell)
     
     def ase_atoms_to_batch(self, atoms):
         item = StructureDataset([atoms], self.para).data
