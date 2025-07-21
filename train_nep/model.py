@@ -59,32 +59,39 @@ class NEP(nn.Module):
         n_atoms_per_structure = batch["n_atoms_per_structure"]
         atom_idx = 0
         e_total_list = []
-        for n_atoms_in_structure in n_atoms_per_structure:
-            e_structure = e_atom[atom_idx:atom_idx + n_atoms_in_structure].sum()
-            e_total_list.append(e_structure)
-            atom_idx += n_atoms_in_structure
-        e_total = torch.stack(e_total_list)  
-        
+        virial_list = []
+
         forces = None
-        virial = None
         if positions.requires_grad:
             forces = -torch.autograd.grad(
-                outputs=e_total.sum(),
+                outputs=e_atom.sum(),
                 inputs=positions,
-                grad_outputs=torch.ones_like(e_total.sum()),
+                grad_outputs=torch.ones_like(e_atom.sum()),
                 create_graph=self.training,
                 retain_graph=True
             )[0]
-            virial = -torch.einsum('ni,nj->ij', positions, forces)
-        
+
+        for n_atoms_in_structure in n_atoms_per_structure:
+            e_structure = e_atom[atom_idx:atom_idx + n_atoms_in_structure].sum()
+            e_total_list.append(e_structure)
+            if positions.requires_grad and forces is not None:
+                pos_struct = positions[atom_idx:atom_idx + n_atoms_in_structure]
+                force_struct = forces[atom_idx:atom_idx + n_atoms_in_structure]
+                virial_struct = -torch.einsum('ni,nj->ij', pos_struct, force_struct)
+                virial_list.append(virial_struct.reshape(-1))
+            atom_idx += n_atoms_in_structure
+
+        e_total = torch.stack(e_total_list)
+        virial = torch.stack(virial_list) if virial_list else None
+
         result = {
-            "energies": e_atom,          
-            "energy": e_total,         
+            "energies": e_atom,
+            "energy": e_total,
         }
         if forces is not None:
-            result["forces"] = forces        
+            result["forces"] = forces
         if virial is not None:
-            result["virial"] = virial        
+            result["virial"] = virial
         return result
     
     @classmethod
