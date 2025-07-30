@@ -113,5 +113,5 @@ Phys. Rev. B **108**, 054312 (2023).
 Nature Communications **15**, 10208 (2024).
 
 [5] Jiahui Liu, Jesper Byggmästar, Zheyong Fan, Bing Bai, Ping Qian, and Yanjing Su,
-[Utilizing a machine-learned potential to explore enhanced radiation tolerance in the MoNbTaVW high-entropy alloy](https://arxiv.org/abs/2411.02834),
-arXiv preprint arXiv:2411.02834 (2024).
+[Utilizing a machine-learned potential to explore enhanced radiation tolerance in the MoNbTaVW high-entropy alloy](https://www.sciencedirect.com/science/article/pii/S0022311525003988),
+Journal of Nuclear Materials, 156004 (2025).
