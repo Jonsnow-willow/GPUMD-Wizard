@@ -10,9 +10,16 @@ import re
 import shutil
 
 class SymbolInfo:
-    def __init__(self, formula, structure, *lattice_constant):
+    SUPPORTED_LATTICE_TYPES = {"bcc", "fcc", "hcp"}
+
+    def __init__(self, formula, lattice_type, *lattice_constant):
+        lattice_type = lattice_type.lower()
+        if lattice_type not in self.SUPPORTED_LATTICE_TYPES:
+            raise ValueError(
+                f"Unsupported lattice type: {lattice_type}. Supported: {', '.join(sorted(self.SUPPORTED_LATTICE_TYPES))}"
+            )
         self.formula = formula
-        self.structure = structure
+        self.lattice_type = lattice_type
         self.lattice_constant = lattice_constant
         self.symbols = []
         self.compositions = []
@@ -21,11 +28,11 @@ class SymbolInfo:
             self.compositions.append(int(composition) if composition else 1)
     
     def create_bulk_atoms(self, supercell = (3, 3, 3)):
-        symbol, structure, lc = self.symbols[0], self.structure, self.lattice_constant
-        if structure == 'hcp':
-            atoms = bulk(symbol, structure, a = lc[0], c = lc[1]) * supercell
+        symbol, crystalstructure, lc = self.symbols[0], self.lattice_type, self.lattice_constant
+        if crystalstructure == 'hcp':
+            atoms = bulk(symbol, crystalstructure, a = lc[0], c = lc[1]) * supercell
         else:
-            atoms = bulk(symbol, structure, a = lc[0], cubic = True) * supercell
+            atoms = bulk(symbol, crystalstructure, a = lc[0], cubic = True) * supercell
         if len(self.symbols) > 1:
             if len(atoms) < sum(self.compositions):
                 raise ValueError('The number of atoms in the unit cell is less than the number of symbols.')
@@ -37,7 +44,7 @@ class SymbolInfo:
         return atoms
 
     def __str__(self):
-        return f"Formula: {self.formula}, Structure: {self.structure}, Lattice constant: {self.lattice_constant}"
+        return f"Formula: {self.formula}, Lattice Type: {self.lattice_type}, Lattice Constant: {self.lattice_constant}"
 
 class Morph():
     def __init__(self, atoms):
