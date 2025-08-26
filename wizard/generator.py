@@ -3,11 +3,8 @@ from wizard.io import relax
 import itertools
 
 class Generator:
-    def __init__(self, elements = [], symbols= None, structures = ['bcc', 'fcc', 'hcp'], adjust_ratios = None):
-        self.symbol_infos = []
-        self.elements = elements
-        self.structures = structures
-        
+    def __init__(self, elements = [], symbols= None, lattice_types = ['bcc', 'fcc', 'hcp'], adjust_ratios = None):
+        self.symbol_infos = []        
         combinations = list(itertools.combinations(elements, 2))
         if symbols is not None:
             symbols = list(set(symbols) - set(elements))
@@ -25,11 +22,11 @@ class Generator:
             formulas.append(element)
 
         for formula in formulas:
-            for structure in structures:
-                if structure == 'hcp':
-                    self.symbol_infos.append(SymbolInfo(formula, structure, 3.5, 4.5))
+            for lattice_type in lattice_types:
+                if lattice_type == 'hcp':
+                    self.symbol_infos.append(SymbolInfo(formula, lattice_type, 3.5, 4.5))
                 else:
-                    self.symbol_infos.append(SymbolInfo(formula, structure, 3.5))
+                    self.symbol_infos.append(SymbolInfo(formula, lattice_type, 3.5))
 
     def __str__(self):
         for symbol_info in self.symbol_infos:
@@ -42,7 +39,7 @@ class Generator:
     def get_bulk_structures(self, calc = None, supercell = {'bcc': (3,3,3), 'fcc': (3,3,3), 'hcp': (3,3,3)}):
         frames = []
         for symbol_info in self.symbol_infos:
-            atoms = symbol_info.create_bulk_atoms(supercell[symbol_info.structure])
+            atoms = symbol_info.create_bulk_atoms(supercell[symbol_info.lattice_type])
             if calc is not None:
                 atoms.calc = calc
                 relax(atoms, steps=100)
