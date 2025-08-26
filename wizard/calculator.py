@@ -439,8 +439,8 @@ class MaterialCalculator():
         self.atoms = atoms
         self.calc = calculator  
         self.formula = symbol_info.formula
+        self.crystalstructure = symbol_info.lattice_type
         self.lc = symbol_info.lattice_constant
-        self.structure = symbol_info.structure
     
     def isolate_atom_energy(self):
         symbol = self.atoms.get_chemical_symbols()[0]
@@ -462,7 +462,7 @@ class MaterialCalculator():
         dump_xyz('MaterialProperties.xyz', atoms)
         
         output = ""
-        if self.structure == 'hcp':
+        if self.crystalstructure == 'hcp':
             output += f" {self.formula:<10}Lattice_Constants: a: {cell_lengths[0]:.4f} A    c: {cell_lengths[2]:.4f} A\n"
             output += f"{'':<11}Ground_State_Energy: {atom_energy:.4f} eV\n"
         else:
@@ -512,7 +512,7 @@ class MaterialCalculator():
         ax.plot(volumes, energies, '-o')
         ax.set_xlabel('Volume(A$^3$/atom)', fontsize=font_size)
         ax.set_ylabel('Energy (eV/atom)', fontsize=font_size)
-        ax.set_title(f'{self.formula} {self.structure} EOS Curve', fontsize=font_size)
+        ax.set_title(f'{self.formula} {self.crystalstructure} EOS Curve', fontsize=font_size)
         fig_path = os.path.join('eos_curve_png',f'{self.formula}_eos_curve.png')
         fig.savefig(fig_path)
         plt.close(fig)
@@ -527,7 +527,7 @@ class MaterialCalculator():
         atoms = self.atoms.copy()
         calc = self.calc
         PhonoCalc(atoms, calc).get_band_structure(special_points=special_points, labels_path=labels_path)
-        fig_path = plot_band_structure(atoms, self.formula, self.structure)
+        fig_path = plot_band_structure(atoms, self.formula, self.crystalstructure)
         return fig_path
              
     def formation_energy_surface(self, hkl = (1, 0, 0), layers = 10, relax_params = {}):
@@ -542,7 +542,7 @@ class MaterialCalculator():
         slab_energy = slab.get_potential_energy()
         formation_energy = (slab_energy - atom_energy * len(slab)) / S / 2
 
-        if self.structure == 'hcp':
+        if self.crystalstructure == 'hcp':
             hk, l = hkl[:2], hkl[2]
             hkl_str = '-'.join(map(str, sorted(hk, reverse=True)))
             hkl_str += f'-{l}'
