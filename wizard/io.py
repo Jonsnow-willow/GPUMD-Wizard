@@ -365,7 +365,7 @@ def plot_v(vd, vn, lim=None, symbol=None):
     return fig
 
 
-def plot_band_structure(atoms, formula, structure):
+def plot_band_structure(atoms, formula, info):
     if 'band_dict' not in atoms.info:
         raise ValueError('No band structure data found.')
     band_dict = atoms.info['band_dict']
@@ -409,8 +409,8 @@ def plot_band_structure(atoms, formula, structure):
                     linewidth=1,
                     c='black')
     
-    fig.suptitle(f'{formula} {structure} phonon dispersion', fontsize=16)
-    fig_path = f'{formula}_{structure}_phono.png'
+    fig.suptitle(f'{formula} {info} phonon dispersion', fontsize=16)
+    fig_path = f'{formula}_{info}_phono.png'
     plt.savefig(fig_path)
     plt.close()
     return fig_path
