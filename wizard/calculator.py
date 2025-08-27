@@ -13,7 +13,6 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt 
 from importlib.resources import files
-import tempfile
 import numpy as np
 import os
 import re
