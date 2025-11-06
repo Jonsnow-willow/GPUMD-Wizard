@@ -37,8 +37,8 @@ def dump_xyz(filename, atoms):
         if valid_keys['forces']:
             Out_string += ":force:R:3"
         if valid_keys['group']:
-            groups = atoms.info['group']
-            out_string += f":group:I:{len(groups)}"
+            group = atoms.info['group']
+            out_string += f":group:I:{len(group)}"
         if valid_keys['config_type']:
             Out_string += " config_type="+ atoms.info['config_type']
         if valid_keys['weight']:
@@ -51,8 +51,8 @@ def dump_xyz(filename, atoms):
             if valid_keys['forces']:
                 Out_string += ' {:>15.8e} {:>15.8e} {:>15.8e}'.format(*atoms.info['forces'][atom.index])
             if valid_keys['group']:
-                for group in groups:
-                    out_string += f" {int(group[atom.index])}"
+                for g in group:
+                    out_string += f" {int(g[atom.index])}"
             Out_string += '\n'
         f.write(Out_string)
 
@@ -100,7 +100,7 @@ def read_group(words_in_line, parsed_properties):
     if 'group' in parsed_properties:
         group_slice = parsed_properties['group']
         group = words_in_line[group_slice]
-        return int(group[0])
+        return [int(g) for g in group]
     else:
         return None
 
@@ -146,12 +146,19 @@ def read_xyz(filename):
                 virials = comment.split("virial=\"")[1].split("\"")[0].strip()
                 virials = np.array([float(x) for x in virials.split()]).reshape(3, 3)
                 stress = - virials / np.linalg.det(cell)
+            elif "stress=" in comment:
+                stress = comment.split("stress=\"")[1].split("\"")[0].strip()
+                stress = np.array([float(x) for x in stress.split()]).reshape(3, 3)
             else:
                 stress = None
             if "config_type=" in comment:
                 config_type = comment.split("config_type=")[1].split()[0].strip()
             else:
                 config_type = None
+            if "weight=" in comment:
+                weight = float(comment.split("weight=")[1].split()[0])
+            else:
+                weight = None
             parsed_properties_dict = parsed_properties(comment)
             for _ in range(natoms):
                 line = f.readline()
@@ -162,50 +169,9 @@ def read_xyz(filename):
                 forces.append(read_force(words_in_line, parsed_properties_dict))
                 velocities.append(read_velocity(words_in_line, parsed_properties_dict))
                 group.append(read_group(words_in_line, parsed_properties_dict))
-            frames.append(Atoms(symbols=symbols, positions=positions, masses=masses, cell=cell, pbc=pbc, info={'energy': energy, 'stress': stress, 'forces': forces, 'velocities': velocities, 'group': group, 'config_type': config_type}))
+            group = [np.asarray(col, dtype=int) for col in zip(*group)] if group else None
+            frames.append(Atoms(symbols=symbols, positions=positions, masses=masses, cell=cell, pbc=pbc, velocities=velocities, info={'energy': energy, 'stress': stress, 'forces': forces, 'group': group, 'config_type': config_type, 'weight': weight}))
     return frames
-
-def read_restart(filename):
-    with open(filename, 'r') as f:
-        line = f.readline()
-        natoms = int(line.split(' ')[0])
-        symbols = []
-        positions = []
-        masses = []
-        velocities = []
-        group = []
-        comment = f.readline()  
-        if "pbc=\"" in comment:
-            pbc_str = comment.split("pbc=\"")[1].split("\"")[0].strip()
-            pbc = [True if pbc_value == "T" else False for pbc_value in pbc_str.split()]
-        else:
-            pbc = [True, True, True]
-        lattice_str = comment.split("Lattice=\"")[1].split("\"")[0].strip()
-        lattice = [list(map(float, row.split())) for row in lattice_str.split(" ")]
-        cell = [lattice[0] + lattice[1] + lattice[2], lattice[3] + lattice[4] + lattice[5], lattice[6] + lattice[7] + lattice[8]]
-        if "group" in comment:
-            for _ in range(natoms):
-                line = f.readline()
-                symbol, x, y, z, mass, vx, vy, vz, group_info= line.split()[:9]
-                symbol = symbol.lower().capitalize()
-                symbols.append(symbol)
-                positions.append([float(x), float(y), float(z)])
-                velocities.append([float(vx), float(vy), float(vz)])
-                masses.append(mass)
-                group.append(group_info)      
-            atoms = Atoms(symbols=symbols, positions=positions, masses=masses, cell=cell, pbc=pbc, info={'velocities': velocities, 'group': group})
-        else:
-            for _ in range(natoms):
-                line = f.readline()
-                symbol, x, y, z, mass, vx, vy, vz= line.split()[:8]
-                symbol = symbol.lower().capitalize()
-                symbols.append(symbol)
-                positions.append([float(x), float(y), float(z)])
-                velocities.append([float(vx), float(vy), float(vz)])
-                masses.append(mass)  
-            atoms = Atoms(symbols=symbols, positions=positions, masses=masses, cell=cell, pbc=pbc, info={'velocities': velocities})
-    return atoms
-
 
 def relax(atoms, fmax = 0.01, steps = 500, model = 'qn', method = 'hydro'):
     if method == 'fixed_line':
