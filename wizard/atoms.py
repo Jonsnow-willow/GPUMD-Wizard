@@ -105,8 +105,10 @@ class Morph():
 
     def set_pka(self, energy, direction, index = None, symbol = None):
         atoms = self.atoms
-        if atoms.info['velocities'] is None:
+        direction = np.asarray(direction)
+        if atoms.has('momenta') is None:
             raise ValueError('The velocities of atoms are not set.')
+        velocites = atoms.get_velocities()
         
         if index is None:
             center = np.dot([0.5, 0.5, 0.5], atoms.get_cell())
@@ -121,29 +123,32 @@ class Morph():
         vx = pow(2 * energy / mass , 0.5) * direction[0] / pow(np.sum(direction ** 2), 0.5) / 10.18051
         vy = pow(2 * energy / mass , 0.5) * direction[1] / pow(np.sum(direction ** 2), 0.5) / 10.18051
         vz = pow(2 * energy / mass , 0.5) * direction[2] / pow(np.sum(direction ** 2), 0.5) / 10.18051
-        atoms.info['velocities'][index] = [vx, vy, vz]
+        velocites[index] = [vx, vy, vz]
         
         atoms_masses = np.array(atoms.get_masses())
-        momentum = np.sum(atoms.info['velocities'] * atoms_masses[:, np.newaxis], axis=0) / len(atoms)
-        atoms.info['velocities'] -= momentum / atoms_masses[:, np.newaxis]
+        momentum = np.sum(velocites * atoms_masses[:, np.newaxis], axis=0) / len(atoms)
+        velocites -= momentum / atoms_masses[:, np.newaxis]
+        atoms.set_velocities(velocites)
 
         print(f'Index: {index}')
         print(f'Symbol: {atoms[index].symbol}')
         print(f'Position: {atoms[index].position[0]:.2f}, {atoms[index].position[1]:.2f}, {atoms[index].position[2]:.2f}')
         print(f'Mass: {atoms[index].mass:.2f}')
-        print(f'Velocity: {atoms.info["velocities"][index][0]:.2f}, {atoms.info["velocities"][index][1]:.2f}, {atoms.info["velocities"][index][2]:.2f}')
+        print(f'Velocity: {vx:.4f}, {vy:.4f}, {vz:.4f} (Angstrom/fs)')
        
     def velocity(self, vx, vy, vz, group = 0):
         atoms = self.atoms
-        if atoms.info['velocities'] is None:
+        if atoms.has('momenta') is None:
             raise ValueError('The velocities of atoms are not set.')
+        velocites = atoms.get_velocities()
         for index in range(len(atoms)):
             if int(atoms.info['group'][index]) == group:
-                atoms.info['velocities'][index] = [vx, vy, vz]
+                velocites[index] = [vx, vy, vz]
         
         atoms_masses = np.array(atoms.get_masses())
-        momentum = np.sum(atoms.info['velocities'] * atoms_masses[:, np.newaxis], axis=0) / len(atoms)
-        atoms.info['velocities'] -= momentum / atoms_masses[:, np.newaxis]
+        momentum = np.sum(velocites * atoms_masses[:, np.newaxis], axis=0) / len(atoms)
+        velocites -= momentum / atoms_masses[:, np.newaxis]
+        atoms.set_velocities(velocites)
     
     def coord_element_set(self, coord, symbol):
         atoms = self.atoms
