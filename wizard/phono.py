@@ -15,10 +15,12 @@ def ase2phono(atoms):
                         scaled_positions=atoms.get_scaled_positions())
 
 def phono2ase(cell):
-    return Atoms(symbols=cell.get_chemical_symbols(),
-                    scaled_positions=cell.get_scaled_positions(),
-                    cell=cell.get_cell(),
-                    pbc=True)
+    return Atoms(
+        symbols=list(cell.symbols),                
+        cell=np.asarray(cell.cell),                
+        scaled_positions=np.asarray(cell.scaled_positions),  
+        pbc=True,
+    )
 
 class PhonoCalc:
     def __init__(self, atoms, calc, dim='Auto', mesh=(10, 10, 10), t_step=10, t_max=0., t_min=0.):
@@ -47,7 +49,7 @@ class PhonoCalc:
                 )
             
             self.phonon.generate_displacements(distance=0.01)
-            supercells = self.phonon.get_supercells_with_displacements()
+            supercells = self.phonon.supercells_with_displacements
             set_of_forces = []
             for cell in supercells:
                 forces = self.calc.get_forces(phono2ase(cell))
