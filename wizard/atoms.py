@@ -51,6 +51,9 @@ class Morph():
         if not isinstance(atoms, Atoms):
             raise TypeError("atoms must be an instance of ase.Atoms")
         self.atoms = atoms
+
+    def get_atoms(self):
+        return self.atoms.copy()
         
     def relax(self, fmax = 0.01, steps = 500, model = 'qn', method = 'hydro'):
         atoms = self.atoms
@@ -118,11 +121,12 @@ class Morph():
         vx = pow(2 * energy / mass , 0.5) * direction[0] / pow(np.sum(direction ** 2), 0.5) / 10.18051
         vy = pow(2 * energy / mass , 0.5) * direction[1] / pow(np.sum(direction ** 2), 0.5) / 10.18051
         vz = pow(2 * energy / mass , 0.5) * direction[2] / pow(np.sum(direction ** 2), 0.5) / 10.18051
-        delta_momentum = (np.array(atoms.info['velocities'][index]) - np.array([vx, vy, vz])) * mass / (len(atoms) - 1)
+        atoms.info['velocities'][index] = [vx, vy, vz]
         
         atoms_masses = np.array(atoms.get_masses())
-        atoms.info['velocities'] += delta_momentum / atoms_masses[:, np.newaxis]
-        atoms.info['velocities'][index] = [vx, vy, vz]
+        momentum = np.sum(atoms.info['velocities'] * atoms_masses[:, np.newaxis], axis=0) / len(atoms)
+        atoms.info['velocities'] -= momentum / atoms_masses[:, np.newaxis]
+
         print(f'Index: {index}')
         print(f'Symbol: {atoms[index].symbol}')
         print(f'Position: {atoms[index].position[0]:.2f}, {atoms[index].position[1]:.2f}, {atoms[index].position[2]:.2f}')
@@ -141,6 +145,13 @@ class Morph():
         momentum = np.sum(atoms.info['velocities'] * atoms_masses[:, np.newaxis], axis=0) / len(atoms)
         atoms.info['velocities'] -= momentum / atoms_masses[:, np.newaxis]
     
+    def coord_element_set(self, coord, symbol):
+        atoms = self.atoms
+        for atom in atoms:
+            if np.allclose(atom.position, coord):
+                atom.symbol = symbol
+                break
+
     def shuffle_symbols(self):
         atoms = self.atoms
         s = atoms.get_chemical_symbols()
@@ -159,45 +170,10 @@ class Morph():
         for atom in atoms:
             atom.position %= atoms.cell.diagonal()
 
-    def prop_element_set(self, symbols = []):
-        atoms = self.atoms
-        n_atoms = len(atoms)
-        n_sym = len(symbols)
-        n_repeat, n_extra = divmod(n_atoms, n_sym)
-        sym = np.array(symbols * n_repeat + symbols[:n_extra], dtype=str)
-        np.random.shuffle(sym)
-        atoms.set_chemical_symbols(sym.tolist())
-
-    def element_random_replace(self, symbol1, symbol2, num):
-        atoms = self.atoms
-        symbols = atoms.get_chemical_symbols()
-        indices = np.where(np.array(symbols) == symbol1)[0]
-        if len(indices) < num:
-            raise ValueError('The number of atoms to be replaced is greater than the number of atoms of the first element.')
-        np.random.shuffle(indices)
-        indices = indices[:num]
-        for index in indices:
-            atoms[index].symbol = symbol2
-
-    def coord_element_set(self, coord, symbol):
-        atoms = self.atoms
-        for atom in atoms:
-            if np.allclose(atom.position, coord):
-                atom.symbol = symbol
-                break
-
     def scale_lattice(self, scale):
         atoms = self.atoms
         origin_cell = atoms.cell.copy()
         atoms.set_cell(scale * origin_cell, scale_atoms=True)
-
-    def coord_vac_set(self, coord):
-        atoms = self.atoms.copy()
-        for atom in atoms:
-            if np.allclose(atom.position, coord):
-                index = atom.index
-                break
-        del atoms[index]
 
     def create_interstitial(self, new_atom):
         atoms = self.atoms
@@ -212,9 +188,6 @@ class Morph():
         atoms[index].position += vector
         atoms.append(atom)
 
-    def create_vacancy(self, index = 0):
-        del self.atoms[index]
-
     def create_random_interstitial(self, symbols, num=1):
         atoms_to_insert = []
         for _ in range(num):
@@ -222,6 +195,9 @@ class Morph():
             atom = Atom(symbol=symbol)
             atoms_to_insert.append(atom)
         self.insert_atoms(atoms_to_insert)
+
+    def create_vacancy(self, index = 0):
+        del self.atoms[index]
 
     def create_vacancies(self, num_vacancies):
         atoms = self.atoms
@@ -233,6 +209,14 @@ class Morph():
         for index in indices_to_remove:
             del self.atoms[index]
         return removed_atoms
+    
+    def coord_vac_set(self, coord):
+        atoms = self.atoms.copy()
+        for atom in atoms:
+            if np.allclose(atom.position, coord):
+                index = atom.index
+                break
+        del atoms[index]
     
     def insert_atoms(self, atoms_to_insert, distance=1.2):
         indices_to_insert = np.random.choice(len(self.atoms), len(atoms_to_insert), replace=False)
@@ -248,9 +232,3 @@ class Morph():
     def create_fks(self, num_vacancies):
         removed_atoms = self.create_vacancies(num_vacancies)
         self.insert_atoms(removed_atoms)
-    
-    def get_atoms(self):
-        return self.atoms.copy()
-    
-    def get_potential_energy(self):
-        return self.atoms.get_potential_energy()
