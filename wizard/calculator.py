@@ -1,21 +1,18 @@
-from ase import Atoms, Atom
-from ase.build import cut, rotate
+from ase import Atoms
 from ase.optimize import FIRE
-from ase.constraints import FixAtoms
 from ase.neb import NEB
 from ase.build import surface
 from ase.units import J
-from wizard.io import get_nth_nearest_neighbor_index, relax, dump_xyz, read_xyz, plot_band_structure
-from calorine.tools import get_elastic_stiffness_tensor
+from wizard.io import relax, dump_xyz
+from wizard.tools import plot_band_structure
 from wizard.phono import PhonoCalc
 from wizard.atoms import Morph
+from calorine.tools import get_elastic_stiffness_tensor
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt 
-from importlib.resources import files
 import numpy as np
 import os
-import re
 
 class MaterialCalculator():
     def __init__(self, atoms, calculator, symbol_info):
@@ -29,6 +26,10 @@ class MaterialCalculator():
         self.crystalstructure = symbol_info.lattice_type
         self.lc = symbol_info.lattice_constant
     
+    def get_potential_energy(self):
+        energy = self.atom_energy
+        return energy
+    
     def isolate_atom_energy(self):
         symbol = self.atoms.get_chemical_symbols()[0]
         atoms = Atoms(symbols = [symbol], positions=[[0,0,0]])
@@ -37,10 +38,6 @@ class MaterialCalculator():
         with open('MaterialProperties.out', "a") as f:
             f.write(f" {self.formula:<7}Atom_Energy: {iso_atom_energy:.4f} eV\n")
         return iso_atom_energy
-
-    def get_potential_energy(self):
-        energy = self.atom_energy
-        return energy
 
     def lattice_constant(self):
         atoms = self.atoms
@@ -154,19 +151,6 @@ class MaterialCalculator():
             print(f' {self.formula:<7}Formation_Energy_Vacancy: {formation_energy:.4f} eV', file=f)
         return formation_energy
 
-    def formation_energy_divacancies(self, nth = 1, index = 0, relax_params = {}):
-        atoms = self.atoms.copy()
-        atoms.calc = self.calc
-        atom_energy = self.atom_energy
-        Morph(atoms).create_divacancies(index1= index, nth = nth)
-        relax(atoms, **relax_params)
-        formation_energy = atoms.get_potential_energy() - atom_energy * len(atoms)
-
-        dump_xyz('MaterialProperties.xyz', atoms)     
-        with open('MaterialProperties.out', 'a') as f:
-            f.write(f' {self.formula:<7}{nth}th Formation_Energy_Divacancies: {formation_energy:.4f} eV\n')
-        return formation_energy
-
     def migration_energy_vacancy(self, index0 = 0, index1 = 1, fmax = 0.02, steps = 500):
         atoms = self.atoms.copy() 
         symbol = atoms[index0].symbol
@@ -217,265 +201,3 @@ class MaterialCalculator():
         with open('MaterialProperties.out', 'a') as f:
             print(f' {self.formula:<7}{vector} Formation_Energy_Sia: {formation_energy:.4} eV', file=f)
         return formation_energy
-    
-    def migration_energy_sia(self, vector1, vector2, fmax=0.02, steps=500):
-        atoms = self.atoms.copy() 
-        initial = atoms.copy()
-        final = atoms.copy()
-        index = get_nth_nearest_neighbor_index(initial, 0, 1)
-        Morph(initial).create_self_interstitial_atom(vector1, index = 0)
-        Morph(final).create_self_interstitial_atom(vector2, index = index)
-
-        initial.calc = self.calc
-        relax(initial)
-        relax_cell = initial.get_cell()
-        final.set_cell(relax_cell)
-        final.calc = self.calc
-        relax(final, method='ucf')
-
-        images = [initial] + [initial.copy() for i in range(11)] + [final]
-        for i in images:
-            i.calc = self.calc
-        neb = NEB(images, allow_shared_calculator=True)
-        neb.interpolate()
-        
-        optimizer = FIRE(neb)
-        optimizer.run(fmax=fmax, steps=steps)
-        energies = [image.get_potential_energy() for image in images]
-        energies = np.array(energies)
-        migration_energy = max(energies) - min(energies)
-        energies -= min(energies)
-        for image in images:
-            dump_xyz('MaterialProperties.xyz', image)  
-        with open('MaterialProperties.out', 'a') as f:
-            print(f'{self.formula:^4}   Migration_Energy_SIA: {migration_energy:.4f} eV', file=f)
-        plt.plot(np.linspace(0, 1, len(energies)), energies, marker='o')  
-        plt.savefig(f'migration_SIA.png')
-        plt.close()
-        return energies
-    
-    def formation_energy_interstitial_atom(self, symbol, fractional_position, config_type, new_atom_e = 0, relax_params = {}):
-        atoms = self.atoms.copy() 
-        atoms.calc = self.calc
-        atoms_energy = atoms.get_potential_energy()
-        if new_atom_e == 0:
-            new_atom_e = self.atom_energy
-        position = np.dot(fractional_position, self.atoms.get_cell())
-        insert_atom = Atom(symbol, position)
-        atoms.append(insert_atom)
-        atoms.calc = self.calc
-        relax(atoms, **relax_params)
-        formation_energy = atoms.get_potential_energy() - atoms_energy - new_atom_e
-
-        dump_xyz('MaterialProperties.xyz', atoms)
-        with open('MaterialProperties.out', 'a') as f:
-            print(f' {self.formula:<7}{config_type} Formation_Energy: {formation_energy:.4f} eV', file=f)
-        return formation_energy
-    
-    def migration_energy_interstitial(self, symbols, fractional_position, config_type, fmax = 0.02, steps = 500):
-        atoms = self.atoms.copy()
-        position0 = np.dot(fractional_position[0], self.atoms.get_cell())
-        position1 = np.dot(fractional_position[1], self.atoms.get_cell())
-        insert_atom1 = Atom(symbols[0], position0)
-        insert_atom2 = Atom(symbols[1], position1)
-        initial = atoms.copy()
-        initial.append(insert_atom1)
-        final = atoms.copy()
-        final.append(insert_atom2)
-
-        initial.calc = self.calc
-        relax(initial)
-        relax_cell = initial.get_cell()
-        final.set_cell(relax_cell)
-        final.calc = self.calc
-        relax(final, method='ucf')
-
-        images = [initial] + [initial.copy() for i in range(11)] + [final]
-        for i in images:
-            i.calc = self.calc
-        neb = NEB(images, allow_shared_calculator=True)
-        neb.interpolate()
-        
-        optimizer = FIRE(neb)
-        optimizer.run(fmax=fmax, steps=steps)
-        energies = [image.get_potential_energy() for image in images]
-        energies = np.array(energies)
-        migration_energy = max(energies) - min(energies)
-        energies -= min(energies)
-        for image in images:
-            dump_xyz('MaterialProperties.xyz', image)  
-        with open('MaterialProperties.out', 'a') as f:
-            print(f' {self.formula:<7}   Migration_Energy_{config_type}: {migration_energy:.4f} eV', file=f)
-        plt.plot(np.linspace(0, 1, len(energies)), energies, marker='o', label=f'{config_type}')  
-        plt.legend()
-        plt.savefig(f'migration_{config_type}.png')
-        plt.close()
-        return energies
-    
-    def stacking_fault(self, a, b, miller, distance):
-        '''
-        ---------------------------------------------------------------------------------------------------
-        For FCC-Al                  |   For BCC-Nb
-        surf. I        surf. II     |   surf. I              surf. II            surf. III
-        (-1, 1,  0)    (-1, 1,  0)  |   (-1, 1, -2)          ( 1,-1,  0)         ( 1, -4/5, 1/5)
-        ( 1, 1, -2)    ( 1, 1,  0)  |   (-1, 1,  1) <111>    ( 1, 1, -1) <111>   ( 1,  1,    -1)  <111>
-        ( 1, 1,  1)    ( 0, 0,  1)  |   ( 1, 1,  0) {110}    ( 1, 1,  2) {112}   ( 1,  2,     3)  {123}
-                                    
-        ---------------------------------------------------------------------------------------------------
-        For HCP-Ti 
-        for basal {0001} Normal--[0001]          for prism {10-10} Normal--[10-10]              
-        uvws =  [[-2,1,1,0],  [[-1, 0,0]          uvws =  [[-1,2,-1, 0],    [[0,1,0] 
-                 [0,-1,1,0],   [-1,-2,0]                   [0, 0, 0, 1],     [0,0,1] 
-                 [0, 0,0,1]]   [ 0, 0,1]]                  [1, 0,-1, 0]]     [2,1,0]] 
-             
-        ---------------------------------------------------------------------------------------------------                                                       
-        for Pyramidal I narrow  {10-11} Normal: None    for Pyramidal I wide {10-11} Normal: None   
-        uvws = [[-1, 2,-1, 0],  [0,  1,0]               uvws = [[-1,-1,  2, 3],     [[-1,-1,1]      
-                [-1, 0, 1, 2],  [-2,-1,2]                       [-1, 0,  1, 2],      [-2,-1,2]      
-                 {1,  0,-1, 1}]                                  {1,  0, -1, 1}]                 
-                                                                                                                                                         
-        for Pyramidal II {11-22} Normal       
-        uvws =  [[-1,-1, 2,3],     [[-1,-1,1]
-                [-1, 1, 0,0],      [-1, 1,0]
-                {1,1,-2,  2}       [N,  N,N]]                                                                         
-        ---------------------------------------------------------------------------------------------------
-        Hexagonal Miller direction indices to Miller-Bravais indices and back:
-        [-1,-1,2,3] = [-1,-1,1]
-        [-1, 1,0,0] = [-1, 1,0]
-        ---------------------------------------------------------------------------------------------------
-        ''' 
-        atoms = self.atoms.copy()
-        atoms.calc = self.calc
-
-        slab = cut(atoms, a, b, clength=None, origo=(0,0,0), nlayers = 18, extend=1.0, tolerance=0.01, maxatoms=None)
-        rotate(slab, a,(1,0,0),b,(0,1,0), center=(0,0,0))
-        slab.calc = self.calc
-        relax(slab)
-        slab.center(axis=2)
-        slab.constraints = FixAtoms(indices=[atom.index for atom in slab if atom.position[2] < 1/2 * slab.cell[2][2]])
-        box = slab.get_cell()
-        S = (box[0][0] * box[1][1] - box[0][1] * box[1][0]) * 2
-
-        shift_distance = np.linalg.norm(np.array(a)) * distance
-        shift_indices = [atom.index for atom in slab if atom.position[2] > 1/2 * slab.cell[2][2]]
-        slide_steps = shift_distance / 10
-        
-        energies = []
-        for i in range(11):
-            slab_shift = slab.copy()
-            slab_shift.positions[shift_indices] += [slide_steps * i, 0,0]
-            slab_shift.calc = self.calc
-            relax(slab_shift, method='fixed_line')
-            defects_energy = slab_shift.get_potential_energy() / S
-            energies.append(defects_energy)
-            dump_xyz('MaterialProperties.xyz', slab_shift)
-
-        energies = [e - energies[0] for e in energies]
-        with open('MaterialProperties.out', 'a') as f:
-            print(f' {self.formula:<7}{miller} Stacking_Fault: {max(energies) * 1000:.4f} meV/A^2', file=f)
-
-        plt.plot(np.linspace(0, 1, len(energies)), energies, marker='o', label=f'{self.formula}')  
-        plt.legend()
-        plt.savefig(f'{self.formula}_stacking_fault_{miller}.png')
-        plt.close()
-        return energies
-    
-    def bcc_metal_screw_dipole_move(self, fmax = 0.02, steps = 500):
-        lc = self.lc
-        symbols = []
-        compositions = []
-        for symbol, composition in re.findall('([A-Z][a-z]*)(\d*)', self.formula):
-            symbols.append(symbol)
-            compositions.append(int(composition) if composition else 1)
-        if len(symbols) > 1:
-            element_ratio = np.array(compositions) / sum(compositions)
-            element_counts = np.ceil(element_ratio * 135).astype(int)
-            symbols = np.repeat(symbols, element_counts)
-            np.random.shuffle(symbols)
-            sym = symbols[:135]
-        else:
-            sym = [symbols[0] for _ in range(135)]
-
-        initial_screw = read_xyz(str(files('wizard.str').joinpath('Fe_screw.xyz')))
-        for i in initial_screw:
-            i.set_chemical_symbols(sym)
-            i.calc = self.calc
-
-        initial = initial_screw[0]
-        final = initial_screw[1]
-
-        unit_cell = initial.cell.copy()
-        initial.set_cell(lc * unit_cell, scale_atoms=True)
-        relax(initial, method='ucf')
-        initial_cell = initial.cell.copy()
-        final.set_cell(initial_cell, scale_atoms=True)
-        relax(final, method='ucf')
-
-        images = [initial] + [initial.copy() for i in range(15)] + [final]
-        for i in images:
-            i.calc = self.calc
-        neb = NEB(images, allow_shared_calculator=True)
-        neb.interpolate()    
-        optimizer = FIRE(neb)
-        optimizer.run(fmax=fmax, steps=steps)
-        energies = [image.get_potential_energy() / 2  for image in images]
-        energies = np.array(energies)
-        energies -= min(energies)
-        for image in images:
-            dump_xyz('MaterialProperties.xyz', image)  
-
-        plt.plot(np.linspace(0, 1, len(energies)), energies, marker='o', label=f'{self.formula}')
-        plt.legend()
-        plt.savefig(f'{self.formula}_screw_dipole_move.png')
-        plt.close()
-        return energies
-
-    def bcc_metal_screw_one_move(self, fmax = 0.02, steps = 500):
-        lc = self.lc
-        symbols = []
-        compositions = []
-        for symbol, composition in re.findall('([A-Z][a-z]*)(\d*)', self.formula):
-            symbols.append(symbol)
-            compositions.append(int(composition) if composition else 1)
-        if len(symbols) > 1:
-            element_ratio = np.array(compositions) / sum(compositions)
-            element_counts = np.ceil(element_ratio * 135).astype(int)
-            symbols = np.repeat(symbols, element_counts)
-            np.random.shuffle(symbols)
-            sym = symbols[:135]
-        else:
-            sym = [symbols[0] for _ in range(135)]
-        
-        initial_screw = read_xyz(str(files('wizard.str').joinpath('Fe_screw.xyz')))
-        for i in initial_screw:
-            i.set_chemical_symbols(sym)
-            i.calc = self.calc
-
-        initial = initial_screw[0]
-        final = initial_screw[2]
-
-        unit_cell = initial.cell.copy()
-        initial.set_cell(lc * unit_cell, scale_atoms=True)
-        relax(initial, method='ucf')
-        initial_cell = initial.cell.copy()
-        final.set_cell(initial_cell, scale_atoms=True)
-        relax(final, method='ucf')
-
-        images = [initial] + [initial.copy() for i in range(15)] + [final]
-        for i in images:
-            i.calc = self.calc
-        neb = NEB(images, allow_shared_calculator=True)
-        neb.interpolate()    
-        optimizer = FIRE(neb)
-        optimizer.run(fmax=fmax, steps=steps)
-        energies = [image.get_potential_energy() for image in images]
-        energies = np.array(energies)
-        energies -= min(energies)
-        for image in images:
-            dump_xyz('MaterialProperties.xyz', image)  
-
-        plt.plot(np.linspace(0, 1, len(energies)), energies, marker='o', label=f'{self.formula}')
-        plt.legend()
-        plt.savefig(f'{self.formula}_screw_one_move.png')
-        plt.close()
-        return energies
