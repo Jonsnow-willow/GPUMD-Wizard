@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import numpy as np
 
 def chebyshev_basis(r, r_c, k_max):
     fc = torch.where(

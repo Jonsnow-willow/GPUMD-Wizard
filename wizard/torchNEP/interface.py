@@ -1,5 +1,5 @@
 from ase.calculators.calculator import Calculator, all_changes
-from forge.dataset import StructureDataset, collate_fn
+from .dataset import StructureDataset, collate_fn
 from .model import NEP
 import numpy as np
 
