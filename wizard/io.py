@@ -26,7 +26,7 @@ def dump_xyz(filename, atoms):
             Out_string += " energy=" + str(atoms.info['energy']) + " "
         if valid_keys['stress']:
             if len(atoms.info['stress']) == 6:
-                    virial = -atoms.info['stress'][[0, 5, 4, 5, 1, 3, 4, 3, 2]] * atoms.get_volume()
+                virial = -atoms.info['stress'][[0, 5, 4, 5, 1, 3, 4, 3, 2]] * atoms.get_volume()
             else:
                 virial = -atoms.info['stress'].reshape(-1) * atoms.get_volume()
             Out_string += "virial=\"" + " ".join(list(map(str, virial))) + "\" "
