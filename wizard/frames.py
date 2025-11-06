@@ -1,6 +1,3 @@
-import matplotlib as mpl
-mpl.use('Agg')
-import matplotlib.pyplot as plt 
 from wizard.io import dump_xyz, relax
 from wizard.atoms import Morph
 import numpy as np 
@@ -272,68 +269,3 @@ class MultiMol():
                 msd /= (Nd-n) * len(self.frames[0])
                 MSDs['average'].append(msd)
             return MSDs
-
-    def plot_force_results(self, calcs, labels = None, e_val = [None, None], f_val = [None, None]):
-        plt.rcParams["figure.figsize"] = (12, 6)
-        plt.rcParams.update({"font.size": 10, "text.usetex": False})
-        fig, axes = plt.subplots(1, 2)
-        cmap = plt.get_cmap("tab10")
-    
-        frames = self.frames
-        print(len(frames))  
-
-        label_colors = {}
-        if labels is None:
-            labels = [str(i) for i in range(len(calcs))]
-        for calc, label in zip(calcs, labels):
-            e_1, e_2, f_1, f_2 = [], [], [], []
-            for atoms in frames:
-                atoms.calc = calc
-                e_1.append(atoms.get_potential_energy() / len(atoms))
-                e_2.append(atoms.info['energy'] / len(atoms))
-                f_1.append(atoms.get_forces())
-                f_2.append(atoms.info['forces'])
-            e_1 = np.array(e_1)
-            e_2 = np.array(e_2)
-            f_1 = np.concatenate(f_1)
-            f_2 = np.concatenate(f_2)
-            color = cmap(labels.index(label))
-            axes[0].plot(e_2, e_1, ".", markersize=10, label=label, color=color)
-            axes[1].plot(f_2, f_1, ".", markersize=10, label=label, color=color)
-            if label not in label_colors:
-                label_colors[label] = color
-            e_rmse = np.sqrt(np.mean((e_1-e_2)**2)) 
-            f_rmse = np.sqrt(np.mean((f_1-f_2)**2))
-            print(f'{label}_E_rmse: {e_rmse * 1000:.2f} meV/atom')
-            print(f'{label}_F_rmse: {f_rmse * 1000:.2f} meV/Å')
-
-        x_min, x_max = axes[0].get_xlim()
-        y_min, y_max = axes[0].get_ylim()
-        min_val = min(x_min, y_min)
-        max_val = max(x_max, y_max)
-        axes[0].plot([min_val, max_val], [min_val, max_val], 'k--')
-
-        x_min, x_max = axes[1].get_xlim()
-        y_min, y_max = axes[1].get_ylim()
-        min_val = min(x_min, y_min)
-        max_val = max(x_max, y_max)
-        axes[1].plot([min_val, max_val], [min_val, max_val], 'k--')
-        
-        if e_val[0] is not None and e_val[1] is not None:
-            axes[0].set_xlim(e_val)
-            axes[0].set_ylim(e_val)
-        if f_val[0] is not None and f_val[1] is not None:
-            axes[1].set_xlim(f_val)
-            axes[1].set_ylim(f_val)
-        axes[0].set_xlabel("DFT energy (eV/atom)")
-        axes[0].set_ylabel("NEP energy (eV/atom)")
-        axes[1].set_xlabel("DFT force (eV/Å)")
-        axes[1].set_ylabel("NEP force (eV/Å)")
-
-        handles = [plt.Line2D([0], [0], color=color, marker='o', linestyle='') for label, color in label_colors.items()]
-        plt.legend(handles, label_colors.keys())
-        plt.savefig("force_results.png")
-        plt.show()
-        plt.close()
-
-
