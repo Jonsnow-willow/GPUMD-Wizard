@@ -13,7 +13,7 @@ def write_run(parameters):
 
 def dump_xyz(filename, atoms):
     def is_valid_key(key):
-        return key in atoms.info and atoms.info[key] is not None and all(v is not None for v in atoms.info[key])
+        return key in atoms.info and atoms.info[key] is not None
     
     valid_keys = {key: is_valid_key(key) for key in ['energy', 'stress', 'forces', 'group', 'config_type', 'weight']}
 
@@ -38,6 +38,11 @@ def dump_xyz(filename, atoms):
             Out_string += ":force:R:3"
         if valid_keys['group']:
             group = atoms.info['group']
+            num_atoms = len(atoms)
+            if any(len(g) != num_atoms for g in group):
+                raise ValueError(
+                    f"Group data dimensions do not match number of atoms ({num_atoms})"
+                )
             Out_string += f":group:I:{len(group)}"
         if valid_keys['config_type']:
             Out_string += " config_type="+ atoms.info['config_type']
@@ -52,7 +57,7 @@ def dump_xyz(filename, atoms):
                 Out_string += ' {:>15.8e} {:>15.8e} {:>15.8e}'.format(*atoms.info['forces'][atom.index])
             if valid_keys['group']:
                 for g in group:
-                    out_string += f" {int(g[atom.index])}"
+                    Out_string += f" {int(g[atom.index])}"
             Out_string += '\n'
         f.write(Out_string)
 
@@ -169,7 +174,14 @@ def read_xyz(filename):
                 forces.append(read_force(words_in_line, parsed_properties_dict))
                 velocities.append(read_velocity(words_in_line, parsed_properties_dict))
                 group.append(read_group(words_in_line, parsed_properties_dict))
-            group = [np.asarray(col, dtype=int) for col in zip(*group)] if group else None
+            if "forces" not in comment:
+                forces = None
+            if "vel" not in comment:
+                velocities = None
+            if "group" in comment:
+                group = [np.asarray(col, dtype=int) for col in zip(*group)] 
+            else:
+                group = None
             frames.append(Atoms(symbols=symbols, positions=positions, masses=masses, cell=cell, pbc=pbc, velocities=velocities, info={'energy': energy, 'stress': stress, 'forces': forces, 'group': group, 'config_type': config_type, 'weight': weight}))
     return frames
 
