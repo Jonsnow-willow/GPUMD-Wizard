@@ -15,14 +15,14 @@ def dump_xyz(filename, atoms):
     def is_valid_key(key):
         return key in atoms.info and atoms.info[key] is not None and all(v is not None for v in atoms.info[key])
     
-    valid_keys = {key: is_valid_key(key) for key in ['stress', 'velocities', 'forces', 'group']}
+    valid_keys = {key: is_valid_key(key) for key in ['energy', 'stress', 'forces', 'group', 'config_type', 'weight']}
 
     with open(filename, 'a') as f:
         Out_string = ""
         Out_string += str(int(len(atoms))) + "\n"
         Out_string += "pbc=\"" + " ".join(["T" if pbc_value else "F" for pbc_value in atoms.get_pbc()]) + "\" "
         Out_string += "Lattice=\"" + " ".join(list(map(str, atoms.get_cell().reshape(-1)))) + "\" "
-        if 'energy' in atoms.info and atoms.info['energy'] is not None:
+        if valid_keys['energy']:
             Out_string += " energy=" + str(atoms.info['energy']) + " "
         if valid_keys['stress']:
             if len(atoms.info['stress']) == 6:
@@ -31,25 +31,28 @@ def dump_xyz(filename, atoms):
                 virial = -atoms.info['stress'].reshape(-1) * atoms.get_volume()
             Out_string += "virial=\"" + " ".join(list(map(str, virial))) + "\" "
         Out_string += "Properties=species:S:1:pos:R:3:mass:R:1"
-        if valid_keys['velocities']:
+        if atoms.has('momenta'):
+            velocites = atoms.get_velocities()
             Out_string += ":vel:R:3"
         if valid_keys['forces']:
             Out_string += ":force:R:3"
         if valid_keys['group']:
-            Out_string += ":group:I:1"
-        if 'config_type' in atoms.info and atoms.info['config_type'] is not None:
+            groups = atoms.info['group']
+            out_string += f":group:I:{len(groups)}"
+        if valid_keys['config_type']:
             Out_string += " config_type="+ atoms.info['config_type']
-        if 'weight' in atoms.info and atoms.info['weight'] is not None:
+        if valid_keys['weight']:
             Out_string += " weight="+ str(atoms.info['weight'])
         Out_string += "\n"
         for atom in atoms:
             Out_string += '{:2} {:>15.8e} {:>15.8e} {:>15.8e} {:>15.8e}'.format(atom.symbol, *atom.position, atom.mass)
-            if valid_keys['velocities']:
-                Out_string += ' {:>15.8e} {:>15.8e} {:>15.8e}'.format(*atoms.info['velocities'][atom.index])
+            if atoms.has('momenta'):
+                Out_string += ' {:>15.8e} {:>15.8e} {:>15.8e}'.format(*velocites[atom.index])
             if valid_keys['forces']:
                 Out_string += ' {:>15.8e} {:>15.8e} {:>15.8e}'.format(*atoms.info['forces'][atom.index])
             if valid_keys['group']:
-                Out_string += ' {}'.format(atoms.info['group'][atom.index])
+                for group in groups:
+                    out_string += f" {int(group[atom.index])}"
             Out_string += '\n'
         f.write(Out_string)
 
