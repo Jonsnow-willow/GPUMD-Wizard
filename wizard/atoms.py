@@ -2,7 +2,7 @@ from ase import Atoms, Atom
 from ase.build import bulk
 from ase.optimize import QuasiNewton, FIRE, LBFGS
 from ase.constraints import ExpCellFilter, FixedLine
-from wizard.io import get_nth_nearest_neighbor_index, dump_xyz, write_run
+from wizard.io import dump_xyz, write_run
 import numpy as np
 import random
 import os
@@ -230,22 +230,6 @@ class Morph():
         atoms[index].position += vector
         atoms.append(atom)
 
-    def create_di_self_interstitial_atoms(self, vector1, vector2, symbol1 = None, symbol2 = None, index = 0, nth = 1):
-        atoms = self.atoms
-        index_neibor = get_nth_nearest_neighbor_index(self.atoms, index, nth)
-        if symbol1 is not None:
-            atom1 = Atom(symbol1, atoms[index].position - vector1)
-        else:
-            atom1 = Atom(atoms[index].symbol, atoms[index].position - vector1)
-        if symbol2 is not None:
-            atom2 = Atom(symbol2, atoms[index_neibor].position - vector2)
-        else:
-            atom2 = Atom(atoms[index_neibor].symbol, atoms[index_neibor].position - vector2)
-        atoms[index].position += vector1
-        atoms[index_neibor].position += vector2
-        atoms.append(atom1)
-        atoms.append(atom2)
-
     def create_vacancy(self, index = 0):
         del self.atoms[index]
 
@@ -256,13 +240,6 @@ class Morph():
             atom = Atom(symbol=symbol)
             atoms_to_insert.append(atom)
         self.insert_atoms(atoms_to_insert)
-        
-    def create_divacancies(self, index1 = 0, nth = 1):
-        index2 = get_nth_nearest_neighbor_index(self.atoms, index1, nth)
-        if index2 < index1:
-            index1, index2 = index2, index1
-        del self.atoms[index2]
-        del self.atoms[index1]
 
     def create_vacancies(self, num_vacancies):
         atoms = self.atoms
