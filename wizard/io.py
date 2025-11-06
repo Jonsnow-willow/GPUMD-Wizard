@@ -38,7 +38,7 @@ def dump_xyz(filename, atoms):
             Out_string += ":force:R:3"
         if valid_keys['group']:
             group = atoms.info['group']
-            out_string += f":group:I:{len(group)}"
+            Out_string += f":group:I:{len(group)}"
         if valid_keys['config_type']:
             Out_string += " config_type="+ atoms.info['config_type']
         if valid_keys['weight']:
