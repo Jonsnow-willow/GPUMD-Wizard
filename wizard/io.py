@@ -45,9 +45,9 @@ def dump_xyz(filename, atoms):
                 )
             Out_string += f":group:I:{len(group)}"
         if valid_keys['config_type']:
-            Out_string += " config_type="+ atoms.info['config_type']
+            Out_string += f" config_type={atoms.info['config_type']}"
         if valid_keys['weight']:
-            Out_string += " weight="+ str(atoms.info['weight'])
+            Out_string += " weight=" + f"{atoms.info['weight']:.2f}" 
         Out_string += "\n"
         for atom in atoms:
             Out_string += '{:2} {:>15.8e} {:>15.8e} {:>15.8e} {:>15.8e}'.format(atom.symbol, *atom.position, atom.mass)
@@ -147,13 +147,13 @@ def read_xyz(filename):
                 energy = float(comment.split("energy=")[1].split()[0])
             else: 
                 energy = None
-            if "virial=" in comment:
+            if "stress=" in comment:
+                stress = comment.split("stress=\"")[1].split("\"")[0].strip()
+                stress = np.array([float(x) for x in stress.split()]).reshape(3, 3)
+            elif "virial=" in comment:
                 virials = comment.split("virial=\"")[1].split("\"")[0].strip()
                 virials = np.array([float(x) for x in virials.split()]).reshape(3, 3)
                 stress = - virials / np.linalg.det(cell)
-            elif "stress=" in comment:
-                stress = comment.split("stress=\"")[1].split("\"")[0].strip()
-                stress = np.array([float(x) for x in stress.split()]).reshape(3, 3)
             else:
                 stress = None
             if "config_type=" in comment:
