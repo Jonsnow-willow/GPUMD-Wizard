@@ -23,28 +23,16 @@ def phono2ase(cell):
     )
 
 class PhonoCalc:
-    def __init__(self, atoms, calc, dim='Auto', mesh=(10, 10, 10), t_step=10, t_max=0., t_min=0.):
+    def __init__(self, atoms, calc):
         self.atoms = atoms
         self.calc = calc
-        self.dim = dim
-        self.mesh = mesh
-        self.t_step = t_step
-        self.t_max = t_max
-        self.t_min = t_min
         self.results = {}
         try:
             print('Calculating force constants...')
             unitcell = ase2phono(self.atoms)
-            if isinstance(self.dim, str):
-                if self.dim == 'Auto':
-                    lengths = self.atoms.cell.lengths()
-                    supercell_matrix = np.round(10 / lengths).astype('int')
-            else:
-                supercell_matrix = self.dim
 
             self.phonon = Phonopy(
                 unitcell=unitcell, 
-                supercell_matrix=supercell_matrix,
                 primitive_matrix='auto',
                 )
             
