@@ -115,7 +115,7 @@ class MaterialCalculator():
              
     def formation_energy_surface(self, hkl = (1, 0, 0), layers = 10):
         atoms = self.atoms.copy()
-        atom_energy = self.atom_energy
+        energy_per_atom = self.epa
         slab = surface(atoms, hkl, layers = layers, vacuum=10) 
         Morph(slab).shuffle_symbols()
         slab.calc = self.calc
@@ -123,7 +123,7 @@ class MaterialCalculator():
         box = slab.get_cell()
         S = (box[0][0] * box[1][1] - box[0][1] * box[1][0])
         slab_energy = slab.get_potential_energy()
-        formation_energy = (slab_energy - atom_energy * len(slab)) / S / 2
+        formation_energy = (slab_energy - energy_per_atom * len(slab)) / S / 2
 
         if self.crystalstructure == 'hcp':
             hk, l = hkl[:2], hkl[2]
@@ -140,10 +140,10 @@ class MaterialCalculator():
     def formation_energy_vacancy(self, index = 0):
         atoms = self.atoms.copy()
         atoms.calc = self.calc
-        atom_energy = self.atom_energy
+        energy_per_atom = self.epa
         Morph(atoms).create_vacancy(index = index)
         relax_structure(atoms, **self.kwargs)
-        formation_energy = atoms.get_potential_energy() - atom_energy * len(atoms)
+        formation_energy = atoms.get_potential_energy() - energy_per_atom * len(atoms)
 
         dump_xyz('MaterialProperties.xyz', atoms)
         with open('MaterialProperties.out', 'a') as f:
@@ -189,10 +189,10 @@ class MaterialCalculator():
     def formation_energy_sia(self, vector = (1, 0, 0), index = 0):
         atoms = self.atoms.copy()
         atoms.calc = self.calc
-        atom_energy = self.atom_energy
+        energy_per_atom = self.epa
         Morph(atoms).create_self_interstitial_atom(vector, index = index)
         relax_structure(atoms, **self.kwargs)
-        formation_energy = atoms.get_potential_energy() - atom_energy * len(atoms)
+        formation_energy = atoms.get_potential_energy() - energy_per_atom * len(atoms)
 
         dump_xyz('MaterialProperties.xyz', atoms)
         with open('MaterialProperties.out', 'a') as f:
