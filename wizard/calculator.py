@@ -173,11 +173,10 @@ class MaterialCalculator():
         neb.interpolate()
         try:
             relax_structure(neb, **self.kwargs, constant_cell=True)
-        except:
+        except Exception:
             raise RuntimeError(
                 "relax_structure() failed — comment out the calc-check lines in that function "
-                "to allow NEB optimization."
-            ) from None
+                "to allow NEB optimization.") 
         energies = [image.get_potential_energy() for image in images]
         energies = np.array(energies)
         migration_energy = max(energies) - min(energies)
