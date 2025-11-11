@@ -1,13 +1,12 @@
 from ase import Atoms
-from ase.optimize import FIRE
-from ase.neb import NEB
+from ase.mep import NEB
 from ase.build import surface
 from ase.units import J
-from wizard.io import relax, dump_xyz
-from wizard.tools import plot_band_structure
-from wizard.phono import PhonoCalc
-from wizard.atoms import Morph
-from calorine.tools import get_elastic_stiffness_tensor
+from .io import dump_xyz
+from .tools import plot_band_structure
+from .phono import PhonoCalc
+from .atoms import Morph
+from calorine.tools import get_elastic_stiffness_tensor, relax_structure
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt 
@@ -15,43 +14,43 @@ import numpy as np
 import os
 
 class MaterialCalculator():
-    def __init__(self, atoms, calculator, symbol_info):
+    def __init__(self, atoms, calculator, symbol_info, clamped = False, **kwargs):
         atoms.calc = calculator
-        relax(atoms)
-        atom_energy = atoms.get_potential_energy() / len(atoms)
-        self.atom_energy = atom_energy
+        if not clamped:
+            relax_structure(atoms, kwargs)
         self.atoms = atoms
         self.calc = calculator  
+        self.epa = atoms.get_potential_energy() / len(atoms)
         self.formula = symbol_info.formula
+        self.symbols = symbol_info.symbols
         self.crystalstructure = symbol_info.lattice_type
         self.lc = symbol_info.lattice_constant
-    
-    def get_potential_energy(self):
-        energy = self.atom_energy
-        return energy
+        self.kwargs = kwargs
     
     def isolate_atom_energy(self):
-        symbol = self.atoms.get_chemical_symbols()[0]
-        atoms = Atoms(symbols = [symbol], positions=[[0,0,0]])
-        atoms.calc = self.calc
-        iso_atom_energy = atoms.get_potential_energy()
+        output = f"\n {self.formula:<10}Isolated_Atom_Energies (eV):\n"
+        for symbol in self.symbols:
+            atoms = Atoms(symbols=[symbol], positions=[[0, 0, 0]])
+            atoms.calc = self.calc
+            iso_atom_energy = atoms.get_potential_energy()
+            output += f"   {symbol:<2} Atom Energy: {iso_atom_energy:.4f} eV\n"
         with open('MaterialProperties.out', "a") as f:
-            f.write(f" {self.formula:<7}Atom_Energy: {iso_atom_energy:.4f} eV\n")
-        return iso_atom_energy
+            f.write(output)
+        return output
 
     def lattice_constant(self):
         atoms = self.atoms
-        atom_energy = self.atom_energy
+        energy_per_atom = self.epa
         cell_lengths = atoms.cell.cellpar()
         dump_xyz('MaterialProperties.xyz', atoms)
         
         output = ""
         if self.crystalstructure == 'hcp':
             output += f" {self.formula:<10}Lattice_Constants: a: {cell_lengths[0]:.4f} A    c: {cell_lengths[2]:.4f} A\n"
-            output += f"{'':<11}Ground_State_Energy: {atom_energy:.4f} eV\n"
+            output += f"{'':<11}Ground_State_Energy: {energy_per_atom:.4f} eV\n"
         else:
             output += f" {self.formula:<10}Lattice_Constants: {round(sum(cell_lengths[:3])/3, 3):.4f} A\n"
-            output += f"{'':<11}Ground_State_Energy: {atom_energy:.4f} eV\n"
+            output += f"{'':<11}Ground_State_Energy: {energy_per_atom:.4f} eV\n"
         
         with open('MaterialProperties.out', "a") as f:
             f.write(output)
@@ -61,7 +60,7 @@ class MaterialCalculator():
     def elastic_constant(self, epsilon = 0.01):
         atoms = self.atoms.copy()
         atoms.calc = self.calc
-        Cij = get_elastic_stiffness_tensor(atoms, epsilon=epsilon)
+        Cij = get_elastic_stiffness_tensor(atoms, epsilon=epsilon, **self.kwargs)
         dump_xyz('MaterialProperties.xyz', atoms)
         
         output = ""
@@ -114,13 +113,13 @@ class MaterialCalculator():
         fig_path = plot_band_structure(atoms, self.formula, self.crystalstructure)
         return fig_path
              
-    def formation_energy_surface(self, hkl = (1, 0, 0), layers = 10, relax_params = {}):
+    def formation_energy_surface(self, hkl = (1, 0, 0), layers = 10):
         atoms = self.atoms.copy()
         atom_energy = self.atom_energy
         slab = surface(atoms, hkl, layers = layers, vacuum=10) 
         Morph(slab).shuffle_symbols()
         slab.calc = self.calc
-        relax(slab, **relax_params)
+        relax_structure(slab, **self.kwargs)
         box = slab.get_cell()
         S = (box[0][0] * box[1][1] - box[0][1] * box[1][0])
         slab_energy = slab.get_potential_energy()
@@ -138,12 +137,12 @@ class MaterialCalculator():
             print(f' {self.formula:<7}{hkl_str} Surface_Energy: {formation_energy / J / 1e-20 :.4f} J/m^2', file=f)
         return formation_energy * 1000
 
-    def formation_energy_vacancy(self, index = 0, relax_params = {}):
+    def formation_energy_vacancy(self, index = 0):
         atoms = self.atoms.copy()
         atoms.calc = self.calc
         atom_energy = self.atom_energy
         Morph(atoms).create_vacancy(index = index)
-        relax(atoms, **relax_params)
+        relax_structure(atoms, **self.kwargs)
         formation_energy = atoms.get_potential_energy() - atom_energy * len(atoms)
 
         dump_xyz('MaterialProperties.xyz', atoms)
@@ -151,7 +150,7 @@ class MaterialCalculator():
             print(f' {self.formula:<7}Formation_Energy_Vacancy: {formation_energy:.4f} eV', file=f)
         return formation_energy
 
-    def migration_energy_vacancy(self, index0 = 0, index1 = 1, fmax = 0.02, steps = 500):
+    def migration_energy_vacancy(self, index0 = 0, index1 = 1):
         atoms = self.atoms.copy() 
         symbol = atoms[index0].symbol
         atoms[index1].symbol = symbol
@@ -161,20 +160,18 @@ class MaterialCalculator():
         del final[index1]
 
         initial.calc = self.calc
-        relax(initial)
+        relax_structure(initial, **self.kwargs)
         relax_cell = initial.get_cell()
         final.set_cell(relax_cell)
         final.calc = self.calc
-        relax(final, method='ucf')
+        relax_structure(final, **self.kwargs, constant_cell=True)
 
         images = [initial] + [initial.copy() for _ in range(11)] + [final]
         for i in images:
             i.calc = self.calc
-        neb = NEB(images,climb=True, allow_shared_calculator=True)
+        neb = NEB(images, climb=True, allow_shared_calculator=True)
         neb.interpolate()
-        
-        optimizer = FIRE(neb)
-        optimizer.run(fmax=fmax, steps=steps)
+        relax_structure(neb, **self.kwargs)
         energies = [image.get_potential_energy() for image in images]
         energies = np.array(energies)
         migration_energy = max(energies) - min(energies)
@@ -189,12 +186,12 @@ class MaterialCalculator():
         plt.close()
         return energies
     
-    def formation_energy_sia(self, vector = (1, 0, 0), index = 0, relax_params = {}):
+    def formation_energy_sia(self, vector = (1, 0, 0), index = 0):
         atoms = self.atoms.copy()
         atoms.calc = self.calc
         atom_energy = self.atom_energy
         Morph(atoms).create_self_interstitial_atom(vector, index = index)
-        relax(atoms, **relax_params)
+        relax_structure(atoms, **self.kwargs)
         formation_energy = atoms.get_potential_energy() - atom_energy * len(atoms)
 
         dump_xyz('MaterialProperties.xyz', atoms)
