@@ -196,10 +196,6 @@ class MultiMol():
     def dump(self, filename):
         for atoms in self.frames:
             dump_xyz(filename, atoms)
-
-    def subtract_frames(self, frames):
-        select_set = [i for i in self.frames if i not in frames]
-        return select_set
     
     def unwrap(self):
         diffs = []
