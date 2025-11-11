@@ -1,6 +1,4 @@
 from ase import Atoms
-from ase.optimize import QuasiNewton, FIRE, LBFGS
-from ase.constraints import ExpCellFilter, FixedLine
 import numpy as np
 
 def write_run(parameters):
@@ -184,28 +182,3 @@ def read_xyz(filename):
                 group = None
             frames.append(Atoms(symbols=symbols, positions=positions, masses=masses, cell=cell, pbc=pbc, velocities=velocities, info={'energy': energy, 'stress': stress, 'forces': forces, 'group': group, 'config_type': config_type, 'weight': weight}))
     return frames
-
-def relax(atoms, fmax = 0.01, steps = 500, model = 'qn', method = 'hydro'):
-    if method == 'fixed_line':
-        constraint = [FixedLine(atom.index, direction=[0, 0, 1]) for atom in atoms]
-        atoms.set_constraint(constraint)
-        ucf = atoms
-    elif method == 'hydro':
-        ucf = ExpCellFilter(atoms, scalar_pressure=0.0, hydrostatic_strain=True) 
-    elif method == 'ucf':
-        ucf = atoms
-    elif method == 'no_opt':
-        return
-    else:
-        raise ValueError('Invalid relaxation method.')
-    
-    if model == 'qn':
-        dyn = QuasiNewton(ucf)
-    elif model == 'lbfgs':
-        dyn = LBFGS(ucf)
-    elif model == 'fire':
-        dyn = FIRE(ucf)
-    else:
-        raise ValueError('Invalid optimization model.')
-    
-    dyn.run(fmax=fmax, steps=steps)
