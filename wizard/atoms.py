@@ -183,10 +183,10 @@ class Morph():
         indices_to_insert = np.random.choice(len(self.atoms), len(atoms_to_insert), replace=False)
         target_atoms = self.atoms[indices_to_insert]
         for atom_to_insert, target_atom in zip(atoms_to_insert, target_atoms):
-            unit_vector = np.random.randn(3)  # Generate a random vector
-            unit_vector /= np.linalg.norm(unit_vector)  # Normalize the vector to get a unit vector
-            displacement_vector = distance * unit_vector  # Scale the unit vector to the desired distance
-            new_position = target_atom.position + displacement_vector  # Add the displacement vector to the target atom's position
+            unit_vector = np.random.randn(3)  
+            unit_vector /= np.linalg.norm(unit_vector)  
+            displacement_vector = distance * unit_vector  
+            new_position = target_atom.position + displacement_vector 
             atom_to_insert.position = new_position
             self.atoms.append(atom_to_insert)
             
