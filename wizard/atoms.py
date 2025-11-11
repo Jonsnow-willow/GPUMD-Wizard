@@ -1,13 +1,8 @@
 from ase import Atoms, Atom
 from ase.build import bulk
-from ase.optimize import QuasiNewton, FIRE, LBFGS
-from ase.constraints import ExpCellFilter, FixedLine
 from wizard.io import dump_xyz, write_run
 import numpy as np
-import random
-import os
-import re
-import shutil
+import random, os, re, shutil
 
 class SymbolInfo:
     SUPPORTED_LATTICE_TYPES = {"bcc", "fcc", "hcp"}
@@ -51,39 +46,10 @@ class Morph():
         if not isinstance(atoms, Atoms):
             raise TypeError("atoms must be an instance of ase.Atoms")
         self.atoms = atoms
-
-    def get_atoms(self):
-        return self.atoms.copy()
         
-    def relax(self, fmax = 0.01, steps = 500, model = 'qn', method = 'hydro'):
-        atoms = self.atoms
-        if method == 'fixed_line':
-            constraint = [FixedLine(atom.index, direction=[0, 0, 1]) for atom in atoms]
-            atoms.set_constraint(constraint)
-            ucf = atoms
-        elif method == 'hydro':
-            ucf = ExpCellFilter(atoms, scalar_pressure=0.0, hydrostatic_strain=True) 
-        elif method == 'ucf':
-            ucf = atoms
-        else:
-            raise ValueError('Invalid relaxation method.')
-        
-        if model == 'qn':
-            dyn = QuasiNewton(ucf)
-        elif model == 'lbfgs':
-            dyn = LBFGS(ucf)
-        elif model == 'fire':
-            dyn = FIRE(ucf)
-        elif model == 'no_opt':
-            return
-        else:
-            raise ValueError('Invalid optimization model.')
-        
-        dyn.run(fmax=fmax, steps=steps)
-
     def gpumd(self, dirname = 'relax', run_in = ['potential nep.txt', 'velocity 300', 'time_step 1', 
              'ensemble npt_scr 300 300 200 0 500 2000', 'dump_thermo 1000', 'dump_restart 30000', 
-             'dump_exyz 10000','run 30000'], nep_path = 'nep.txt', 
+             'dump_exyz 10000','run 30000'], nep_path = 'nep.txt', gpumd_path = 'gpumd',
               electron_stopping_path = 'electron_stopping_fit.txt', run = True):
         atoms = self.atoms
         if os.path.exists(dirname):
@@ -100,7 +66,7 @@ class Morph():
         write_run(run_in)
         dump_xyz('model.xyz', atoms)
         if run:
-            os.system('gpumd')
+            os.system(gpumd_path)
         os.chdir(original_directory)
 
     def set_pka(self, energy, direction, index = None, symbol = None):
@@ -125,9 +91,10 @@ class Morph():
         vz = pow(2 * energy / mass , 0.5) * direction[2] / pow(np.sum(direction ** 2), 0.5) / 10.18051
         velocites[index] = [vx, vy, vz]
         
-        atoms_masses = np.array(atoms.get_masses())
-        momentum = np.sum(velocites * atoms_masses[:, np.newaxis], axis=0) / len(atoms)
-        velocites -= momentum / atoms_masses[:, np.newaxis]
+        atoms_masses = atoms.get_masses() 
+        total_mass = np.sum(atoms_masses)
+        momentum = np.sum(velocites * atoms_masses[:, np.newaxis], axis=0) 
+        velocites -= momentum / total_mass
         atoms.set_velocities(velocites)
 
         print(f'Index: {index}')
@@ -145,23 +112,24 @@ class Morph():
             if int(atoms.info['group'][index]) == group:
                 velocites[index] = [vx, vy, vz]
         
-        atoms_masses = np.array(atoms.get_masses())
-        momentum = np.sum(velocites * atoms_masses[:, np.newaxis], axis=0) / len(atoms)
-        velocites -= momentum / atoms_masses[:, np.newaxis]
+        atoms_masses = atoms.get_masses() 
+        total_mass = np.sum(atoms_masses)
+        momentum = np.sum(velocites * atoms_masses[:, np.newaxis], axis=0) 
+        velocites -= momentum / total_mass
         atoms.set_velocities(velocites)
     
+    def shuffle_symbols(self):
+        atoms = self.atoms
+        s = atoms.get_chemical_symbols()
+        random.shuffle(s)
+        atoms.set_chemical_symbols(s)
+
     def coord_element_set(self, coord, symbol):
         atoms = self.atoms
         for atom in atoms:
             if np.allclose(atom.position, coord):
                 atom.symbol = symbol
                 break
-
-    def shuffle_symbols(self):
-        atoms = self.atoms
-        s = atoms.get_chemical_symbols()
-        random.shuffle(s)
-        atoms.set_chemical_symbols(s)
 
     def random_center(self, index = None):
         atoms = self.atoms
@@ -179,10 +147,6 @@ class Morph():
         atoms = self.atoms
         origin_cell = atoms.cell.copy()
         atoms.set_cell(scale * origin_cell, scale_atoms=True)
-
-    def create_interstitial(self, new_atom):
-        atoms = self.atoms
-        atoms.append(new_atom)
 
     def create_self_interstitial_atom(self, vector, symbol = None, index = 0):
         atoms = self.atoms
@@ -214,14 +178,6 @@ class Morph():
         for index in indices_to_remove:
             del self.atoms[index]
         return removed_atoms
-    
-    def coord_vac_set(self, coord):
-        atoms = self.atoms.copy()
-        for atom in atoms:
-            if np.allclose(atom.position, coord):
-                index = atom.index
-                break
-        del atoms[index]
     
     def insert_atoms(self, atoms_to_insert, distance=1.2):
         indices_to_insert = np.random.choice(len(self.atoms), len(atoms_to_insert), replace=False)
