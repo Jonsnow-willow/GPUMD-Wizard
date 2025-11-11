@@ -17,7 +17,7 @@ class MaterialCalculator():
     def __init__(self, atoms, calculator, symbol_info, clamped = False, **kwargs):
         atoms.calc = calculator
         if not clamped:
-            relax_structure(atoms, kwargs)
+            relax_structure(atoms, **kwargs)
         self.atoms = atoms
         self.calc = calculator  
         self.epa = atoms.get_potential_energy() / len(atoms)
