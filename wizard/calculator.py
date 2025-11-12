@@ -24,7 +24,6 @@ class MaterialCalculator():
         self.formula = symbol_info.formula
         self.symbols = symbol_info.symbols
         self.crystalstructure = symbol_info.lattice_type
-        self.lc = symbol_info.lattice_constant
         self.kwargs = kwargs
     
     def isolate_atom_energy(self):
