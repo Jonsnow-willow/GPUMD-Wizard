@@ -4,6 +4,7 @@ mpl.use('Agg')
 import matplotlib.pyplot as plt 
 import matplotlib.ticker as ticker 
 import numpy as np
+import os
 
 def plot_e(ed, en, lim=None, symbol=None):
     fig = plt.figure()
@@ -206,7 +207,7 @@ def plot_band_structure(atoms, formula, info):
                     c='black')
     
     fig.suptitle(f'{formula} {info} phonon dispersion', fontsize=16)
-    fig_path = f'{formula}_{info}_phono.png'
+    fig_path = os.path.join('phonon' ,f'{formula}_{info}_phono.png')
     plt.savefig(fig_path)
     plt.close()
     return fig_path
