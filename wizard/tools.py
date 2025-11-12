@@ -165,6 +165,7 @@ def plot_v(vd, vn, lim=None, symbol=None):
 def plot_band_structure(atoms, formula, info):
     if 'band_dict' not in atoms.info:
         raise ValueError('No band structure data found.')
+    os.makedirs('phonon', exist_ok=True)
     band_dict = atoms.info['band_dict']
     labels_path = band_dict['labels_path']
     frequencies = band_dict['frequencies']
