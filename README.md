@@ -45,7 +45,7 @@ $ export PYTHONPATH=<path-to-GPUMD-Wizard-package>:$PYTHONPATH
 
 | Name                  | contact                           |
 | --------------------- | --------------------------------- |
-| Jiahui Liu            | jiahui.liu.willow@gmail.com       |
+| Jiahui Liu            | liujiahui@zgci.ac.cn              |
 
 ## Citations
 
