@@ -90,14 +90,14 @@ class MaterialCalculator():
             volumes.append(atoms.get_volume() / len(atoms))
             energies.append(atoms.get_potential_energy() / len(atoms))
             dump_xyz('MaterialProperties.xyz', atoms)
-            
+
+        plt.rcParams.update({'font.size': 12}) 
         fig, ax = plt.subplots()
         plt.subplots_adjust(left=0.15, right=0.95, top=0.95, bottom=0.15)
-        font_size = 12
         ax.plot(volumes, energies, '-o')
-        ax.set_xlabel('Volume(A$^3$/atom)', fontsize=font_size)
-        ax.set_ylabel('Energy (eV/atom)', fontsize=font_size)
-        ax.set_title(f'{self.formula} {self.crystalstructure} EOS Curve', fontsize=font_size)
+        ax.set_xlabel('Volume(A$^3$/atom)')
+        ax.set_ylabel('Energy (eV/atom)')
+        ax.set_title(f'{self.formula} {self.crystalstructure} EOS Curve')
         fig_path = os.path.join('eos_curve_png',f'{self.formula}_eos_curve.png')
         fig.savefig(fig_path)
         plt.close(fig)
@@ -125,13 +125,13 @@ class MaterialCalculator():
                 energies.append(energy)
                 dump_xyz("MaterialProperties.xyz", atoms)
 
+            plt.rcParams.update({'font.size': 12}) 
             fig, ax = plt.subplots()
             plt.subplots_adjust(left=0.15, right=0.95, top=0.95, bottom=0.15)
-            font_size = 12
             ax.plot(distances, energies, "-o")
-            ax.set_xlabel("Distance (Å)", fontsize=font_size)
-            ax.set_ylabel("Energy (eV/atom)", fontsize=font_size)
-            ax.set_title(f"{s1}-{s2} Dimer", fontsize=font_size)
+            ax.set_xlabel("Distance (Å)")
+            ax.set_ylabel("Energy (eV/atom)")
+            ax.set_title(f"{s1}-{s2} Dimer")
             fig_path = os.path.join('dimer_curve_png', f'{s1}_{s2}_dimer.png')
             fig.savefig(fig_path)
             plt.close(fig)
@@ -224,13 +224,13 @@ class MaterialCalculator():
         for image in images:
             dump_xyz('MaterialProperties.xyz', image)  
 
+        plt.rcParams.update({'font.size': 12}) 
         fig, ax = plt.subplots()
         plt.subplots_adjust(left=0.15, right=0.95, top=0.95, bottom=0.15)
-        font_size = 12
         ax.plot(np.linspace(0, 1, len(energies)), energies, '-o')
-        ax.set_xlabel('Reaction Coordinate', fontsize=font_size)
-        ax.set_ylabel('Energy (eV)', fontsize=font_size)
-        ax.set_title(f'{self.formula} {symbol}-Vacancy Migration Energy', fontsize=font_size)
+        ax.set_xlabel('Reaction Coordinate')
+        ax.set_ylabel('Energy (eV)')
+        ax.set_title(f'{self.formula} {symbol}-Vacancy Migration Energy')
         fig_path = os.path.join('migration_energy_vacancy', f'{self.formula}_{symbol}-vacancy_migration_energy.png')
         fig.savefig(fig_path)   
         plt.close(fig)
