@@ -7,6 +7,7 @@ from .tools import plot_band_structure
 from .phono import PhonoCalc
 from .atoms import Morph
 from calorine.tools import get_elastic_stiffness_tensor, relax_structure
+from itertools import combinations_with_replacement
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt 
@@ -32,10 +33,49 @@ class MaterialCalculator():
             atoms = Atoms(symbols=[symbol], positions=[[0, 0, 0]])
             atoms.calc = self.calc
             iso_atom_energy = atoms.get_potential_energy()
+            dump_xyz('MaterialProperties.xyz', atoms)
             output += f"   {symbol:<2} Atom Energy: {iso_atom_energy:.4f} eV\n"
         with open('MaterialProperties.out', "a") as f:
             f.write(output)
         return output
+    
+    def dimer_curve(self, distances=np.arange(1, 3.1, 0.1)):
+        fig_paths = []
+        os.makedirs('dimer_curve_out', exist_ok=True)
+        os.makedirs('dimer_curve_png', exist_ok=True)
+
+        for s1, s2 in combinations_with_replacement(self.symbols, 2):
+            energies = []
+
+            for d in distances:
+                atoms = Atoms(symbols=[s1, s2],
+                            positions=[[0, 0, 0], [d, 0, 0]])
+                atoms.calc = self.calc
+                energy = atoms.get_potential_energy() / len(atoms)
+                energies.append(energy)
+                dump_xyz("MaterialProperties.xyz", atoms)
+
+            fig, ax = plt.subplots()
+            plt.subplots_adjust(left=0.15, right=0.95, top=0.95, bottom=0.15)
+            font_size = 12
+            ax.plot(distances, energies, "-o")
+            ax.set_xlabel("Distance (Å)", fontsize=font_size)
+            ax.set_ylabel("Energy (eV/atom)", fontsize=font_size)
+            ax.set_title(f"{s1}-{s2} Dimer", fontsize=font_size)
+
+            fig_path = os.path.join('dimer_curve_png', f'{s1}_{s2}_dimer.png')
+            fig.savefig(fig_path)
+            plt.close(fig)
+            fig_paths.append(fig_path)
+
+            out_path = os.path.join('dimer_curve_out', f'{s1}_{s2}_dimer.out')
+            with open(out_path, "w") as f:
+                f.write("Distance(A)   Energy(eV)\n")
+                for distance, energy in zip(distances, energies):
+                    f.write(f"{distance:.2f}   {energy:.4f}\n")
+
+        return fig_paths
+       
 
     def lattice_constant(self):
         atoms = self.atoms
