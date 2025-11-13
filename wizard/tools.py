@@ -209,8 +209,8 @@ def plot_band_structure(atoms, formula, info):
     
     fig.suptitle(f'{formula} {info} phonon dispersion', fontsize=16)
     fig_path = os.path.join('phonon' ,f'{formula}_{info}_phono.png')
-    plt.savefig(fig_path)
-    plt.close()
+    fig.savefig(fig_path)
+    plt.close(fig)
     return fig_path
 
 def Prediction():
@@ -300,11 +300,13 @@ def plot_thermo_out(filename, column=2, num=1):
     ax.set_ylabel('eV/atom')
     ax.legend()
     plt.tight_layout() 
-    plt.savefig('thermo.png')
+    fig.savefig('thermo.png')
+    plt.close(fig)
 
 def plot_training_result(dirname = '', type = 'train'):
     plt.rcParams["figure.figsize"] = (6, 6)
     plt.rcParams.update({"font.size": 10, "text.usetex": False})
+    plt.subplots_adjust(hspace=0.4, wspace=0.3)
     fig, axes = plt.subplots(2, 2)
 
     loss = np.loadtxt(dirname + "loss.out")
@@ -366,17 +368,14 @@ def plot_training_result(dirname = '', type = 'train'):
 
     axes[1, 1].set_xlim(x_min, x_max)
     axes[1, 1].set_ylim(y_min, y_max)
-
-    plt.subplots_adjust(hspace=0.4, wspace=0.3)
-
-    plt.savefig("train_results.png")
-    plt.show()
+    fig.savefig("train_results.png")
+    plt.close(fig)
 
 def plot_force_results(frames, calcs, labels = None, e_val = [None, None], f_val = [None, None]):
     plt.rcParams["figure.figsize"] = (12, 5)
     plt.rcParams.update({"font.size": 18, "text.usetex": False})
-    fig, axes = plt.subplots(1, 2) 
     plt.subplots_adjust(wspace=0.3, bottom=0.2)
+    fig, axes = plt.subplots(1, 2) 
     cmap = plt.get_cmap("tab10")
   
     print(len(frames))  
@@ -430,9 +429,8 @@ def plot_force_results(frames, calcs, labels = None, e_val = [None, None], f_val
     axes[1].set_ylabel("NEP force (eV/Å)")
     axes[0].text(0.05, 0.95, '(a)', transform=axes[0].transAxes, verticalalignment='top')
     axes[1].text(0.05, 0.95, '(b)', transform=axes[1].transAxes, verticalalignment='top')
-
     handles = [plt.Line2D([0], [0], color=color, marker='o', linestyle='') for label, color in label_colors.items()]
-    plt.legend(handles, label_colors.keys(), loc = "upper right")
-    plt.savefig("force_results.png")
-    plt.show()
-    plt.close()
+    axes[1].legend(handles, label_colors.keys(), loc = "upper right")
+    
+    fig.savefig("force_results.png")
+    plt.close(fig)
