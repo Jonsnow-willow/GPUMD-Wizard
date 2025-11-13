@@ -40,43 +40,6 @@ class MaterialCalculator():
             f.write(output)
         return output
     
-    def dimer_curve(self, distances=np.arange(1.2, 2.8, 0.1)):
-        fig_paths = []
-        os.makedirs('dimer_curve_out', exist_ok=True)
-        os.makedirs('dimer_curve_png', exist_ok=True)
-
-        for s1, s2 in combinations_with_replacement(self.symbols, 2):
-            energies = []
-
-            for d in distances:
-                atoms = Atoms(symbols=[s1, s2], positions=[[0, 0, 0], [d, 0, 0]],
-                              pbc = [True, True, True], cell= [[20,0,0],[0,30,0],[0,0,40]])
-                atoms.calc = self.calc
-                energy = atoms.get_potential_energy() / len(atoms)
-                energies.append(energy)
-                dump_xyz("MaterialProperties.xyz", atoms)
-
-            fig, ax = plt.subplots()
-            plt.subplots_adjust(left=0.15, right=0.95, top=0.95, bottom=0.15)
-            font_size = 12
-            ax.plot(distances, energies, "-o")
-            ax.set_xlabel("Distance (Å)", fontsize=font_size)
-            ax.set_ylabel("Energy (eV/atom)", fontsize=font_size)
-            ax.set_title(f"{s1}-{s2} Dimer", fontsize=font_size)
-            fig_path = os.path.join('dimer_curve_png', f'{s1}_{s2}_dimer.png')
-            fig.savefig(fig_path)
-            plt.close(fig)
-            fig_paths.append(fig_path)
-
-            out_path = os.path.join('dimer_curve_out', f'{s1}_{s2}_dimer.out')
-            with open(out_path, "w") as f:
-                f.write("Distance(A)   Energy(eV)\n")
-                for distance, energy in zip(distances, energies):
-                    f.write(f"{distance:.2f}   {energy:.4f}\n")
-
-        return fig_paths
-       
-
     def lattice_constant(self):
         atoms = self.atoms
         energy_per_atom = self.epa
@@ -113,7 +76,7 @@ class MaterialCalculator():
         with open('MaterialProperties.out', 'a') as f:
             f.write(output)
         
-        return output
+        return output, Cij
     
     def eos_curve(self):
         volumes, energies = [], []
@@ -145,6 +108,42 @@ class MaterialCalculator():
                 f.write(f"{volume:.2f}   {energy:.4f}\n")
 
         return fig_path
+    
+    def dimer_curve(self, distances=np.arange(1.2, 2.8, 0.1)):
+        fig_paths = []
+        os.makedirs('dimer_curve_out', exist_ok=True)
+        os.makedirs('dimer_curve_png', exist_ok=True)
+
+        for s1, s2 in combinations_with_replacement(self.symbols, 2):
+            energies = []
+
+            for d in distances:
+                atoms = Atoms(symbols=[s1, s2], positions=[[0, 0, 0], [d, 0, 0]],
+                              pbc = [True, True, True], cell= [[20,0,0],[0,30,0],[0,0,40]])
+                atoms.calc = self.calc
+                energy = atoms.get_potential_energy() / len(atoms)
+                energies.append(energy)
+                dump_xyz("MaterialProperties.xyz", atoms)
+
+            fig, ax = plt.subplots()
+            plt.subplots_adjust(left=0.15, right=0.95, top=0.95, bottom=0.15)
+            font_size = 12
+            ax.plot(distances, energies, "-o")
+            ax.set_xlabel("Distance (Å)", fontsize=font_size)
+            ax.set_ylabel("Energy (eV/atom)", fontsize=font_size)
+            ax.set_title(f"{s1}-{s2} Dimer", fontsize=font_size)
+            fig_path = os.path.join('dimer_curve_png', f'{s1}_{s2}_dimer.png')
+            fig.savefig(fig_path)
+            plt.close(fig)
+            fig_paths.append(fig_path)
+
+            out_path = os.path.join('dimer_curve_out', f'{s1}_{s2}_dimer.out')
+            with open(out_path, "w") as f:
+                f.write("Distance(A)   Energy(eV)\n")
+                for distance, energy in zip(distances, energies):
+                    f.write(f"{distance:.2f}   {energy:.4f}\n")
+
+        return fig_paths
 
     def phonon_dispersion(self, special_points = None, labels_path = None):
         atoms = self.atoms.copy()
@@ -231,8 +230,8 @@ class MaterialCalculator():
         ax.plot(np.linspace(0, 1, len(energies)), energies, '-o')
         ax.set_xlabel('Reaction Coordinate', fontsize=font_size)
         ax.set_ylabel('Energy (eV)', fontsize=font_size)
-        ax.set_title(f'{self.formula} {symbol} Vacancy Migration Energy', fontsize=font_size)
-        fig_path = os.path.join('migration_energy_vacancy', f'{self.formula}_{symbol}_vacancy_migration_energy.png')
+        ax.set_title(f'{self.formula} {symbol}-Vacancy Migration Energy', fontsize=font_size)
+        fig_path = os.path.join('migration_energy_vacancy', f'{self.formula}_{symbol}-vacancy_migration_energy.png')
         fig.savefig(fig_path)   
         plt.close(fig)
 
