@@ -1,0 +1,256 @@
+ Ag        Lattice_Constants: 4.0900 A
+           Ground_State_Energy: -2.8500 eV
+ Ag        C11:  124.24 GPa
+           C12:   93.74 GPa
+           C13:   93.74 GPa
+           C33:  124.24 GPa
+           C44:   46.05 GPa
+           C66:   46.05 GPa
+ Ag     1-1-0 Surface_Energy: 1.0891 J/m^2
+ Ag     1-0-0 Surface_Energy: 0.9817 J/m^2
+ Ag     1-1-1 Surface_Energy: 0.9093 J/m^2
+ Ag     2-1-1 Surface_Energy: 1.0560 J/m^2
+ Ag     Formation_Energy_Vacancy: 1.0977 eV
+ Ag     (1, 0, 0) Formation_Energy_Sia: 2.834 eV
+ Ag     (1, 1, 0) Formation_Energy_Sia: 3.036 eV
+ Ag     (1, 1, 1) Formation_Energy_Sia: 2.848 eV
+ Al        Lattice_Constants: 4.0500 A
+           Ground_State_Energy: -3.5800 eV
+ Al        C11:  107.22 GPa
+           C12:   60.19 GPa
+           C13:   60.19 GPa
+           C33:  107.22 GPa
+           C44:   29.32 GPa
+           C66:   29.32 GPa
+ Al     1-1-0 Surface_Energy: 1.0346 J/m^2
+ Al     1-0-0 Surface_Energy: 0.9247 J/m^2
+ Al     1-1-1 Surface_Energy: 0.9110 J/m^2
+ Al     2-1-1 Surface_Energy: 1.0274 J/m^2
+ Al     Formation_Energy_Vacancy: 0.6530 eV
+ Al     (1, 0, 0) Formation_Energy_Sia: 1.785 eV
+ Al     (1, 1, 0) Formation_Energy_Sia: 1.957 eV
+ Al     (1, 1, 1) Formation_Energy_Sia: 2.038 eV
+ Au        Lattice_Constants: 4.0800 A
+           Ground_State_Energy: -3.9300 eV
+ Au        C11:  186.22 GPa
+           C12:  157.31 GPa
+           C13:  157.31 GPa
+           C33:  186.22 GPa
+           C44:   42.02 GPa
+           C66:   42.02 GPa
+ Au     1-1-0 Surface_Energy: 1.1127 J/m^2
+ Au     1-0-0 Surface_Energy: 1.0160 J/m^2
+ Au     1-1-1 Surface_Energy: 0.9035 J/m^2
+ Au     2-1-1 Surface_Energy: 1.0579 J/m^2
+ Au     Formation_Energy_Vacancy: 0.9950 eV
+ Au     (1, 0, 0) Formation_Energy_Sia: 2.682 eV
+ Au     (1, 1, 0) Formation_Energy_Sia: 2.838 eV
+ Au     (1, 1, 1) Formation_Energy_Sia: 3.033 eV
+ Cu        Lattice_Constants: 3.6150 A
+           Ground_State_Energy: -3.5400 eV
+ Cu        C11:  168.59 GPa
+           C12:  121.90 GPa
+           C13:  121.90 GPa
+           C33:  168.59 GPa
+           C44:   75.23 GPa
+           C66:   75.23 GPa
+ Cu     1-1-0 Surface_Energy: 1.7533 J/m^2
+ Cu     1-0-0 Surface_Energy: 1.5715 J/m^2
+ Cu     1-1-1 Surface_Energy: 1.5085 J/m^2
+ Cu     2-1-1 Surface_Energy: 1.7225 J/m^2
+ Cu     Formation_Energy_Vacancy: 1.2788 eV
+ Cu     (1, 0, 0) Formation_Energy_Sia: 3.098 eV
+ Cu     (1, 1, 0) Formation_Energy_Sia: 3.279 eV
+ Cu     (1, 1, 1) Formation_Energy_Sia: 3.107 eV
+ Ni        Lattice_Constants: 3.5200 A
+           Ground_State_Energy: -4.4500 eV
+ Ni        C11:  248.01 GPa
+           C12:  147.19 GPa
+           C13:  147.19 GPa
+           C33:  248.01 GPa
+           C44:  126.69 GPa
+           C66:  126.69 GPa
+ Ni     1-1-0 Surface_Energy: 2.0729 J/m^2
+ Ni     1-0-0 Surface_Energy: 1.8798 J/m^2
+ Ni     1-1-1 Surface_Energy: 1.7904 J/m^2
+ Ni     2-1-1 Surface_Energy: 2.0461 J/m^2
+ Ni     Formation_Energy_Vacancy: 1.6994 eV
+ Ni     (1, 0, 0) Formation_Energy_Sia: 3.941 eV
+ Ni     (1, 1, 0) Formation_Energy_Sia: 3.946 eV
+ Ni     (1, 1, 1) Formation_Energy_Sia: 3.948 eV
+ Pb        Lattice_Constants: 4.9490 A
+           Ground_State_Energy: -2.0200 eV
+ Pb        C11:   49.48 GPa
+           C12:   42.28 GPa
+           C13:   42.28 GPa
+           C33:   49.48 GPa
+           C44:   14.91 GPa
+           C66:   14.91 GPa
+ Pb     1-1-0 Surface_Energy: 0.4249 J/m^2
+ Pb     1-0-0 Surface_Energy: 0.3857 J/m^2
+ Pb     1-1-1 Surface_Energy: 0.3479 J/m^2
+ Pb     2-1-1 Surface_Energy: 0.4065 J/m^2
+ Pb     Formation_Energy_Vacancy: 0.5982 eV
+ Pb     (1, 0, 0) Formation_Energy_Sia: 1.519 eV
+ Pb     (1, 1, 0) Formation_Energy_Sia: 1.583 eV
+ Pb     (1, 1, 1) Formation_Energy_Sia: 1.672 eV
+ Pd        Lattice_Constants: 3.8900 A
+           Ground_State_Energy: -3.9100 eV
+ Pd        C11:  233.03 GPa
+           C12:  175.57 GPa
+           C13:  175.57 GPa
+           C33:  233.03 GPa
+           C44:   70.88 GPa
+           C66:   70.88 GPa
+ Pd     1-1-0 Surface_Energy: 1.8032 J/m^2
+ Pd     1-0-0 Surface_Energy: 1.6343 J/m^2
+ Pd     1-1-1 Surface_Energy: 1.5195 J/m^2
+ Pd     2-1-1 Surface_Energy: 1.7550 J/m^2
+ Pd     Formation_Energy_Vacancy: 1.5504 eV
+ Pd     (1, 0, 0) Formation_Energy_Sia: 3.811 eV
+ Pd     (1, 1, 0) Formation_Energy_Sia: 4.082 eV
+ Pd     (1, 1, 1) Formation_Energy_Sia: 3.819 eV
+ Pt        Lattice_Constants: 3.9200 A
+           Ground_State_Energy: -5.7700 eV
+ Pt        C11:  343.72 GPa
+           C12:  250.32 GPa
+           C13:  250.32 GPa
+           C33:  343.72 GPa
+           C44:   75.05 GPa
+           C66:   75.05 GPa
+ Pt     1-1-0 Surface_Energy: 2.4038 J/m^2
+ Pt     1-0-0 Surface_Energy: 2.1827 J/m^2
+ Pt     1-1-1 Surface_Energy: 2.0832 J/m^2
+ Pt     2-1-1 Surface_Energy: 2.3681 J/m^2
+ Pt     Formation_Energy_Vacancy: 1.5250 eV
+ Pt     (1, 0, 0) Formation_Energy_Sia: 3.815 eV
+ Pt     (1, 1, 0) Formation_Energy_Sia: 4.107 eV
+ Pt     (1, 1, 1) Formation_Energy_Sia: 4.283 eV
+ Cr        Lattice_Constants: 2.8550 A
+           Ground_State_Energy: -4.1852 eV
+ Cr        C11:  303.88 GPa
+           C12:  136.75 GPa
+           C13:  136.75 GPa
+           C33:  303.88 GPa
+           C44:  122.83 GPa
+           C66:  122.83 GPa
+ Cr     1-1-0 Surface_Energy: 1.6903 J/m^2
+ Cr     1-0-0 Surface_Energy: 1.8436 J/m^2
+ Cr     1-1-1 Surface_Energy: 2.1122 J/m^2
+ Cr     2-1-1 Surface_Energy: 1.9404 J/m^2
+ Cr     Formation_Energy_Vacancy: 2.0597 eV
+ Cr     (1, 0, 0) Formation_Energy_Sia: 5.946 eV
+ Cr     (1, 1, 0) Formation_Energy_Sia: 4.706 eV
+ Cr     (1, 1, 1) Formation_Energy_Sia: 5.038 eV
+ Mo        Lattice_Constants: 3.1500 A
+           Ground_State_Energy: -6.8100 eV
+ Mo        C11:  455.73 GPa
+           C12:  166.70 GPa
+           C13:  166.70 GPa
+           C33:  455.73 GPa
+           C44:  113.17 GPa
+           C66:  113.17 GPa
+ Mo     1-1-0 Surface_Energy: 2.1463 J/m^2
+ Mo     1-0-0 Surface_Energy: 2.4780 J/m^2
+ Mo     1-1-1 Surface_Energy: 2.7731 J/m^2
+ Mo     2-1-1 Surface_Energy: 2.5368 J/m^2
+ Mo     Formation_Energy_Vacancy: 2.9651 eV
+ Mo     (1, 0, 0) Formation_Energy_Sia: 9.237 eV
+ Mo     (1, 1, 0) Formation_Energy_Sia: 7.094 eV
+ Mo     (1, 1, 1) Formation_Energy_Sia: 7.094 eV
+ Ta        Lattice_Constants: 3.3030 A
+           Ground_State_Energy: -8.0900 eV
+ Ta        C11:  262.42 GPa
+           C12:  157.83 GPa
+           C13:  157.83 GPa
+           C33:  262.42 GPa
+           C44:   82.34 GPa
+           C66:   82.34 GPa
+ Ta     1-1-0 Surface_Energy: 1.9938 J/m^2
+ Ta     1-0-0 Surface_Energy: 2.3579 J/m^2
+ Ta     1-1-1 Surface_Energy: 2.5900 J/m^2
+ Ta     2-1-1 Surface_Energy: 2.3898 J/m^2
+ Ta     Formation_Energy_Vacancy: 2.9738 eV
+ Ta     (1, 0, 0) Formation_Energy_Sia: 5.433 eV
+ Ta     (1, 1, 0) Formation_Energy_Sia: 4.881 eV
+ Ta     (1, 1, 1) Formation_Energy_Sia: 4.986 eV
+ V         Lattice_Constants: 3.0280 A
+           Ground_State_Energy: -5.3100 eV
+ V         C11:  231.96 GPa
+           C12:  119.43 GPa
+           C13:  119.43 GPa
+           C33:  231.96 GPa
+           C44:   45.95 GPa
+           C66:   45.95 GPa
+ V      1-1-0 Surface_Energy: 1.6552 J/m^2
+ V      1-0-0 Surface_Energy: 1.9180 J/m^2
+ V      1-1-1 Surface_Energy: 2.1352 J/m^2
+ V      2-1-1 Surface_Energy: 1.9940 J/m^2
+ V      Formation_Energy_Vacancy: 2.1423 eV
+ V      (1, 0, 0) Formation_Energy_Sia: 2.031 eV
+ V      (1, 1, 0) Formation_Energy_Sia: 1.9 eV
+ V      (1, 1, 1) Formation_Energy_Sia: 2.23 eV
+ W         Lattice_Constants: 3.1650 A
+           Ground_State_Energy: -8.7600 eV
+ W         C11:  521.61 GPa
+           C12:  204.36 GPa
+           C13:  204.36 GPa
+           C33:  521.61 GPa
+           C44:  160.82 GPa
+           C66:  160.82 GPa
+ W      1-1-0 Surface_Energy: 2.5618 J/m^2
+ W      1-0-0 Surface_Energy: 2.9879 J/m^2
+ W      1-1-1 Surface_Energy: 3.3277 J/m^2
+ W      2-1-1 Surface_Energy: 3.0322 J/m^2
+ W      Formation_Energy_Vacancy: 3.5883 eV
+ W      (1, 0, 0) Formation_Energy_Sia: 12.46 eV
+ W      (1, 1, 0) Formation_Energy_Sia: 9.589 eV
+ W      (1, 1, 1) Formation_Energy_Sia: 9.59 eV
+ Mg        Lattice_Constants: a: 3.1994 A    c: 5.2108 A
+           Ground_State_Energy: -1.5500 eV
+ Mg        C11:   54.85 GPa
+           C12:   28.69 GPa
+           C13:   20.27 GPa
+           C33:   68.56 GPa
+           C44:   13.00 GPa
+           C66:   12.70 GPa
+ Mg     1-1-0 Surface_Energy: 0.4529 J/m^2
+ Mg     0-0-1 Surface_Energy: 0.3749 J/m^2
+ Mg     1-1-1 Surface_Energy: 0.4734 J/m^2
+ Mg     1-1-2 Surface_Energy: 0.4522 J/m^2
+ Mg     Formation_Energy_Vacancy: 0.6515 eV
+ Mg     (1, 0, 0) Formation_Energy_Sia: 1.939 eV
+ Mg     (1, 1, 0) Formation_Energy_Sia: 1.935 eV
+ Mg     (1, 1, 1) Formation_Energy_Sia: 1.911 eV
+ Ti        Lattice_Constants: a: 2.9405 A    c: 4.7723 A
+           Ground_State_Energy: -4.8700 eV
+ Ti        C11:  139.25 GPa
+           C12:   88.41 GPa
+           C13:   69.74 GPa
+           C33:  199.32 GPa
+           C44:   30.44 GPa
+           C66:   23.05 GPa
+ Ti     1-1-0 Surface_Energy: 1.5365 J/m^2
+ Ti     0-0-1 Surface_Energy: 1.2832 J/m^2
+ Ti     1-1-1 Surface_Energy: 1.6008 J/m^2
+ Ti     1-1-2 Surface_Energy: 1.5298 J/m^2
+ Ti     Formation_Energy_Vacancy: 1.6367 eV
+ Ti     (1, 0, 0) Formation_Energy_Sia: 3.64 eV
+ Ti     (1, 1, 0) Formation_Energy_Sia: 3.639 eV
+ Ti     (1, 1, 1) Formation_Energy_Sia: 3.67 eV
+ Zr        Lattice_Constants: a: 3.2082 A    c: 5.2022 A
+           Ground_State_Energy: -6.3601 eV
+ Zr        C11:  122.82 GPa
+           C12:   82.87 GPa
+           C13:   68.31 GPa
+           C33:  177.24 GPa
+           C44:   24.67 GPa
+           C66:   17.17 GPa
+ Zr     1-1-0 Surface_Energy: 1.5252 J/m^2
+ Zr     0-0-1 Surface_Energy: 1.2674 J/m^2
+ Zr     1-1-1 Surface_Energy: 1.5871 J/m^2
+ Zr     1-1-2 Surface_Energy: 1.5144 J/m^2
+ Zr     Formation_Energy_Vacancy: 1.8381 eV
+ Zr     (1, 0, 0) Formation_Energy_Sia: 3.908 eV
+ Zr     (1, 1, 0) Formation_Energy_Sia: 3.908 eV
+ Zr     (1, 1, 1) Formation_Energy_Sia: 3.954 eV
