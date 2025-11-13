@@ -30,7 +30,8 @@ class MaterialCalculator():
     def isolate_atom_energy(self):
         output = f"\n {self.formula:<10}Isolated_Atom_Energies (eV):\n"
         for symbol in self.symbols:
-            atoms = Atoms(symbols=[symbol], positions=[[0, 0, 0]])
+            atoms = Atoms(symbols=[symbol], positions=[[0, 0, 0]],
+                          pbc = [True, True, True], cell= [[20,0,0],[0,30,0],[0,0,40]])
             atoms.calc = self.calc
             iso_atom_energy = atoms.get_potential_energy()
             dump_xyz('MaterialProperties.xyz', atoms)
@@ -39,7 +40,7 @@ class MaterialCalculator():
             f.write(output)
         return output
     
-    def dimer_curve(self, distances=np.arange(1, 3.1, 0.1)):
+    def dimer_curve(self, distances=np.arange(1.2, 2.8, 0.1)):
         fig_paths = []
         os.makedirs('dimer_curve_out', exist_ok=True)
         os.makedirs('dimer_curve_png', exist_ok=True)
@@ -48,8 +49,8 @@ class MaterialCalculator():
             energies = []
 
             for d in distances:
-                atoms = Atoms(symbols=[s1, s2],
-                            positions=[[0, 0, 0], [d, 0, 0]])
+                atoms = Atoms(symbols=[s1, s2], positions=[[0, 0, 0], [d, 0, 0]],
+                              pbc = [True, True, True], cell= [[20,0,0],[0,30,0],[0,0,40]])
                 atoms.calc = self.calc
                 energy = atoms.get_potential_energy() / len(atoms)
                 energies.append(energy)
@@ -62,7 +63,6 @@ class MaterialCalculator():
             ax.set_xlabel("Distance (Å)", fontsize=font_size)
             ax.set_ylabel("Energy (eV/atom)", fontsize=font_size)
             ax.set_title(f"{s1}-{s2} Dimer", fontsize=font_size)
-
             fig_path = os.path.join('dimer_curve_png', f'{s1}_{s2}_dimer.png')
             fig.savefig(fig_path)
             plt.close(fig)
@@ -116,11 +116,11 @@ class MaterialCalculator():
         return output
     
     def eos_curve(self):
-        atoms = self.atoms.copy()
-        atoms.calc = self.calc
+        volumes, energies = [], []
         os.makedirs('eos_curve_out', exist_ok=True)
         os.makedirs('eos_curve_png', exist_ok=True)
-        volumes, energies = [], []
+        atoms = self.atoms.copy()
+        atoms.calc = self.calc
         origin_cell = atoms.cell.copy()
         for scale in np.arange(0.9, 1.10, 0.01):
             atoms.set_cell(scale * origin_cell, scale_atoms = True)
@@ -138,6 +138,7 @@ class MaterialCalculator():
         fig_path = os.path.join('eos_curve_png',f'{self.formula}_eos_curve.png')
         fig.savefig(fig_path)
         plt.close(fig)
+
         with open(os.path.join('eos_curve_out',f'{self.formula}_eos_curve.out'), 'w') as f:
             f.write("Volume(A^3/atom)   Energy(eV/atom)\n")
             for volume, energy in zip(volumes, energies):
@@ -173,7 +174,7 @@ class MaterialCalculator():
 
         dump_xyz('MaterialProperties.xyz', slab)
         with open('MaterialProperties.out', 'a') as f:
-            print(f' {self.formula:<7}{hkl_str} Surface_Energy: {formation_energy / J / 1e-20 :.4f} J/m^2', file=f)
+            print(f' {self.formula:<10}{hkl_str} Surface_Energy: {formation_energy / J / 1e-20 :.4f} J/m^2', file=f)
         return formation_energy * 1000
 
     def formation_energy_vacancy(self, index = 0):
@@ -186,10 +187,11 @@ class MaterialCalculator():
 
         dump_xyz('MaterialProperties.xyz', atoms)
         with open('MaterialProperties.out', 'a') as f:
-            print(f' {self.formula:<7}Formation_Energy_Vacancy: {formation_energy:.4f} eV', file=f)
+            print(f' {self.formula:<10}Formation_Energy_Vacancy: {formation_energy:.4f} eV', file=f)
         return formation_energy
 
     def migration_energy_vacancy(self, index0 = 0, index1 = 1):
+        os.makedirs('migration_energy_vacancy', exist_ok=True)
         atoms = self.atoms.copy() 
         symbol = atoms[index0].symbol
         atoms[index1].symbol = symbol
@@ -222,12 +224,21 @@ class MaterialCalculator():
         energies -= min(energies)
         for image in images:
             dump_xyz('MaterialProperties.xyz', image)  
+
+        fig, ax = plt.subplots()
+        plt.subplots_adjust(left=0.15, right=0.95, top=0.95, bottom=0.15)
+        font_size = 12
+        ax.plot(np.linspace(0, 1, len(energies)), energies, '-o')
+        ax.set_xlabel('Reaction Coordinate', fontsize=font_size)
+        ax.set_ylabel('Energy (eV)', fontsize=font_size)
+        ax.set_title(f'{self.formula} {symbol} Vacancy Migration Energy', fontsize=font_size)
+        fig_path = os.path.join('migration_energy_vacancy', f'{self.formula}_{symbol}_vacancy_migration_energy.png')
+        fig.savefig(fig_path)   
+        plt.close(fig)
+
         with open('MaterialProperties.out', 'a') as f:
-            print(f' {self.formula:<7}Migration_Energy_({symbol}-Vacancy): {migration_energy:.4f} eV', file=f)
-        plt.plot(np.linspace(0, 1, len(energies)), energies, marker='o', label=f'{self.formula}')  
-        plt.legend()
-        plt.savefig(f'{self.formula}_migration_{symbol}_vacancy.png')
-        plt.close()
+            print(f' {self.formula:<10}Migration_Energy_({symbol}-Vacancy): {migration_energy:.4f} eV', file=f)
+        
         return energies
     
     def formation_energy_sia(self, vector = (1, 0, 0), index = 0):
@@ -240,5 +251,5 @@ class MaterialCalculator():
 
         dump_xyz('MaterialProperties.xyz', atoms)
         with open('MaterialProperties.out', 'a') as f:
-            print(f' {self.formula:<7}{vector} Formation_Energy_Sia: {formation_energy:.4} eV', file=f)
+            print(f' {self.formula:<10}{vector} Formation_Energy_Sia: {formation_energy:.4} eV', file=f)
         return formation_energy
