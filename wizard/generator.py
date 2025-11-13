@@ -1,5 +1,5 @@
 from wizard.atoms import SymbolInfo
-from wizard.io import relax
+from calorine.tools import relax_structure
 import itertools
 
 class Generator:
@@ -42,7 +42,7 @@ class Generator:
             atoms = symbol_info.create_bulk_atoms(supercell[symbol_info.lattice_type])
             if calc is not None:
                 atoms.calc = calc
-                relax(atoms, steps=100)
+                relax_structure(atoms)
             frames.append(atoms)
         return frames
        
