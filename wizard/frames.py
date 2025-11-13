@@ -1,5 +1,6 @@
-from wizard.io import dump_xyz, relax
+from wizard.io import dump_xyz
 from wizard.atoms import Morph
+from calorine.tools import relax_structure
 import numpy as np 
 import random 
 import re
@@ -178,7 +179,7 @@ class MultiMol():
                 Morph(atoms_copy).create_vacancies(n)
                 if calc is not None:
                     atoms_copy.calc = calc
-                    relax(atoms_copy, steps=100)
+                    relax_structure(atoms_copy, steps=100)
                 frames.append(atoms_copy)
         return frames
     
