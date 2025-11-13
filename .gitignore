@@ -1,5 +1,3 @@
 *.pyc
 
 .DS_Store
-Manual/Train_NEP_Model.ipynb
-wizard/evolution.py
