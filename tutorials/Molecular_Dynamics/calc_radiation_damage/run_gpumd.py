@@ -9,7 +9,6 @@ group = []
 thickness_angstrom = 10 #A 
 cell_lengths = np.linalg.norm(atoms.get_cell(), axis=1)
 thickness_frac = thickness_angstrom / cell_lengths  
-
 scaled_positions = atoms.get_scaled_positions()
 for sp in scaled_positions:
     if (sp < thickness_frac).any():
@@ -44,7 +43,7 @@ run_in_2 = ['potential nep.txt',
 pka_energy = 1000 #eV
 direction = np.array([1, 3, 5]) 
 
-Morph(atoms).gpumd('radiation/relax', run_in_1)
+Morph(atoms).gpumd('radiation/relax', run_in_1, nep_path='../potentials/MoNbTaVW.txt')
 atoms = read_xyz('radiation/relax/restart.xyz')[-1]
 Morph(atoms).set_pka(pka_energy, direction)
-Morph(atoms).gpumd('radiation/cascade', run_in_2)
+Morph(atoms).gpumd('radiation/cascade', run_in_2, nep_path='../potentials/MoNbTaVW.txt')
