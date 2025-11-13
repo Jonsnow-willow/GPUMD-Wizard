@@ -172,7 +172,7 @@ def read_xyz(filename):
                 forces.append(read_force(words_in_line, parsed_properties_dict))
                 velocities.append(read_velocity(words_in_line, parsed_properties_dict))
                 group.append(read_group(words_in_line, parsed_properties_dict))
-            if "forces" not in comment:
+            if "force" not in comment:
                 forces = None
             if "vel" not in comment:
                 velocities = None
