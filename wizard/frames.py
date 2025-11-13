@@ -192,7 +192,7 @@ class MultiMol():
                 Morph(atoms_copy).create_self_interstitial_atom(vector=v, index=i)
                 if calc is not None:
                     atoms_copy.calc = calc
-                    relax_structure(atoms_copy)
+                    relax_structure(atoms_copy, fmax=0.05)
                 frames.append(atoms_copy)
         return frames
 
