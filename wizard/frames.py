@@ -179,10 +179,23 @@ class MultiMol():
                 Morph(atoms_copy).create_vacancies(n)
                 if calc is not None:
                     atoms_copy.calc = calc
-                    relax_structure(atoms_copy, steps=100)
+                    relax_structure(atoms_copy)
                 frames.append(atoms_copy)
         return frames
     
+    def get_sias(self, calc = None, vectors = [(1,1,1),(1,0,0),(1,1,0)]):
+        frames = []
+        for atoms in self.frames:
+            for v in vectors:
+                atoms_copy = atoms.copy()
+                i = random.randint(0, len(atoms_copy) - 1)
+                Morph(atoms_copy).create_self_interstitial_atom(vector=v, index=i)
+                if calc is not None:
+                    atoms_copy.calc = calc
+                    relax_structure(atoms_copy)
+                frames.append(atoms_copy)
+        return frames
+
     def subtract_isolated_atom_energy(self, isolated_atom_energy = {}):
         for atoms in self.frames:
             for atom in atoms:
