@@ -10,11 +10,14 @@ class NEP(nn.Module):
         
         self.n_desc_radial = para["n_desc_radial"]
         self.n_desc_angular = para["n_desc_angular"]
-        self.l_max = para["l_max"]
+        self.L_max = para["l_max"]
+        self.l_max_4body = para.get("l_max_4body", 2)
+        self.l_max_5body = para.get("l_max_5body", 0)
+        self.num_L = self.descriptor.angular.num_L
         self.elements = para["elements"]
         self.n_elements = len(self.elements)
         
-        input_dim = self.n_desc_radial + self.n_desc_angular * self.l_max
+        input_dim = self.n_desc_radial + self.n_desc_angular * self.num_L
         hidden_dims = para["hidden_dims"]
                 
         self.element_mlps = nn.ModuleDict()
@@ -41,10 +44,10 @@ class NEP(nn.Module):
         
         descriptors = self.descriptor(batch)
         g_radial = descriptors["g_radial"]                       # [N_atoms, n_desc_radial]
-        g_angular = descriptors["g_angular"]                     # [N_atoms, n_desc_angular, l_max]
+        g_angular = descriptors["g_angular"]                     # [N_atoms, n_desc_angular, num_L]
         
         n_atoms = g_radial.shape[0]
-        g_angular_flat = g_angular.reshape(n_atoms, -1)          # [N_atoms, n_desc_angular * l_max]
+        g_angular_flat = g_angular.reshape(n_atoms, -1)          # [N_atoms, n_desc_angular * num_L]
         g_total = torch.cat([g_radial, g_angular_flat], dim=-1)  # [N_atoms, input_dim]
 
         e_atom = torch.zeros(n_atoms, device=g_total.device)
@@ -121,7 +124,7 @@ class NEP(nn.Module):
         if hasattr(self.descriptor, 'angular') and hasattr(self.descriptor.angular, 'c_table'):
             angular_c_params = self.descriptor.angular.c_table.numel()
         
-        input_dim = self.n_desc_radial + self.n_desc_angular * self.l_max
+        input_dim = self.n_desc_radial + self.n_desc_angular * self.num_L
         
         print(f"Total number of parameters: {total_params}")
         print(f"Number of descriptor parameters: {descriptor_params}")
@@ -129,7 +132,7 @@ class NEP(nn.Module):
         print(f"  - Angular c_table: {angular_c_params}")
         print(f"Descriptor dimension information:")
         print(f"  - Radial descriptors: {self.n_desc_radial}")
-        print(f"  - Angular descriptors: {self.n_desc_angular} × {self.l_max} = {self.n_desc_angular * self.l_max}")
+        print(f"  - Angular descriptors: {self.n_desc_angular} × {self.num_L} = {self.n_desc_angular * self.num_L}")
         print(f"  - Total descriptor dimension: {input_dim}")
         print("Number of parameters in each element MLP:")
         for element, count in element_params.items():
@@ -141,7 +144,7 @@ class NEP(nn.Module):
             f.write(f"cutoff {self.para['rcut_radial']} {self.para['rcut_angular']} {self.para['NN_radial']} {self.para['NN_angular']}\n")
             f.write(f"n_max {int(self.para['n_desc_radial']) - 1} {int(self.para['n_desc_angular']) - 1}\n")
             f.write(f"basis_size {int(self.para['k_max_radial']) - 1} {int(self.para['k_max_angular']) - 1}\n")
-            f.write(f"l_max {int(self.para['l_max'])} 0 0\n")
+            f.write(f"l_max {int(self.L_max)} {int(self.l_max_4body)} {int(self.l_max_5body)}\n")
             f.write(f"ANN {int(self.para['hidden_dims'][0])} 0\n")
 
             for element in self.elements:
@@ -185,9 +188,8 @@ class NEP(nn.Module):
                             val = angular_params[t1, t2, n, k].item()
                             f.write(f"{val:15.7e}\n")
 
-            input_dim = self.n_desc_radial + self.n_desc_angular * self.l_max
+            input_dim = self.n_desc_radial + self.n_desc_angular * self.num_L
             for _ in range(input_dim):
                 f.write(f"{1.0:15.7e}\n")
-
 
 
