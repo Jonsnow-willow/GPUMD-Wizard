@@ -19,7 +19,9 @@ DESCRIPTOR_CONFIG = {
     "n_desc_angular": 5,  
     "k_max_radial": 9,      
     "k_max_angular": 9,    
-    "l_max": 4,           
+    "l_max": 4,     
+    "l_max_4body":2,
+    "l_max_5body":1      
 }
 
 DATASET_CONFIG = {
