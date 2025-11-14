@@ -7,7 +7,8 @@ symbol_infos = [
     SymbolInfo('Mo', 'bcc', 3.163),
     SymbolInfo('Ta', 'bcc', 3.321),
     SymbolInfo('W',  'bcc', 3.185),
-    SymbolInfo('VNbMoTaW',  'bcc', 3.195)]
+    SymbolInfo('VNbMoTaW',  'bcc', 3.195)
+    ]
 
 for symbol_info in symbol_infos:
     atoms = symbol_info.create_bulk_atoms((3,3,3))
