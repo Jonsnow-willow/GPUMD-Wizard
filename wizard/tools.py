@@ -372,9 +372,8 @@ def plot_training_result(dirname = '', type = 'train'):
     plt.close(fig)
 
 def plot_force_results(frames, calcs, labels = None, e_val = [None, None], f_val = [None, None]):
-    plt.rcParams["figure.figsize"] = (12, 5)
-    plt.rcParams.update({"font.size": 18, "text.usetex": False})
-    plt.subplots_adjust(wspace=0.3, bottom=0.2)
+    plt.rcParams["figure.figsize"] = (11, 5)
+    plt.rcParams.update({"font.size": 12, "text.usetex": False})
     fig, axes = plt.subplots(1, 2) 
     cmap = plt.get_cmap("tab10")
   
@@ -432,5 +431,6 @@ def plot_force_results(frames, calcs, labels = None, e_val = [None, None], f_val
     handles = [plt.Line2D([0], [0], color=color, marker='o', linestyle='') for label, color in label_colors.items()]
     axes[1].legend(handles, label_colors.keys(), loc = "upper right")
     
+    plt.tight_layout()
     fig.savefig("force_results.png")
     plt.close(fig)
