@@ -28,6 +28,8 @@ def dump_xyz(filename, atoms):
             else:
                 virial = -atoms.info['stress'].reshape(-1) * atoms.get_volume()
             Out_string += "virial=\"" + " ".join(list(map(str, virial))) + "\" "
+            Out_string += "stress=\"" + " ".join(list(map(str, atoms.info['stress'].reshape(-1)))) + "\" "
+
         Out_string += "Properties=species:S:1:pos:R:3:mass:R:1"
         if atoms.has('momenta'):
             velocites = atoms.get_velocities()
