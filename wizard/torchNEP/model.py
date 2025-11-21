@@ -31,6 +31,7 @@ class NEP(nn.Module):
             layers.append(nn.Linear(hidden_dims[-1], 1, bias=False))
             self.element_mlps[element] = nn.Sequential(*layers)
         
+        self._init_descriptor_scaler(input_dim)
         self.shared_bias = nn.Parameter(torch.zeros(1))
 
     def forward(self, batch):
@@ -43,12 +44,9 @@ class NEP(nn.Module):
             batch["positions"] = positions
         
         descriptors = self.descriptor(batch)
-        g_radial = descriptors["g_radial"]                       # [N_atoms, n_desc_radial]
-        g_angular = descriptors["g_angular"]                     # [N_atoms, n_desc_angular, num_L]
-        
-        n_atoms = g_radial.shape[0]
-        g_angular_flat = g_angular.reshape(n_atoms, -1)          # [N_atoms, n_desc_angular * num_L]
-        g_total = torch.cat([g_radial, g_angular_flat], dim=-1)  # [N_atoms, input_dim]
+        g_total = self._combine_descriptors(descriptors)         # [N_atoms, input_dim]
+        n_atoms = g_total.shape[0]
+        g_total = g_total * self.q_scaler
 
         e_atom = torch.zeros(n_atoms, device=g_total.device)
         for i, element in enumerate(self.elements):
@@ -188,8 +186,57 @@ class NEP(nn.Module):
                             val = angular_params[t1, t2, n, k].item()
                             f.write(f"{val:15.7e}\n")
 
-            input_dim = self.n_desc_radial + self.n_desc_angular * self.num_L
-            for _ in range(input_dim):
-                f.write(f"{1.0:15.7e}\n")
+            scaler = self.q_scaler.detach().cpu().reshape(-1)
+            for val in scaler.tolist():
+                f.write(f"{val:15.7e}\n")
 
+    def _init_descriptor_scaler(self, input_dim):
+        scaler_tensor = torch.ones(input_dim, dtype=torch.float32)
+        self.register_buffer("q_scaler", scaler_tensor)
+        self.para["descriptor_scaler"] = scaler_tensor.tolist()
 
+    def compute_descriptor_scaler(self, dataloader, device=None):
+        """
+        Estimate scaler = 1 / (max - min) for each descriptor dimension.
+        """
+        if device is None:
+            device = next(self.parameters()).device
+        prev_mode = self.training
+        self.eval()
+        q_min = None
+        q_max = None
+        with torch.no_grad():
+            for batch in dataloader:
+                batch = {k: (v.to(device) if isinstance(v, torch.Tensor) else v) for k, v in batch.items()}
+                descriptors = self.descriptor(batch)
+                g_total = self._combine_descriptors(descriptors)
+                if g_total.numel() == 0:
+                    continue
+                batch_min = torch.amin(g_total, dim=0)
+                batch_max = torch.amax(g_total, dim=0)
+                if q_min is None:
+                    q_min = batch_min
+                    q_max = batch_max
+                else:
+                    q_min = torch.minimum(q_min, batch_min)
+                    q_max = torch.maximum(q_max, batch_max)
+        if q_min is not None:
+            diff = q_max - q_min
+            scaler = torch.ones_like(diff)
+            valid = diff > 1.0e-12
+            scaler[valid] = 1.0 / diff[valid]
+            tensor = scaler.flatten()
+            with torch.no_grad():
+                self.q_scaler.copy_(tensor)
+            self.para["descriptor_scaler"] = tensor.detach().cpu().tolist()
+        self.train(prev_mode)
+        return self.q_scaler.detach().cpu().clone()
+
+    def _combine_descriptors(self, descriptors):
+        g_radial = descriptors["g_radial"]
+        g_angular = descriptors["g_angular"]
+        n_atoms = g_radial.shape[0]
+        if n_atoms == 0:
+            return g_radial.new_zeros((0, self.n_desc_radial + self.n_desc_angular * self.num_L))
+        g_angular_flat = g_angular.permute(0, 2, 1).reshape(n_atoms, -1)
+        return torch.cat([g_radial, g_angular_flat], dim=-1)
