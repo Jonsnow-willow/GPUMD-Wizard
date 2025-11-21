@@ -43,8 +43,8 @@ def main():
     descriptors = np.array([np.mean(get_descriptors(atoms, "nep.txt"), axis=0) for atoms in frames])
     sampler = FarthestPointSample(min_distance=0.05)
     selected = sampler.select(descriptors, [])
-    for atoms in selected:
-        dump_xyz("train.xyz", atoms)
+    for i in selected:
+        dump_xyz("train.xyz", frames[i])
 
 if __name__ == "__main__":
     main()
