@@ -58,4 +58,3 @@ ax.legend(frameon=False)
 plt.tight_layout()
 fig.savefig("pca.png")
 plt.close(fig)
-
