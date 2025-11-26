@@ -117,6 +117,17 @@ class Morph():
         momentum = np.sum(velocites * atoms_masses[:, np.newaxis], axis=0) 
         velocites -= momentum / total_mass
         atoms.set_velocities(velocites)
+
+    def zero_momentum(self):
+        atoms = self.atoms
+        if atoms.has('momenta') is None:
+            raise ValueError('The velocities of atoms are not set.')
+        masses = atoms.get_masses()[:, None]
+        total_mass = np.sum(masses)
+        momentum = atoms.get_momenta()
+        total_momentum = np.sum(momentum, axis=0)
+        momentum -= masses * (total_momentum / total_mass)
+        atoms.set_momenta(momentum)
     
     def shuffle_symbols(self):
         atoms = self.atoms
