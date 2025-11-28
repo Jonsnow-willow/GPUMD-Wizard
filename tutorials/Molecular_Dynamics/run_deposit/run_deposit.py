@@ -44,11 +44,11 @@ for i in range(20):
         
         x = r[0]
         y = r[1]
-        z = 60    
+        z = 180    
         
         atoms.append(Atom('C', position=(x, y, z), momentum=(0, 0, -0.12)))
         atoms.info['group'][0].append(1)
-
+    
     Morph(atoms).zero_momentum()
     Morph(atoms).gpumd('deposit/{}'.format(i), 
                        run_in=['potential nep89_20250409.txt', 
