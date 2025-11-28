@@ -122,7 +122,7 @@ class Morph():
         atoms = self.atoms
         if atoms.has('momenta') is None:
             raise ValueError('The velocities of atoms are not set.')
-        masses = atoms.get_masses()[:, None]
+        masses = atoms.get_masses()[:, np.newaxis]
         total_mass = np.sum(masses)
         momentum = atoms.get_momenta()
         total_momentum = np.sum(momentum, axis=0)
