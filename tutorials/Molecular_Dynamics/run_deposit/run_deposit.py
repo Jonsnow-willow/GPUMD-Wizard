@@ -11,7 +11,6 @@ calc = CPUNEP('../potentials/nep89_20250409.txt')
 atoms = symbol_info.create_bulk_atoms((1,1,1))
 slab = surface(atoms, (1,1,1), layers = 24, vacuum=100) 
 slab = slab * (8,8,1)
-'''
 Morph(slab).gpumd(run_in= ['potential nep89_20250409.txt', 
                            'velocity 300', 
                            'time_step 1', 
@@ -19,7 +18,7 @@ Morph(slab).gpumd(run_in= ['potential nep89_20250409.txt',
                            'dump_restart 30000', 
                            'run 30000'],
                   nep_path='../potentials/nep89_20250409.txt')
-'''
+
 for i in range(20):
     if i == 0:
         atoms = read_xyz('relax/restart.xyz')[-1]
@@ -49,6 +48,7 @@ for i in range(20):
         atoms.append(Atom('C', position=(x, y, z), momentum=(0, 0, -0.12)))
         atoms.info['group'][0].append(1)
 
+    Morph(atoms).zero_momentum()
     Morph(atoms).gpumd('deposit/{}'.format(i), 
                        run_in=['potential nep89_20250409.txt', 
                                 'velocity 300', 
