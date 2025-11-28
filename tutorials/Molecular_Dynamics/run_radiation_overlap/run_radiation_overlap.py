@@ -41,7 +41,7 @@ for i in range(1000):
             group.append(1)
         else:
             group.append(2)
-    atoms.info['group'] = group
+    atoms.info['group'] = [group]
     
     Morph(atoms).set_pka(energy=pka_energy, direction=direction)
     Morph(atoms).gpumd(f'{i}', run_in, nep_path='../potentials/MoNbTaVW.txt')
