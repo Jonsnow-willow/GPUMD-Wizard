@@ -11,7 +11,7 @@ for atom in atoms:
         group.append(0)
     else:
         group.append(1)
-atoms.info['group'] = group
+atoms.info['group'] = [group]
 
 run_in_1 = ['potential nep.txt', 
             'velocity 3000', 
