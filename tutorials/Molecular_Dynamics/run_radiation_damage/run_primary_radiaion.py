@@ -17,7 +17,7 @@ for sp in scaled_positions:
         group.append(1)
     else:
         group.append(2)
-atoms.info['group'] = group
+atoms.info['group'] = [group]
 
 run_in_1 = ['potential nep.txt',
             'velocity 300', 
