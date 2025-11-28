@@ -33,6 +33,7 @@ for i in range(20):
         else:
             group.append(1)
     atoms.info['group'] = [group]
+    
     cell = atoms.get_cell()
     for _ in range(20):
         a = cell[0]
