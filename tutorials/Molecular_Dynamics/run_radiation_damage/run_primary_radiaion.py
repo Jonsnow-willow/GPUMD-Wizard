@@ -40,7 +40,7 @@ run_in_2 = ['potential nep.txt',
             'dump_exyz 2000 1 1',
             'run 70000']
 
-pka_energy = 1000 #eV
+pka_energy = 500 #eV
 direction = np.array([1, 3, 5]) 
 
 Morph(atoms).gpumd('radiation/relax', run_in_1, nep_path='../potentials/MoNbTaVW.txt')
