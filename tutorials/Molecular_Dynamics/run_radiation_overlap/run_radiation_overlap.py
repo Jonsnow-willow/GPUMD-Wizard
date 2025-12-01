@@ -17,7 +17,7 @@ run_in =['potential nep.txt',
          'dump_exyz 5000 1 1',
          'run 20000']
 
-pka_energy = 10000
+pka_energy = 500 # eV
 for i in range(1000):
     if i == 0:
         symbol_info = SymbolInfo('W',  'bcc', 3.185)
