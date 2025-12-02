@@ -19,15 +19,7 @@ for sp in scaled_positions:
         group.append(2)
 atoms.info['group'] = [group]
 
-run_in_1 = ['potential nep.txt',
-            'velocity 300', 
-            'time_step 1', 
-            'ensemble npt_scr 300 300 200 0 500 2000', 
-            'dump_thermo 1000', 
-            'dump_restart 30000', 
-            'run 30000']
-
-run_in_2 = ['potential nep.txt', 
+run_in = ['potential nep.txt', 
             'velocity 300', 
             'time_step 0', 
             'ensemble nve',
@@ -43,7 +35,7 @@ run_in_2 = ['potential nep.txt',
 pka_energy = 500 #eV
 direction = np.array([1, 3, 5]) 
 
-Morph(atoms).gpumd('radiation/relax', run_in_1, nep_path='../potentials/MoNbTaVW.txt')
-atoms = read_xyz('radiation/relax/restart.xyz')[-1]
-Morph(atoms).set_pka(pka_energy, direction)
-Morph(atoms).gpumd('radiation/cascade', run_in_2, nep_path='../potentials/MoNbTaVW.txt')
+Morph(atoms).gpumd(nep_path='../potentials/nep.txt')
+atoms = read_xyz('relax/restart.xyz')[-1]
+Morph(atoms).set_pka(energy=pka_energy, direction=direction)
+Morph(atoms).gpumd('radiation/cascade', run_in, nep_path='../potentials/nep.txt')

@@ -4,24 +4,26 @@ import numpy as np
 
 run_in =['potential nep.txt', 
          'velocity 300', 
-         'time_step 1', 
-         'ensemble npt_mttk temp 300 300 iso 0 0', 
-         'dump_thermo 1000', 
-         'dump_restart 10000', 
-         'dump_exyz 10000', 
-         'run 10000',
          'time_step 1 0.015', 
          'ensemble heat_nhc 300 200 0 0 1',
          'compute 0 100 10 temperature', 
          'dump_restart 10000', 
          'dump_exyz 5000 1 1',
-         'run 20000']
+         'run 20000',
+         'time_step 1',  
+         'ensemble npt_scr 300 300 200 0 500 2000', 
+         'dump_thermo 1000', 
+         'dump_restart 10000', 
+         'run 10000']
+
+symbol_info = SymbolInfo('W',  'bcc', 3.185)
+atoms = symbol_info.create_bulk_atoms((20,20,20))
+Morph(atoms).gpumd()
 
 pka_energy = 500 # eV
 for i in range(1000):
     if i == 0:
-        symbol_info = SymbolInfo('W',  'bcc', 3.185)
-        atoms = symbol_info.create_bulk_atoms((20,20,20))
+        atoms = read_xyz('relax/restart.xyz')[-1]
     else:
         atoms = read_xyz(f'{i-1}/restart.xyz')[-1]
     Morph(atoms).random_center()

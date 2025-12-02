@@ -26,7 +26,7 @@ run_in_1 = ['potential nep.txt',
             'dump_restart 10000',
             'run 1000000']
 
-Morph(atoms).gpumd('melting_point/relax', run_in_1, nep_path='../potentials/MoNbTaVW.txt')
+Morph(atoms).gpumd('melting_point/relax', run_in_1, nep_path='../potentials/nep.txt')
 
 for Tm in range(3400, 3701, 100):
     atoms = read_xyz('melting_point/relax/restart.xyz')[-1]
@@ -37,4 +37,4 @@ for Tm in range(3400, 3701, 100):
               'dump_exyz 10000', 
               'dump_thermo 1000',
               'run 30000']
-    Morph(atoms).gpumd(f'melting_point/{Tm}', run_in, nep_path='../potentials/MoNbTaVW.txt')
+    Morph(atoms).gpumd(f'melting_point/{Tm}', run_in, nep_path='../potentials/nep.txt')

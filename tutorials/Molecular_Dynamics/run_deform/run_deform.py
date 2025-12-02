@@ -29,4 +29,4 @@ for symbol_info in symbol_infos:
               'dump_exyz 200000', 
               'dump_restart 10000',
               'run 2000000']
-    Morph(atoms).gpumd(dirname=dirname, run_in=run_in, nep_path='../potentials/MoNbTaVW.txt')
+    Morph(atoms).gpumd(dirname=dirname, run_in=run_in, nep_path='../potentials/nep.txt')
