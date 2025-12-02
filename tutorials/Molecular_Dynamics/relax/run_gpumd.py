@@ -19,7 +19,7 @@ for symbol_info in symbol_infos:
                 'time_step 1',
                 f'ensemble npt_mttk temp {temperature} {temperature} iso 0 0',
                 'dump_thermo 10000',
-                'dump_exyz 200000',
-                'dump_restart 1000000',
-                'run 1000000']
+                'dump_exyz 1000',
+                'dump_restart 10000',
+                'run 30000']
         Morph(atoms).gpumd(dirname=dirname, run_in=run_in, nep_path='../potentials/nep.txt')
