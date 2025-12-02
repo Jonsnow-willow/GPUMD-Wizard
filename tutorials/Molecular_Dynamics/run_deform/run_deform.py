@@ -22,7 +22,7 @@ for symbol_info in symbol_infos:
               'velocity 300', 
               'time_step 1',
               f'ensemble npt_scr {temperature} {temperature} 200 0 500 2000',
-              'run 30000'
+              'run 30000',
               f'ensemble npt_scr {temperature} {temperature} 100 0 0 0 100 100 100 1000',
               f'deform {strain} 0 0 1', 
               'dump_thermo 1000', 
