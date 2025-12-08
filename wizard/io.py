@@ -25,10 +25,12 @@ def dump_xyz(filename, atoms):
         if valid_keys['stress']:
             if len(atoms.info['stress']) == 6:
                 virial = -atoms.info['stress'][[0, 5, 4, 5, 1, 3, 4, 3, 2]] * atoms.get_volume()
+                stress = atoms.info['stress'][[0, 5, 4, 5, 1, 3, 4, 3, 2]]
             else:
                 virial = -atoms.info['stress'].reshape(-1) * atoms.get_volume()
+                stress = atoms.info['stress'].reshape(-1)
             Out_string += "virial=\"" + " ".join(list(map(str, virial))) + "\" "
-            Out_string += "stress=\"" + " ".join(list(map(str, atoms.info['stress'].reshape(-1)))) + "\" "
+            Out_string += "stress=\"" + " ".join(list(map(str, stress))) + "\" "
         Out_string += "Properties=species:S:1:pos:R:3:mass:R:1"
         if atoms.has('momenta'):
             velocites = atoms.get_velocities()
