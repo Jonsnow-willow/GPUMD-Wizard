@@ -8,7 +8,10 @@ class NEPCalculator(Calculator):
 
     def __init__(self, model_path, device='cpu', **kwargs):
         super().__init__(**kwargs)
-        self.model = NEP.from_checkpoint(model_path, device=device)
+        if model_path.endswith(".txt"):
+            self.model = NEP.from_nep_txt(model_path, device=device)
+        else:
+            self.model = NEP.from_checkpoint(model_path, device=device)
         self.para = self.model.para
         self.model.eval()    
 

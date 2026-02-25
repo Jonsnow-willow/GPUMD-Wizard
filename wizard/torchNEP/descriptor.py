@@ -176,29 +176,28 @@ class RadialDescriptor(nn.Module):
         self.r_c = r_c
         self.c_table = nn.Parameter(torch.randn(n_types, n_types, n_desc, k_max))
 
-    def forward(self, types, positions, radial_neighbors):
+    def forward(self, types, positions, radial_neighbors, radial_offsets):
         n_atoms, nn_radial = radial_neighbors.shape
-        device = positions.device
-        valid_mask = radial_neighbors != -1
-        if not valid_mask.any():
+        mask = radial_neighbors != -1
+        if not mask.any():
             return positions.new_zeros((n_atoms, self.n_desc))
 
-        atom_indices = torch.arange(n_atoms, device=device).unsqueeze(1).expand(-1, nn_radial)
-        valid_atom_indices = atom_indices[valid_mask]
-        valid_neighbor_indices = radial_neighbors[valid_mask]
+        safe_neighbors = radial_neighbors.clone()
+        safe_neighbors[~mask] = 0
 
-        pos_i = positions[valid_atom_indices]
-        pos_j = positions[valid_neighbor_indices]
-        type_i = types[valid_atom_indices]
-        type_j = types[valid_neighbor_indices]
-        distances = torch.linalg.norm(pos_j - pos_i, dim=-1)
+        pos_i = positions.unsqueeze(1)
+        pos_j = positions[safe_neighbors]
+        r_vec = pos_j + radial_offsets.to(dtype=positions.dtype) - pos_i
+        distances = torch.linalg.norm(r_vec, dim=-1)
 
         f = chebyshev_basis(distances, self.r_c, self.k_max)
+        type_i = types.unsqueeze(1).expand(-1, nn_radial)
+        type_j = types[safe_neighbors]
         coeff = self.c_table[type_i, type_j]
-        edge_desc = torch.sum(coeff * f.unsqueeze(1), dim=-1)
+        edge_desc = torch.sum(coeff * f.unsqueeze(2), dim=-1)
+        edge_desc = edge_desc * mask.unsqueeze(-1)
 
-        g = positions.new_zeros((n_atoms, self.n_desc))
-        g.index_add_(0, valid_atom_indices, edge_desc)
+        g = torch.sum(edge_desc, dim=1)
         return g
 
 
@@ -222,7 +221,7 @@ class AngularDescriptor(nn.Module):
             tensor = torch.tensor(data, dtype=torch.float32)
             self.register_buffer(f"Z{L}", tensor)
 
-    def _gather_neighbor_vectors(self, positions, neighbors):
+    def _gather_neighbor_vectors(self, positions, neighbors, neighbor_offsets):
         mask = neighbors != -1
         if not mask.any():
             return None, None, None
@@ -230,7 +229,7 @@ class AngularDescriptor(nn.Module):
         safe_index[~mask] = 0
         pos_i = positions.unsqueeze(1)
         pos_j = positions[safe_index]
-        r_vec = pos_j - pos_i
+        r_vec = pos_j + neighbor_offsets.to(dtype=positions.dtype) - pos_i
         r_vec = torch.where(mask.unsqueeze(-1), r_vec, torch.zeros_like(r_vec))
         distances = torch.linalg.norm(r_vec, dim=-1)
         safe_valid = torch.clamp(distances, min=1.0e-12)
@@ -336,8 +335,10 @@ class AngularDescriptor(nn.Module):
 
         return torch.stack(q_list, dim=-1) if q_list else s.new_zeros((s.shape[0], s.shape[1], 0))
 
-    def forward(self, types, positions, angular_neighbors):
-        unit_vec, distances, mask = self._gather_neighbor_vectors(positions, angular_neighbors)
+    def forward(self, types, positions, angular_neighbors, angular_offsets):
+        unit_vec, distances, mask = self._gather_neighbor_vectors(
+            positions, angular_neighbors, angular_offsets
+        )
         n_atoms = positions.shape[0]
         if unit_vec is None or not mask.any():
             return positions.new_zeros((n_atoms, self.n_desc, self.num_L))
@@ -389,9 +390,15 @@ class Descriptor(nn.Module):
 
     def forward(self, batch):
         g_radial = self.radial(
-            batch["types"], batch["positions"], batch["radial_neighbors"]
+            batch["types"],
+            batch["positions"],
+            batch["radial_neighbors"],
+            batch["radial_offsets"],
         )
         g_angular = self.angular(
-            batch["types"], batch["positions"], batch["angular_neighbors"]
+            batch["types"],
+            batch["positions"],
+            batch["angular_neighbors"],
+            batch["angular_offsets"],
         )
         return {"g_radial": g_radial, "g_angular": g_angular}

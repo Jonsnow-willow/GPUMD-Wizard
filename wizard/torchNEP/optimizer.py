@@ -12,7 +12,7 @@ class Optimizer:
     def __init__(
         self, model, training_set, optimizer=None, loss_fn=None,
         device=None, save_path="nep_model.pt", early_stopping_patience=10, 
-        use_wandb=False, wandb_project="NEP"):
+        use_wandb=False, wandb_project="NEP", compute_q_scaler_once=True):
         self.model = model
         self.training_set = training_set
         self.optimizer = optimizer if optimizer is not None else torch.optim.Adam(model.parameters(), lr=1e-3)
@@ -23,10 +23,21 @@ class Optimizer:
         self.best_val_loss = float('inf')
         self.patience = 0
         self.model.to(self.device)
+        self.compute_q_scaler_once = compute_q_scaler_once
+        self.q_scaler_initialized = False
         
         self.use_wandb = use_wandb and has_wandb
         if self.use_wandb:
             wandb.init(project=wandb_project, config={"early_stopping_patience": early_stopping_patience})
+
+    def initialize_descriptor_scaler(self):
+        if not self.compute_q_scaler_once or self.q_scaler_initialized:
+            return
+        scaler = self.model.compute_descriptor_scaler(self.training_set, device=self.device)
+        self.q_scaler_initialized = True
+        scaler_min = torch.min(scaler).item()
+        scaler_max = torch.max(scaler).item()
+        print(f"Initialized q_scaler once (min={scaler_min:.6e}, max={scaler_max:.6e}).")
 
     def compute_loss(self, prediction, batch, weights=None):
         if weights is None:
@@ -122,6 +133,7 @@ class Optimizer:
         print(f"Number of Epoch: {epochs}")
         print(f"Devices: {self.device}")
         print(f"Number of Parameters: {sum(p.numel() for p in self.model.parameters())}")
+        self.initialize_descriptor_scaler()
         print("-" * 50)
         for epoch in range(1, epochs + 1):
             self.current_epoch = epoch
@@ -145,7 +157,8 @@ class SNES:
         save_path="nep_model.pt",
         population_size=50,
         sigma_init=0.1,
-        patience=10
+        patience=10,
+        compute_q_scaler_once=True
     ):
         self.model = model
         self.training_set = training_set
@@ -156,6 +169,8 @@ class SNES:
         self.population_size = population_size
         self.sigma_init = sigma_init
         self.patience = patience
+        self.compute_q_scaler_once = compute_q_scaler_once
+        self.q_scaler_initialized = False
         
         self.model.to(self.device)
         self.param_shapes = []
@@ -174,6 +189,17 @@ class SNES:
         self.best_loss = float('inf')
         self.best_params = self.theta.copy()
         self.stagnation_count = 0
+
+    def initialize_descriptor_scaler(self):
+        if not self.compute_q_scaler_once or self.q_scaler_initialized:
+            return
+        # Align with SNES center before collecting descriptor statistics.
+        self._set_flat_params(self.theta)
+        scaler = self.model.compute_descriptor_scaler(self.training_set, device=self.device)
+        self.q_scaler_initialized = True
+        scaler_min = torch.min(scaler).item()
+        scaler_max = torch.max(scaler).item()
+        print(f"Initialized q_scaler once (min={scaler_min:.6e}, max={scaler_max:.6e}).")
 
     def _get_flat_params(self) -> np.ndarray:
         params = []
@@ -297,6 +323,7 @@ class SNES:
         print(f"Devices: {self.device}")
         print(f"Number of Parameters: {self.total_params}")
         print(f"Population Size: {self.population_size}")
+        self.initialize_descriptor_scaler()
         print("-" * 50)
         
         for generation in range(1, generations + 1):

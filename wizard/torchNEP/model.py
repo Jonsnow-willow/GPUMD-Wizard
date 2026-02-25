@@ -100,11 +100,159 @@ class NEP(nn.Module):
         checkpoint = torch.load(filepath, map_location=device)
         para = checkpoint['para']
         model = cls(para)
-        model.load_state_dict(checkpoint['model_state_dict'])
+        state = checkpoint.get('model_state_dict', {})
+        incompatible = model.load_state_dict(state, strict=False)
+        if incompatible.missing_keys and "q_scaler" in incompatible.missing_keys:
+            scaler = para.get("descriptor_scaler", None)
+            if scaler is not None and len(scaler) == model.q_scaler.numel():
+                with torch.no_grad():
+                    model.q_scaler.copy_(torch.tensor(scaler, dtype=model.q_scaler.dtype))
 
         if device is not None:
             model.to(device)
         
+        return model
+
+    @classmethod
+    def from_nep_txt(cls, filepath, device=None):
+        def float_stream(lines, start):
+            for line in lines[start:]:
+                for token in line.split():
+                    yield float(token)
+
+        with open(filepath, "r") as f:
+            lines = [line.strip() for line in f if line.strip() != ""]
+
+        idx = 0
+        tokens = lines[idx].split()
+        idx += 1
+        if not tokens[0].startswith("nep"):
+            raise ValueError("Invalid nep.txt: first line should start with nep4 or nep5.")
+        version = int(tokens[0][3:])
+        if version != 4:
+            raise NotImplementedError("Only nep4 is supported by torchNEP loader.")
+        num_types = int(tokens[1])
+        elements = tokens[2:]
+        if len(elements) != num_types:
+            raise ValueError("Invalid nep.txt: element count mismatch.")
+
+        tokens = lines[idx].split()
+        idx += 1
+        if tokens[0] != "cutoff":
+            raise ValueError("Invalid nep.txt: cutoff line not found.")
+        if len(tokens) == 5:
+            rcut_radial = float(tokens[1])
+            rcut_angular = float(tokens[2])
+            NN_radial = int(tokens[3])
+            NN_angular = int(tokens[4])
+        else:
+            # cutoff rc_r1 rc_a1 rc_r2 rc_a2 ... MN_radial MN_angular
+            expected = num_types * 2 + 3
+            if len(tokens) != expected:
+                raise ValueError("Invalid nep.txt: cutoff line length mismatch.")
+            rc_radial = [float(tokens[1 + i * 2]) for i in range(num_types)]
+            rc_angular = [float(tokens[2 + i * 2]) for i in range(num_types)]
+            if len(set(rc_radial)) != 1 or len(set(rc_angular)) != 1:
+                raise NotImplementedError("Per-type cutoffs are not supported in torchNEP.")
+            rcut_radial = rc_radial[0]
+            rcut_angular = rc_angular[0]
+            NN_radial = int(tokens[-2])
+            NN_angular = int(tokens[-1])
+
+        tokens = lines[idx].split()
+        idx += 1
+        if tokens[0] != "n_max":
+            raise ValueError("Invalid nep.txt: n_max line not found.")
+        n_max_radial = int(tokens[1])
+        n_max_angular = int(tokens[2])
+
+        tokens = lines[idx].split()
+        idx += 1
+        if tokens[0] != "basis_size":
+            raise ValueError("Invalid nep.txt: basis_size line not found.")
+        basis_size_radial = int(tokens[1])
+        basis_size_angular = int(tokens[2])
+
+        tokens = lines[idx].split()
+        idx += 1
+        if tokens[0] != "l_max":
+            raise ValueError("Invalid nep.txt: l_max line not found.")
+        l_max = int(tokens[1])
+        l_max_4body = int(tokens[2])
+        l_max_5body = int(tokens[3])
+
+        tokens = lines[idx].split()
+        idx += 1
+        if tokens[0] != "ANN":
+            raise ValueError("Invalid nep.txt: ANN line not found.")
+        num_neurons = int(tokens[1])
+
+        n_desc_radial = n_max_radial + 1
+        n_desc_angular = n_max_angular + 1
+        k_max_radial = basis_size_radial + 1
+        k_max_angular = basis_size_angular + 1
+
+        para = {
+            "elements": elements,
+            "rcut_radial": rcut_radial,
+            "rcut_angular": rcut_angular,
+            "n_desc_radial": n_desc_radial,
+            "n_desc_angular": n_desc_angular,
+            "k_max_radial": k_max_radial,
+            "k_max_angular": k_max_angular,
+            "l_max": l_max,
+            "l_max_4body": l_max_4body,
+            "l_max_5body": l_max_5body,
+            "NN_radial": NN_radial,
+            "NN_angular": NN_angular,
+            "hidden_dims": [num_neurons],
+            "n_types": num_types,
+        }
+
+        model = cls(para)
+        num_L = model.num_L
+        dim = n_desc_radial + n_desc_angular * num_L
+
+        stream = float_stream(lines, idx)
+
+        with torch.no_grad():
+            for t, element in enumerate(elements):
+                w0 = torch.tensor([next(stream) for _ in range(num_neurons * dim)],
+                                  dtype=torch.float32).reshape(num_neurons, dim)
+                b0 = torch.tensor([next(stream) for _ in range(num_neurons)], dtype=torch.float32)
+                w1 = torch.tensor([next(stream) for _ in range(num_neurons)], dtype=torch.float32)
+
+                mlp = model.element_mlps[element]
+                mlp[0].weight.copy_(w0)
+                mlp[0].bias.copy_(-b0)
+                mlp[-1].weight.copy_(w1.view(1, -1))
+
+            shared_bias = torch.tensor(next(stream), dtype=torch.float32)
+            model.shared_bias.copy_(shared_bias)
+
+            c_radial = torch.empty(num_types, num_types, n_desc_radial, k_max_radial, dtype=torch.float32)
+            for n in range(n_desc_radial):
+                for k in range(k_max_radial):
+                    for t1 in range(num_types):
+                        for t2 in range(num_types):
+                            c_radial[t1, t2, n, k] = next(stream)
+            model.descriptor.radial.c_table.copy_(c_radial)
+
+            c_angular = torch.empty(num_types, num_types, n_desc_angular, k_max_angular, dtype=torch.float32)
+            for n in range(n_desc_angular):
+                for k in range(k_max_angular):
+                    for t1 in range(num_types):
+                        for t2 in range(num_types):
+                            c_angular[t1, t2, n, k] = next(stream)
+            model.descriptor.angular.c_table.copy_(c_angular)
+
+            q_scaler = torch.tensor([next(stream) for _ in range(dim)], dtype=torch.float32)
+            model.q_scaler.copy_(q_scaler)
+            model.para["descriptor_scaler"] = q_scaler.detach().cpu().tolist()
+
+        if device is not None:
+            model.to(device)
+
         return model
       
     def print_model_info(self):

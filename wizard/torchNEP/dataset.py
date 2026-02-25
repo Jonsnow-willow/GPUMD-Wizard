@@ -1,24 +1,8 @@
 import torch
-from ase.neighborlist import neighbor_list
-from ase.data import atomic_numbers
+from ase.data import atomic_numbers, chemical_symbols
 from torch.utils.data import Dataset
+from .neighbor import build_neighbor_list
 
-def find_neighbor(atoms, cutoff):
-    i, j = neighbor_list('ij', atoms, cutoff)
-    n_atoms = len(atoms)
-    neighbors = [[] for _ in range(n_atoms)]
-    for idx in range(len(i)):
-        neighbors[i[idx]].append(j[idx])
-    return neighbors
-
-def pad_neighbors(neighbors, max_nbs=None, pad_value=-1):
-    if max_nbs is None:
-        max_nbs = max(len(nbs) for nbs in neighbors)
-    padded = []
-    for nbs in neighbors:
-        arr = list(nbs) + [pad_value] * (max_nbs - len(nbs))
-        padded.append(arr)
-    return torch.tensor(padded, dtype=torch.long)
 
 def collate_fn(batch):
     atom_offset = 0
@@ -26,6 +10,8 @@ def collate_fn(batch):
     positions_list = []
     radial_neighbors_list = []
     angular_neighbors_list = []
+    radial_offsets_list = []
+    angular_offsets_list = []
     
     n_atoms_per_structure = []
     
@@ -44,11 +30,13 @@ def collate_fn(batch):
         valid_rad = nbs_rad != -1
         nbs_rad[valid_rad] += atom_offset
         radial_neighbors_list.append(nbs_rad)
+        radial_offsets_list.append(item["radial_offsets"])
 
         nbs_ang = item["angular_neighbors"].clone()
         valid_ang = nbs_ang != -1
         nbs_ang[valid_ang] += atom_offset
         angular_neighbors_list.append(nbs_ang)
+        angular_offsets_list.append(item["angular_offsets"])
 
         e = item.get("energy", None)
         energy_list.append(e)
@@ -67,6 +55,8 @@ def collate_fn(batch):
     positions = torch.cat(positions_list, dim=0)
     radial_neighbors = torch.cat(radial_neighbors_list, dim=0)
     angular_neighbors = torch.cat(angular_neighbors_list, dim=0)
+    radial_offsets = torch.cat(radial_offsets_list, dim=0)
+    angular_offsets = torch.cat(angular_offsets_list, dim=0)
 
     result = {
         "types": types,                                 # [N_atoms_total]
@@ -75,6 +65,8 @@ def collate_fn(batch):
         "batch_size": len(batch),                       # int
         "radial_neighbors": radial_neighbors,           # [N_atoms_total, NN_radial]
         "angular_neighbors": angular_neighbors,         # [N_atoms_total, NN_angular]
+        "radial_offsets": radial_offsets,               # [N_atoms_total, NN_radial, 3]
+        "angular_offsets": angular_offsets,             # [N_atoms_total, NN_angular, 3]
     }
     
     if any(is_energy):
@@ -101,6 +93,22 @@ class StructureDataset(Dataset):
         element_atomic_numbers = [atomic_numbers[element] for element in self.elements]  
         self.z2id = {z: idx for idx, z in enumerate(element_atomic_numbers)}     
         self.id2z = {idx: z for idx, z in enumerate(element_atomic_numbers)}    
+
+        dataset_atomic_numbers = sorted({
+            int(z) for atoms in self.frames for z in atoms.get_atomic_numbers()
+        })
+        missing_atomic_numbers = [z for z in dataset_atomic_numbers if z not in self.z2id]
+        if missing_atomic_numbers:
+            missing_symbols = [
+                chemical_symbols[z] if z < len(chemical_symbols) else f"Z{z}"
+                for z in missing_atomic_numbers
+            ]
+            raise ValueError(
+                "Training set contains elements not listed in para['elements']. "
+                f"Missing elements: {missing_symbols}. "
+                f"Provided elements (type id order): {self.elements}."
+            )
+
         self.data = [self.process(atoms) for atoms in self.frames]
     
     def process(self, atoms):
@@ -110,18 +118,29 @@ class StructureDataset(Dataset):
         types = torch.tensor(types, dtype=torch.long)
         positions = torch.tensor(atoms.get_positions(), dtype=torch.float32)
 
-        neighbors_rad = find_neighbor(atoms, self.cutoff_radial)
-        neighbors_rad_pad = pad_neighbors(neighbors_rad, max_nbs=self.NN_radial)
-       
-        neighbors_ang = find_neighbor(atoms, self.cutoff_angular)
-        neighbors_ang_pad = pad_neighbors(neighbors_ang, max_nbs=self.NN_angular)
+        (
+            neighbors_rad,
+            offsets_rad,
+            neighbors_ang,
+            offsets_ang,
+        ) = build_neighbor_list(
+            positions=atoms.get_positions(),
+            cell=atoms.get_cell().array,
+            pbc=atoms.get_pbc(),
+            cutoff_radial=self.cutoff_radial,
+            cutoff_angular=self.cutoff_angular,
+            max_neighbors_radial=self.NN_radial,
+            max_neighbors_angular=self.NN_angular,
+        )
        
         result = {
             "n_atoms": n_atoms,                       # int     
             "types": types,                           # [N_atoms]      
             "positions": positions,                   # [N_atoms, 3]
-            "radial_neighbors": neighbors_rad_pad,    # [N_atoms, NN_radial]
-            "angular_neighbors": neighbors_ang_pad,   # [N_atoms, NN_angular]
+            "radial_neighbors": torch.from_numpy(neighbors_rad).long(),    # [N_atoms, NN_radial]
+            "angular_neighbors": torch.from_numpy(neighbors_ang).long(),    # [N_atoms, NN_angular]
+            "radial_offsets": torch.from_numpy(offsets_rad).float(),        # [N_atoms, NN_radial, 3]
+            "angular_offsets": torch.from_numpy(offsets_ang).float(),       # [N_atoms, NN_angular, 3]
         }
         
         if 'energy' in atoms.info and atoms.info['energy'] is not None:
