@@ -371,10 +371,10 @@ def plot_training_result(dirname = '', type = 'train'):
     fig.savefig("train_results.png")
     plt.close(fig)
 
-def plot_force_results(frames, calcs, labels = None, e_val = [None, None], f_val = [None, None]):
+def plot_force_results(frames, calcs, labels = None, e_val = [None, None], f_val = [None, None], v_val = [None, None]):
     plt.rcParams["figure.figsize"] = (11, 5)
     plt.rcParams.update({"font.size": 12, "text.usetex": False})
-    fig, axes = plt.subplots(1, 2) 
+    fig, axes = plt.subplots(1, 3) 
     cmap = plt.get_cmap("tab10")
   
     print(len(frames))  
@@ -383,26 +383,35 @@ def plot_force_results(frames, calcs, labels = None, e_val = [None, None], f_val
     if labels is None:
         labels = [str(i) for i in range(len(calcs))]
     for calc, label in zip(calcs, labels):
-        e_1, e_2, f_1, f_2 = [], [], [], []
+        e_1, e_2, f_1, f_2, v_1, v_2 = [], [], [], [], [], []
         for atoms in frames:
             atoms.calc = calc
             e_1.append(atoms.get_potential_energy() / len(atoms))
             e_2.append(atoms.info['energy'] / len(atoms))
             f_1.append(atoms.get_forces())
             f_2.append(atoms.info['forces'])
+            if 'stress' in atoms.info and atoms.info['stress'] is not None:
+                v_1.append(atoms.get_stress(voigt=False) )
+                v_2.append(atoms.info['stress'])
         e_1 = np.array(e_1)
         e_2 = np.array(e_2)
         f_1 = np.concatenate(f_1)
         f_2 = np.concatenate(f_2)
+        v_1 = np.array(v_1).flatten()
+        v_2 = np.array(v_2).flatten()
         color = cmap(labels.index(label))
         axes[0].plot(e_2, e_1, ".", markersize=10, label=label, color=color)
         axes[1].plot(f_2, f_1, ".", markersize=10, label=label, color=color)
+        axes[2].plot(v_2, v_1, ".", markersize=10, label=label, color=color)
         if label not in label_colors:
             label_colors[label] = color
         e_rmse = np.sqrt(np.mean((e_1-e_2)**2)) 
         f_rmse = np.sqrt(np.mean((f_1-f_2)**2))
+        v_rmse = np.sqrt(np.mean((v_1-v_2)**2))
         print(f'{label}_E_rmse: {e_rmse * 1000:.2f} meV/atom')
         print(f'{label}_F_rmse: {f_rmse * 1000:.2f} meV/Å')
+        print(f'{label}_S_rmse: {v_rmse * 1000:.2f} meV/Å^3')
+
 
     x_min, x_max = axes[0].get_xlim()
     y_min, y_max = axes[0].get_ylim()
@@ -415,6 +424,12 @@ def plot_force_results(frames, calcs, labels = None, e_val = [None, None], f_val
     min_val = min(x_min, y_min)
     max_val = max(x_max, y_max)
     axes[1].plot([min_val, max_val], [min_val, max_val], 'k--')
+
+    x_min, x_max = axes[2].get_xlim()
+    y_min, y_max = axes[2].get_ylim()
+    min_val = min(x_min, y_min)
+    max_val = max(x_max, y_max)
+    axes[2].plot([min_val, max_val], [min_val, max_val], 'k--')
     
     if e_val[0] is not None and e_val[1] is not None:
         axes[0].set_xlim(e_val)
@@ -422,14 +437,20 @@ def plot_force_results(frames, calcs, labels = None, e_val = [None, None], f_val
     if f_val[0] is not None and f_val[1] is not None:
         axes[1].set_xlim(f_val)
         axes[1].set_ylim(f_val)
+    if v_val[0] is not None and v_val[1] is not None:
+        axes[2].set_xlim(v_val)
+        axes[2].set_ylim(v_val)
     axes[0].set_xlabel("DFT energy (eV/atom)")
     axes[0].set_ylabel("NEP energy (eV/atom)")
     axes[1].set_xlabel("DFT force (eV/Å)")
     axes[1].set_ylabel("NEP force (eV/Å)")
+    axes[2].set_xlabel("DFT stress (eV/Å^3)")
+    axes[2].set_ylabel("NEP stress (eV/Å^3)")
     axes[0].text(0.05, 0.95, '(a)', transform=axes[0].transAxes, verticalalignment='top')
     axes[1].text(0.05, 0.95, '(b)', transform=axes[1].transAxes, verticalalignment='top')
+    axes[2].text(0.05, 0.95, '(c)', transform=axes[2].transAxes, verticalalignment='top')
     handles = [plt.Line2D([0], [0], color=color, marker='o', linestyle='') for label, color in label_colors.items()]
-    axes[1].legend(handles, label_colors.keys(), loc = "upper right")
+    axes[2].legend(handles, label_colors.keys(), loc = "upper right")
     
     plt.tight_layout()
     fig.savefig("force_results.png")
