@@ -1,4 +1,2 @@
 *.pyc
-wandb
 .DS_Store
-tutorials/Train_Torch_NEP
