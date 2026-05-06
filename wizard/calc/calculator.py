@@ -1,12 +1,3 @@
-from ase import Atoms
-from ase.mep import NEB
-from ase.build import surface
-from ase.units import J
-from ..utils.io import dump_xyz
-from ..utils.tools import plot_band_structure
-from .phono import PhonoCalc
-from ..model.atoms import Morph
-from calorine.tools import get_elastic_stiffness_tensor, relax_structure
 from itertools import combinations_with_replacement
 import matplotlib
 matplotlib.use('Agg')
@@ -14,102 +5,233 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
+from ase import Atoms, Atom
+from ase.build import cut, rotate, surface
+from ase.calculators.calculator import Calculator
+from ase.neb import NEB
+from ase.units import J
+from calorine.tools import get_elastic_stiffness_tensor
+
+from .phono import PhonoCalc
+from ..core.minimize import relax
+from ..model.atoms import Morph
+from ..utils.io import dump_xyz
+from ..utils.tools import plot_band_structure
+
 class MaterialCalculator():
-    def __init__(self, atoms, calculator, alloy_info, clamped = False, **kwargs):
+    def __init__(self, 
+                 atoms: Atoms, 
+                 calculator: Calculator, 
+                 clamped: bool = False, 
+                 **kwargs):
+        """
+        A wrapper class for performing energy calculations on atomic structures.
+
+        This class writes results to two files for consistency:
+
+        - ``MaterialProperties.xyz``  
+        Contains structures generated during calculations (e.g., relaxed
+        configurations, defected cells, EOS scaling). Each call appends
+        the latest structure in XYZ format.
+
+        - ``MaterialProperties.out``  
+        Contains textual property summaries such as lattice constants,
+        ground-state energy, defect formation energies, elastic constants,
+        and other scalar quantities. Each call appends new results in a
+        human-readable format.
+
+        Parameters
+        ----------
+        atoms : Atoms
+            ASE Atoms object representing the structure.
+        calculator : Calculator
+            ASE calculator to be attached to the atoms.
+        clamped : bool, optional
+            If True, skip structural relaxation (default: False).
+        **kwargs : dict
+            Additional keyword arguments to be handed over to the minimizer; possible arguments can be found
+            in the `ASE documentation <https://wiki.fysik.dtu.dk/ase/ase/optimize.html>`_
+            https://wiki.fysik.dtu.dk/ase/ase/filters.html#the-frechetcellfilter-class.
+
+        Attributes
+        ----------
+        atoms : Atoms
+            The relaxed (or unrelaxed if clamped=True) structure.
+        calc : Calculator
+            The calculator used for energy evaluation.
+        kwargs : dict
+            Relaxation keyword arguments.
+        atom_energy : float
+            Energy per atom (eV/atom).
+        info : str
+            Configuration type label from atoms.info, if available.
+        """
+        if not isinstance(atoms, Atoms):
+            raise TypeError('Input configuration must be an ASE Atoms object'
+                            f', not type {type(atoms)}.')
+        if not isinstance(calculator, Calculator):
+            raise TypeError('Input calculator must be an ASE Calculator object'
+                            f', not type {type(calculator)}.')
+        
+        atoms = atoms.copy()
         atoms.calc = calculator
-        if not clamped:
-            relax_structure(atoms, **kwargs)
+        if not clamped:    
+            relax(atoms, **kwargs)
         self.atoms = atoms
-        self.calc = calculator  
-        self.epa = atoms.get_potential_energy() / len(atoms)
-        self.formula = alloy_info.formula
-        self.symbols = alloy_info.symbols
-        self.crystalstructure = alloy_info.lattice_type
+        self.calc = calculator
+        self.clamped = clamped
         self.kwargs = kwargs
+        self.atom_energy = atoms.get_potential_energy() / len(atoms)
+        self.info = atoms.info.get('config_type', '')
+        self.formula = atoms.info.get('formula', atoms.get_chemical_formula())
     
-    def isolate_atom_energy(self):
-        output = f"\n {self.formula:<10}Isolated_Atom_Energies (eV):\n"
-        for symbol in self.symbols:
-            atoms = Atoms(symbols=[symbol], positions=[[0, 0, 0]],
-                          pbc = [True, True, True], cell= [[20,0,0],[0,30,0],[0,0,40]])
+    def isolate_atom_energy(self) -> list[str]:
+        """
+        Calculate reference energies of isolated atoms for each element type.
+
+        Returns
+        -------
+        list[str]
+            Lines with per-atom reference energies, e.g. "Fe Iso_Atom_Energy: -4.1234 eV".
+        """
+        symbols = self.atoms.get_chemical_symbols()
+        symbols = sorted(set(symbols))
+        output = []
+        for symbol in symbols:
+            atoms = Atoms([symbol], positions=[(0, 0, 0)], cell=[20, 20, 20], pbc=True)
             atoms.calc = self.calc
+            atoms.info['config_type'] = f'{symbol}_isolate_atom'
             iso_atom_energy = atoms.get_potential_energy()
+            output.append(f" {symbol:<10}Iso_Atom_Energy: {iso_atom_energy:.4f} eV")
             dump_xyz('MaterialProperties.xyz', atoms)
-            output += f"   {symbol:<2} Atom Energy: {iso_atom_energy:.4f} eV\n"
         with open('MaterialProperties.out', "a") as f:
-            f.write(output)
+            f.write("\n".join(output) + "\n")
         return output
     
-    def lattice_constant(self):
+    def lattice_constant(self) -> list[str]:
+        """
+        Report basic lattice properties of the current structure.
+
+        Returns
+        -------
+        list[str]
+            Lines with formatted lattice parameters, angles, ratios, volume,
+            and ground-state energy.
+        """
         atoms = self.atoms
-        energy_per_atom = self.epa
-        cell_lengths = atoms.cell.cellpar()
+        atom_energy = self.atom_energy
+        a, b, c, alpha, beta, gamma = atoms.cell.cellpar()
+        V = atoms.get_volume()               
+        N = len(atoms)
+        b_over_a = b / a if a > 1e-12 else float('nan')
+        c_over_a = c / a if a > 1e-12 else float('nan')
+        a_mean = (a + b + c) / 3.0
+        output = []
+        output.append(f" {self.info:<10}Lattice_Constants: a={a:.4f} Å  b={b:.4f} Å  c={c:.4f} Å")
+        output.append(f"{'':<11}Angles: α={alpha:.2f}°  β={beta:.2f}°  γ={gamma:.2f}°")
+        output.append(f"{'':<11}Ratios: b/a={b_over_a:.6f}  c/a={c_over_a:.6f}  a_mean={a_mean:.4f} Å")
+        output.append(f"{'':<11}Volume: V={V:.3f} Å³  V/atom={V/N:.3f} Å³/atom")
+        output.append(f"{'':<11}Ground_State_Energy: {atom_energy:.4f} eV/atom")
         dump_xyz('MaterialProperties.xyz', atoms)
-        
-        output = ""
-        if self.crystalstructure == 'hcp':
-            output += f" {self.formula:<10}Lattice_Constants: a: {cell_lengths[0]:.4f} A    c: {cell_lengths[2]:.4f} A\n"
-            output += f"{'':<11}Ground_State_Energy: {energy_per_atom:.4f} eV\n"
-        else:
-            output += f" {self.formula:<10}Lattice_Constants: {round(sum(cell_lengths[:3])/3, 3):.4f} A\n"
-            output += f"{'':<11}Ground_State_Energy: {energy_per_atom:.4f} eV\n"
-        
         with open('MaterialProperties.out', "a") as f:
-            f.write(output)
-        
+            f.write("\n".join(output) + "\n")
         return output
     
-    def elastic_constant(self, epsilon = 0.01):
+    def elastic_constant(self, epsilon: float = 1e-3) -> dict:
+        """
+        Compute elastic stiffness constants using the calorine package.
+
+        Parameters
+        ----------
+        epsilon : float, optional
+            Strain amplitude for finite-difference calculation (default 1e-3).
+
+        Returns
+        
+        dict
+        A dictionary with two keys:
+        - 'Cij' : np.ndarray
+            The full elastic stiffness tensor (in GPa).
+        - 'output' : list[str]
+            Lines with formatted elastic constants (in GPa), 
+        """
         atoms = self.atoms.copy()
         atoms.calc = self.calc
-        Cij = get_elastic_stiffness_tensor(atoms, epsilon=epsilon, **self.kwargs)
+        Cij = get_elastic_stiffness_tensor(atoms, epsilon=epsilon)
+        
+        output = []
+        output.append(f" {self.info:<10}C11: {Cij[0][0]:>7.2f} GPa")
+        output.append(f"{'':<11}C12: {Cij[0][1]:>7.2f} GPa")
+        output.append(f"{'':<11}C13: {Cij[0][2]:>7.2f} GPa")
+        output.append(f"{'':<11}C33: {Cij[2][2]:>7.2f} GPa")
+        output.append(f"{'':<11}C44: {Cij[3][3]:>7.2f} GPa")
+        output.append(f"{'':<11}C66: {Cij[5][5]:>7.2f} GPa")
         dump_xyz('MaterialProperties.xyz', atoms)
-        
-        output = ""
-        output += f" {self.formula:<10}C11: {Cij[0][0]:>7.2f} GPa\n"
-        output += f"{'':<11}C12: {Cij[0][1]:>7.2f} GPa\n"
-        output += f"{'':<11}C13: {Cij[0][2]:>7.2f} GPa\n"
-        output += f"{'':<11}C33: {Cij[2][2]:>7.2f} GPa\n"
-        output += f"{'':<11}C44: {Cij[3][3]:>7.2f} GPa\n"
-        output += f"{'':<11}C66: {Cij[5][5]:>7.2f} GPa\n"
-        
         with open('MaterialProperties.out', 'a') as f:
-            f.write(output)
-        
-        return output, Cij
+            f.write("\n".join(output) + "\n")
+
+        return {
+            'output': output,
+            'Cij': Cij
+        }
     
-    def eos_curve(self):
-        volumes, energies = [], []
+    def eos_curve(self) -> str:
+        """
+        Generate an equation-of-state (EOS) curve by scaling the unit cell.
+
+        Results:
+        - Data written to 'eos_curve_out/{info}_eos_curve.out'
+        - Figure saved as 'eos_curve_png/{info}_eos_curve.png'
+
+        Returns
+        -------
+        str
+            Path to the saved EOS curve figure (PNG).
+        """
+        atoms = self.atoms.copy()
+        atoms.calc = self.calc
         os.makedirs('eos_curve_out', exist_ok=True)
         os.makedirs('eos_curve_png', exist_ok=True)
-        atoms = self.atoms.copy()
-        atoms.calc = self.calc
+        volumes, energies = [], []
         origin_cell = atoms.cell.copy()
-        for scale in np.arange(0.9, 1.10, 0.01):
+        for scale in np.arange(0.9, 1.20, 0.01):
             atoms.set_cell(scale * origin_cell, scale_atoms = True)
             volumes.append(atoms.get_volume() / len(atoms))
             energies.append(atoms.get_potential_energy() / len(atoms))
             dump_xyz('MaterialProperties.xyz', atoms)
-
-        plt.rcParams.update({'font.size': 12}) 
         fig, ax = plt.subplots()
         plt.subplots_adjust(left=0.15, right=0.95, top=0.95, bottom=0.15)
+        font_size = 12
         ax.plot(volumes, energies, '-o')
-        ax.set_xlabel('Volume(A$^3$/atom)')
-        ax.set_ylabel('Energy (eV/atom)')
-        ax.set_title(f'{self.formula} {self.crystalstructure} EOS Curve')
-        fig_path = os.path.join('eos_curve_png',f'{self.formula}_eos_curve.png')
+        ax.set_xlabel('Volume(A$^3$/atom)', fontsize=font_size)
+        ax.set_ylabel('Energy (eV/atom)', fontsize=font_size)
+        ax.set_title(f'{self.info} EOS Curve', fontsize=font_size)
+        fig_path = os.path.join('eos_curve_png',f'{self.info}_eos_curve.png')
         fig.savefig(fig_path)
         plt.close(fig)
-
-        with open(os.path.join('eos_curve_out',f'{self.formula}_eos_curve.out'), 'w') as f:
+        with open(os.path.join('eos_curve_out',f'{self.info}_eos_curve.out'), 'w') as f:
             f.write("Volume(A^3/atom)   Energy(eV/atom)\n")
             for volume, energy in zip(volumes, energies):
                 f.write(f"{volume:.2f}   {energy:.4f}\n")
-
         return fig_path
     
-    def dimer_curve(self, distances=np.arange(1.2, 2.8, 0.1)):
+    def dimer_curve(self, distances=np.arange(1.2, 2.8, 0.1)) -> list[str]:
+        """
+        Generate energy curves for dimers of each element type in the structure.
+        For each unique pair of elements (including self-pairs), this method creates a dimer structure, calculates its energy at various interatomic distances, and saves the results.
+        Results:
+        - Data written to 'dimer_curve_out/{s1}_{s2}_dimer.out' for each pair of elements s1 and s2.
+        - Figures saved as 'dimer_curve_png/{s1}_{s2}_dimer.png' for each pair of elements s1 and s2.
+        Parameters
+        ----------
+        distances : array-like, optional
+            A sequence of interatomic distances (in Å) at which to evaluate the dimer energy
+            (default: np.arange(1.2, 2.8, 0.1)).
+        Returns
+        -------
+        list[str]
+            A list of file paths to the saved dimer curve figures (PNG).
+        """
         fig_paths = []
         os.makedirs('dimer_curve_out', exist_ok=True)
         os.makedirs('dimer_curve_png', exist_ok=True)
@@ -136,41 +258,84 @@ class MaterialCalculator():
             fig.savefig(fig_path)
             plt.close(fig)
             fig_paths.append(fig_path)
-
             out_path = os.path.join('dimer_curve_out', f'{s1}_{s2}_dimer.out')
             with open(out_path, "w") as f:
                 f.write("Distance(A)   Energy(eV)\n")
                 for distance, energy in zip(distances, energies):
                     f.write(f"{distance:.2f}   {energy:.4f}\n")
-
         return fig_paths
 
-    def phonon_dispersion(self, special_points = None, labels_path = None):
+    def phonon_dispersion(self, special_points=None, labels_path=None) -> str:
+        """
+        Calculate and plot the phonon dispersion relation using PhonoCalc.
+
+        Parameters
+        ----------
+        special_points : dict[str, tuple[float, float, float]] | None
+            High-symmetry points in fractional reciprocal coordinates.
+            Example for bcc:
+                {'G': (0, 0, 0), 
+                 'H': (0.5, -0.5, 0.5), 
+                 'N': (0, 0, 0.5), 
+                 'P': (0.25, 0.25, 0.25)},
+        labels_path : list[list[str]] | None
+            Band path as a list of label sequences.
+            Example for bcc:
+                [[['N', 'G', 'H' ,'P', 'G']]]
+
+        Returns
+        -------
+        str
+            Path to the saved phonon dispersion figure (PNG).
+        """
         atoms = self.atoms.copy()
         calc = self.calc
         PhonoCalc(atoms, calc).get_band_structure(special_points=special_points, labels_path=labels_path)
-        fig_path = plot_band_structure(atoms, self.formula, self.crystalstructure)
+        fig_path = plot_band_structure(atoms, self.formula, self.info)
         return fig_path
              
-    def formation_energy_surface(self, hkl = (1, 0, 0), layers = 10):
+    def formation_energy_surface(self, hkl = (1, 0, 0), layers = 10, shuffle_symbols = False) -> float:
+        """
+        Calculate the surface formation energy of a given Miller index (hkl) using the slab method.
+        Parameters
+        ----------
+        hkl : tuple[int, int, int], optional
+            Miller index of the surface (default: (1, 0, 0)).
+            ASE uses three-index Miller indices. For hcp, common inputs are:
+            basal (0001) -> (0, 0, 1), prismatic (10-10) -> (1, 0, 0),
+            first-order pyramidal (10-11) -> (1, 0, 1),
+            second-order pyramidal (11-22) -> (1, 1, 2).
+        layers : int, optional
+            Number of atomic layers in the slab (default: 10).
+        shuffle_symbols : bool, optional
+            Whether to randomly shuffle atomic symbols in the bulk structure before creating the slab (default: False). 
+            This can be useful for disordered materials to get a more representative surface energy.
+        Returns
+        -------
+        float
+            Surface formation energy in J/m^2.
+        """
         atoms = self.atoms.copy()
-        energy_per_atom = self.epa
-        slab = surface(atoms, hkl, layers = layers, vacuum=10) 
-        Morph(slab).shuffle_symbols()
+        bulk = surface(atoms, hkl, layers = layers, vacuum=0)
+        bulk.pbc = [True, True, True]
+        if shuffle_symbols:
+            Morph(bulk).shuffle_symbols()
+        bulk.calc = self.calc
+        relax(bulk, constant_cell=True, **self.kwargs)
+
+        slab = bulk.copy()
+        slab.pbc = [True, True, False]
+        slab.center(vacuum=10, axis=2)
         slab.calc = self.calc
-        relax_structure(slab, **self.kwargs)
+        relax(slab, constant_cell=True, **self.kwargs)
         box = slab.get_cell()
-        S = (box[0][0] * box[1][1] - box[0][1] * box[1][0])
+        S = np.linalg.norm(np.cross(box[0], box[1]))
+        bulk_energy = bulk.get_potential_energy()
         slab_energy = slab.get_potential_energy()
-        formation_energy = (slab_energy - energy_per_atom * len(slab)) / S / 2
+        formation_energy = (slab_energy - bulk_energy) / S / 2
 
-        if self.crystalstructure == 'hcp':
-            hk, l = hkl[:2], hkl[2]
-            hkl_str = '-'.join(map(str, sorted(hk, reverse=True)))
-            hkl_str += f'-{l}'
-        else:
-            hkl_str = '-'.join(map(str, sorted(hkl, reverse=True)))
-
+        hkl_str = '-'.join(map(str, hkl))
+        dump_xyz('MaterialProperties.xyz', bulk)
         dump_xyz('MaterialProperties.xyz', slab)
         with open('MaterialProperties.out', 'a') as f:
             print(f' {self.formula:<10}{hkl_str} Surface_Energy: {formation_energy / J / 1e-20 :.4f} J/m^2', file=f)
