@@ -1,10 +1,10 @@
-from wizard.atoms import SymbolInfo
-from wizard.atoms import Morph
-from wizard.io import read_xyz
+from wizard.model.atoms import AlloyInfo
+from wizard.model.atoms import Morph
+from wizard.utils.io import read_xyz
 import numpy as np
 
-symbol_info = SymbolInfo('W',  'bcc', 3.185)
-atoms = symbol_info.create_bulk_atoms((20,20,20))
+alloy_info = AlloyInfo('W',  'bcc', 3.185)
+atoms = alloy_info.create_bulk_atoms((20,20,20))
 group = []
 thickness_angstrom = 10 #A 
 cell_lengths = np.linalg.norm(atoms.get_cell(), axis=1)

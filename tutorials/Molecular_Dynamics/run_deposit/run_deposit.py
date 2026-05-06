@@ -1,14 +1,14 @@
 from ase.build import surface
 from ase import Atom
-from wizard.io import read_xyz
-from wizard.atoms import SymbolInfo
+from wizard.utils.io import read_xyz
+from wizard.model.atoms import AlloyInfo
 from calorine.calculators import CPUNEP
-from wizard.atoms import Morph
+from wizard.model.atoms import Morph
 import numpy as np
 
-symbol_info = SymbolInfo('Cu', 'fcc', 3.631)
+alloy_info = AlloyInfo('Cu', 'fcc', 3.631)
 calc = CPUNEP('../potentials/nep89_20250409.txt')
-atoms = symbol_info.create_bulk_atoms((1,1,1))
+atoms = alloy_info.create_bulk_atoms((1,1,1))
 slab = surface(atoms, (1,1,1), layers = 24, vacuum=100) 
 slab = slab * (8,8,1)
 Morph(slab).gpumd(run_in= ['potential nep89_20250409.txt', 

@@ -1,7 +1,7 @@
 from ase import Atoms
 import numpy as np
 
-def write_run(parameters):
+def write_run(parameters: list[str]):
     """
     Write the input parameters to a gpumd file 'run.in'.
     """
@@ -9,19 +9,23 @@ def write_run(parameters):
         for i in parameters:
             f.write(i+'\n')
 
-def dump_xyz(filename, atoms):
-    def is_valid_key(key):
+
+def dump_xyz(filename: str, atoms: Atoms):
+    """
+    Write the atomic positions and other information to a file in XYZ format.
+    """
+    def is_valid_key(key: str) -> bool:
         return key in atoms.info and atoms.info[key] is not None
     
     valid_keys = {key: is_valid_key(key) for key in ['energy', 'stress', 'forces', 'group', 'config_type', 'weight']}
 
     with open(filename, 'a') as f:
-        Out_string = ""
-        Out_string += str(int(len(atoms))) + "\n"
-        Out_string += "pbc=\"" + " ".join(["T" if pbc_value else "F" for pbc_value in atoms.get_pbc()]) + "\" "
-        Out_string += "Lattice=\"" + " ".join(list(map(str, atoms.get_cell().reshape(-1)))) + "\" "
+        out_string = ""
+        out_string += str(int(len(atoms))) + "\n"
+        out_string += "pbc=\"" + " ".join(["T" if pbc_value else "F" for pbc_value in atoms.get_pbc()]) + "\" "
+        out_string += "Lattice=\"" + " ".join(list(map(str, atoms.get_cell().reshape(-1)))) + "\" "
         if valid_keys['energy']:
-            Out_string += " energy=" + str(atoms.info['energy']) + " "
+            out_string += " energy=" + str(atoms.info['energy']) + " "
         if valid_keys['stress']:
             if len(atoms.info['stress']) == 6:
                 virial = -atoms.info['stress'][[0, 5, 4, 5, 1, 3, 4, 3, 2]] * atoms.get_volume()
@@ -29,14 +33,14 @@ def dump_xyz(filename, atoms):
             else:
                 virial = -atoms.info['stress'].reshape(-1) * atoms.get_volume()
                 stress = atoms.info['stress'].reshape(-1)
-            Out_string += "virial=\"" + " ".join(list(map(str, virial))) + "\" "
-            Out_string += "stress=\"" + " ".join(list(map(str, stress))) + "\" "
-        Out_string += "Properties=species:S:1:pos:R:3:mass:R:1"
+            out_string += "virial=\"" + " ".join(list(map(str, virial))) + "\" "
+            out_string += "stress=\"" + " ".join(list(map(str, stress))) + "\" "
+        out_string += "Properties=species:S:1:pos:R:3:mass:R:1"
         if atoms.has('momenta'):
             velocites = atoms.get_velocities()
-            Out_string += ":vel:R:3"
+            out_string += ":vel:R:3"
         if valid_keys['forces']:
-            Out_string += ":force:R:3"
+            out_string += ":force:R:3"
         if valid_keys['group']:
             group = atoms.info['group']
             num_atoms = len(atoms)
@@ -44,25 +48,25 @@ def dump_xyz(filename, atoms):
                 raise ValueError(
                     f"Group data dimensions do not match number of atoms ({num_atoms})"
                 )
-            Out_string += f":group:I:{len(group)}"
+            out_string += f":group:I:{len(group)}"
         if valid_keys['config_type']:
-            Out_string += f" config_type={atoms.info['config_type']}"
+            out_string += f" config_type={atoms.info['config_type']}"
         if valid_keys['weight']:
-            Out_string += " weight=" + f"{atoms.info['weight']:.2f}" 
-        Out_string += "\n"
+            out_string += " weight=" + f"{atoms.info['weight']:.2f}" 
+        out_string += "\n"
         for atom in atoms:
-            Out_string += '{:2} {:>15.8e} {:>15.8e} {:>15.8e} {:>15.8e}'.format(atom.symbol, *atom.position, atom.mass)
+            out_string += '{:2} {:>15.8e} {:>15.8e} {:>15.8e} {:>15.8e}'.format(atom.symbol, *atom.position, atom.mass)
             if atoms.has('momenta'):
-                Out_string += ' {:>15.8e} {:>15.8e} {:>15.8e}'.format(*velocites[atom.index])
+                out_string += ' {:>15.8e} {:>15.8e} {:>15.8e}'.format(*velocites[atom.index])
             if valid_keys['forces']:
-                Out_string += ' {:>15.8e} {:>15.8e} {:>15.8e}'.format(*atoms.info['forces'][atom.index])
+                out_string += ' {:>15.8e} {:>15.8e} {:>15.8e}'.format(*atoms.info['forces'][atom.index])
             if valid_keys['group']:
                 for g in group:
-                    Out_string += f" {int(g[atom.index])}"
-            Out_string += '\n'
-        f.write(Out_string)
+                    out_string += f" {int(g[atom.index])}"
+            out_string += '\n'
+        f.write(out_string)
 
-def parsed_properties(comment):
+def _parsed_properties(comment: str) -> dict[str, slice]:
     properties_str = comment.split('properties=')[1].split()[0]
     properties = properties_str.split(':')
     parsed_properties = {}
@@ -74,18 +78,18 @@ def parsed_properties(comment):
         start += property_count
     return parsed_properties
 
-def read_symbols(words_in_line, parsed_properties):
+def _read_symbols(words_in_line: list[str], parsed_properties: dict[str, slice]) -> str:
     symbol_slice = parsed_properties['species']
     symbol = words_in_line[symbol_slice]
     symbol = symbol[0].lower().capitalize()
     return symbol
 
-def read_positions(words_in_line, parsed_properties):
+def _read_positions(words_in_line: list[str], parsed_properties: dict[str, slice]) -> tuple[float, float, float]:
     pos_slice = parsed_properties['pos']
     pos = words_in_line[pos_slice]
-    return [float(pos[0]), float(pos[1]), float(pos[2])]
+    return tuple(float(p) for p in pos)
 
-def read_mass(words_in_line, parsed_properties):
+def _read_mass(words_in_line: list[str], parsed_properties: dict[str, slice]) -> float | None:
     if 'mass' in parsed_properties:
         mass_slice = parsed_properties['mass']
         mass = words_in_line[mass_slice]
@@ -93,16 +97,24 @@ def read_mass(words_in_line, parsed_properties):
     else:
         return None
 
-def read_force(words_in_line, parsed_properties):
+def _read_force(words_in_line: list[str], parsed_properties: dict[str, slice]) -> tuple[float, float, float] | None:
     force_key = 'forces' if 'forces' in parsed_properties else 'force'
     if force_key in parsed_properties:
         force_slice = parsed_properties[force_key]
         force = words_in_line[force_slice]
-        return [float(force[0]), float(force[1]), float(force[2])]
+        return tuple(float(f) for f in force)
     else:
         return None
     
-def read_group(words_in_line, parsed_properties):
+def _read_velocity(words_in_line: list[str], parsed_properties: dict[str, slice]) -> tuple[float, float, float] | None:
+    if 'vel' in parsed_properties:
+        vel_slice = parsed_properties['vel']
+        vel = words_in_line[vel_slice]
+        return tuple(float(v) for v in vel)
+    else:
+        return None
+    
+def _read_group(words_in_line: list[str], parsed_properties: dict[str, slice]) -> list[int] | None:
     if 'group' in parsed_properties:
         group_slice = parsed_properties['group']
         group = words_in_line[group_slice]
@@ -110,15 +122,7 @@ def read_group(words_in_line, parsed_properties):
     else:
         return None
 
-def read_velocity(words_in_line, parsed_properties):
-    if 'vel' in parsed_properties:
-        vel_slice = parsed_properties['vel']
-        vel = words_in_line[vel_slice]
-        return [float(vel[0]), float(vel[1]), float(vel[2])]
-    else:
-        return None
-
-def read_xyz(filename):
+def read_xyz(filename: str) -> list[Atoms]:
     """
     Read the atomic positions and other information from a file in XYZ format.
     """
@@ -165,16 +169,16 @@ def read_xyz(filename):
                 weight = float(comment.split("weight=")[1].split()[0])
             else:
                 weight = None
-            parsed_properties_dict = parsed_properties(comment)
+            parsed_properties_dict = _parsed_properties(comment)
             for _ in range(natoms):
                 line = f.readline()
                 words_in_line = line.split()
-                symbols.append(read_symbols(words_in_line, parsed_properties_dict))
-                positions.append(read_positions(words_in_line, parsed_properties_dict))
-                masses.append(read_mass(words_in_line, parsed_properties_dict))
-                forces.append(read_force(words_in_line, parsed_properties_dict))
-                velocities.append(read_velocity(words_in_line, parsed_properties_dict))
-                group.append(read_group(words_in_line, parsed_properties_dict))
+                symbols.append(_read_symbols(words_in_line, parsed_properties_dict))
+                positions.append(_read_positions(words_in_line, parsed_properties_dict))
+                masses.append(_read_mass(words_in_line, parsed_properties_dict))
+                forces.append(_read_force(words_in_line, parsed_properties_dict))
+                velocities.append(_read_velocity(words_in_line, parsed_properties_dict))
+                group.append(_read_group(words_in_line, parsed_properties_dict))
             if "force" not in comment:
                 forces = None
             if "vel" not in comment:
@@ -183,5 +187,13 @@ def read_xyz(filename):
                 group = [np.asarray(col, dtype=int) for col in zip(*group)] 
             else:
                 group = None
-            frames.append(Atoms(symbols=symbols, positions=positions, masses=masses, cell=cell, pbc=pbc, velocities=velocities, info={'energy': energy, 'stress': stress, 'forces': forces, 'group': group, 'config_type': config_type, 'weight': weight}))
+            atoms = Atoms(
+                symbols=symbols,
+                positions=positions,
+                masses=masses,
+                cell=cell,
+                pbc=pbc,
+                velocities=velocities,
+                info={'energy': energy, 'stress': stress, 'forces': forces, 'group': group, 'config_type': config_type, 'weight': weight})
+            frames.append(atoms)
     return frames

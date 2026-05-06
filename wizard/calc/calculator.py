@@ -2,10 +2,10 @@ from ase import Atoms
 from ase.mep import NEB
 from ase.build import surface
 from ase.units import J
-from .io import dump_xyz
-from .tools import plot_band_structure
+from ..utils.io import dump_xyz
+from ..utils.tools import plot_band_structure
 from .phono import PhonoCalc
-from .atoms import Morph
+from ..model.atoms import Morph
 from calorine.tools import get_elastic_stiffness_tensor, relax_structure
 from itertools import combinations_with_replacement
 import matplotlib
@@ -15,16 +15,16 @@ import numpy as np
 import os
 
 class MaterialCalculator():
-    def __init__(self, atoms, calculator, symbol_info, clamped = False, **kwargs):
+    def __init__(self, atoms, calculator, alloy_info, clamped = False, **kwargs):
         atoms.calc = calculator
         if not clamped:
             relax_structure(atoms, **kwargs)
         self.atoms = atoms
         self.calc = calculator  
         self.epa = atoms.get_potential_energy() / len(atoms)
-        self.formula = symbol_info.formula
-        self.symbols = symbol_info.symbols
-        self.crystalstructure = symbol_info.lattice_type
+        self.formula = alloy_info.formula
+        self.symbols = alloy_info.symbols
+        self.crystalstructure = alloy_info.lattice_type
         self.kwargs = kwargs
     
     def isolate_atom_energy(self):

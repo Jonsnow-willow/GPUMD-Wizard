@@ -1,4 +1,4 @@
-from wizard.io import read_xyz
+from wizard.utils.io import read_xyz
 from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 import numpy as np

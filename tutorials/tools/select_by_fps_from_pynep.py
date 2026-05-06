@@ -8,7 +8,7 @@
 # -----------------------------------------------------------------------------
 """
 
-from wizard.io import read_xyz, dump_xyz
+from wizard.utils.io import read_xyz, dump_xyz
 from calorine.nep import get_descriptors
 from scipy.spatial.distance import cdist
 import numpy as np

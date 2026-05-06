@@ -1,5 +1,5 @@
-from wizard.frames import MultiMol
-from wizard.io import read_xyz
+from wizard.utils.frames import MultiMol
+from wizard.utils.io import read_xyz
 import numpy as np
 
 init = read_xyz('../create_init_alloys/train.xyz')

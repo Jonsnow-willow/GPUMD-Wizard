@@ -1,10 +1,10 @@
-from wizard.atoms import SymbolInfo
+from wizard.model.atoms import AlloyInfo
 from calorine.tools import relax_structure
 import itertools
 
 class Generator:
     def __init__(self, elements = [], symbols= None, lattice_types = ['bcc', 'fcc', 'hcp'], adjust_ratios = None):
-        self.symbol_infos = []        
+        self.alloy_infos = []        
         combinations = list(itertools.combinations(elements, 2))
         if symbols is not None:
             symbols = list(set(symbols) - set(elements))
@@ -24,22 +24,22 @@ class Generator:
         for formula in formulas:
             for lattice_type in lattice_types:
                 if lattice_type == 'hcp':
-                    self.symbol_infos.append(SymbolInfo(formula, lattice_type, 3.5, 4.5))
+                    self.alloy_infos.append(AlloyInfo(formula, lattice_type, 3.5, 4.5))
                 else:
-                    self.symbol_infos.append(SymbolInfo(formula, lattice_type, 3.5))
+                    self.alloy_infos.append(AlloyInfo(formula, lattice_type, 3.5))
 
     def __str__(self):
-        for symbol_info in self.symbol_infos:
-            print(symbol_info)
+        for alloy_info in self.alloy_infos:
+            print(alloy_info)
         return ''
 
-    def get_symbol_infos(self):
-        return self.symbol_infos
+    def get_alloy_infos(self):
+        return self.alloy_infos
     
     def get_bulk_structures(self, calc = None, supercell = {'bcc': (3,3,3), 'fcc': (3,3,3), 'hcp': (3,3,3)}):
         frames = []
-        for symbol_info in self.symbol_infos:
-            atoms = symbol_info.create_bulk_atoms(supercell[symbol_info.lattice_type])
+        for alloy_info in self.alloy_infos:
+            atoms = alloy_info.create_bulk_atoms(supercell[alloy_info.lattice_type])
             if calc is not None:
                 atoms.calc = calc
                 relax_structure(atoms)

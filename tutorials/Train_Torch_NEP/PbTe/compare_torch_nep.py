@@ -1,7 +1,7 @@
 from wizard.torchNEP.interface import NEPCalculator
-from wizard.tools import plot_force_results
+from wizard.utils.tools import plot_force_results
 from calorine.calculators import CPUNEP
-from wizard.io import read_xyz
+from wizard.utils.io import read_xyz
 
 frames = read_xyz("train.xyz")
 # Use the same nep.txt for both Torch and NEP_CPU to verify alignment

@@ -1,4 +1,4 @@
-from wizard.io import read_xyz
+from wizard.utils.io import read_xyz
 from ase.calculators.vasp import Vasp
 import shutil
 import os

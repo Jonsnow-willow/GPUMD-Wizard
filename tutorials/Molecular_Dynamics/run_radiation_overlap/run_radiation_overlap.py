@@ -1,5 +1,5 @@
-from wizard.atoms import Morph, SymbolInfo
-from wizard.io import read_xyz
+from wizard.model.atoms import Morph, AlloyInfo
+from wizard.utils.io import read_xyz
 import numpy as np
 
 run_in =['potential nep.txt', 
@@ -16,8 +16,8 @@ run_in =['potential nep.txt',
          'dump_restart 10000', 
          'run 10000']
 
-symbol_info = SymbolInfo('W',  'bcc', 3.185)
-atoms = symbol_info.create_bulk_atoms((20,20,20))
+alloy_info = AlloyInfo('W',  'bcc', 3.185)
+atoms = alloy_info.create_bulk_atoms((20,20,20))
 Morph(atoms).gpumd()
 
 pka_energy = 500 # eV

@@ -5,7 +5,7 @@ from pathlib import Path
 import torch
 from torch.utils.data import DataLoader
 
-from wizard.io import read_xyz
+from wizard.utils.io import read_xyz
 from wizard.torchNEP.dataset import StructureDataset, collate_fn
 from wizard.torchNEP.model import NEP
 from wizard.torchNEP.optimizer import Optimizer, SNES

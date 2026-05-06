@@ -11,7 +11,7 @@
 
 from calorine.nep import get_descriptors
 from sklearn.decomposition import PCA
-from wizard.io import read_xyz
+from wizard.utils.io import read_xyz
 import matplotlib.pyplot as plt
 import numpy as np
 

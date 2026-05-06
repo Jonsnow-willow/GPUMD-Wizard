@@ -1,9 +1,9 @@
-from wizard.atoms import SymbolInfo
-from wizard.atoms import Morph
-from wizard.io import read_xyz
+from wizard.model.atoms import AlloyInfo
+from wizard.model.atoms import Morph
+from wizard.utils.io import read_xyz
 
-symbol_info = SymbolInfo('W',  'bcc', 3.185)
-atoms = symbol_info.create_bulk_atoms((10,10,20))
+alloy_info = AlloyInfo('W',  'bcc', 3.185)
+atoms = alloy_info.create_bulk_atoms((10,10,20))
 
 group = []
 for atom in atoms:

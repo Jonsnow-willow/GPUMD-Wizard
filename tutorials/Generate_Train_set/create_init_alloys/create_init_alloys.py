@@ -1,5 +1,5 @@
-from wizard.generator import Generator
-from wizard.frames import MultiMol
+from wizard.model.generator import Generator
+from wizard.utils.frames import MultiMol
 from calorine.calculators import CPUNEP
 
 new_elements = ['Nb']
