@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-from ase import Atoms, Atom
+from ase import Atoms
 from ase.build import cut, rotate, surface
 from ase.calculators.calculator import Calculator
 from ase.neb import NEB
@@ -14,7 +14,7 @@ from calorine.tools import get_elastic_stiffness_tensor
 
 from .phono import PhonoCalc
 from ..core.minimize import relax
-from ..model.atoms import Morph
+from ..model.atoms import Morph, AlloyInfo
 from ..utils.io import dump_xyz
 from ..utils.tools import plot_band_structure
 
@@ -340,21 +340,71 @@ class MaterialCalculator():
         with open('MaterialProperties.out', 'a') as f:
             print(f' {self.formula:<10}{hkl_str} Surface_Energy: {formation_energy / J / 1e-20 :.4f} J/m^2', file=f)
         return formation_energy * 1000
-
-    def formation_energy_vacancy(self, index = 0):
-        atoms = self.atoms.copy()
+    
+    def _formation_energy_defect(self, atoms : Atoms) -> float:
         atoms.calc = self.calc
-        energy_per_atom = self.epa
-        Morph(atoms).create_vacancy(index = index)
-        relax_structure(atoms, **self.kwargs)
-        formation_energy = atoms.get_potential_energy() - energy_per_atom * len(atoms)
+        relax(atoms, **self.kwargs)
+        return atoms.get_potential_energy() - self.atom_energy * len(atoms)
 
+    def formation_energy_vacancy(self, index = 0) -> float:
+        """
+        Calculate the vacancy formation energy by removing an atom at the specified index and relaxing the structure.
+        Parameters
+        ----------
+        index : int, optional
+            Index of the atom to remove for vacancy formation (default: 0).
+        Returns
+        -------
+        float
+            mono-vacancy formation energy in eV.
+        """
+        atoms = self.atoms.copy()
+        Morph(atoms).create_vacancy(index = index)
+        formation_energy = self._formation_energy_defect(atoms)
         dump_xyz('MaterialProperties.xyz', atoms)
         with open('MaterialProperties.out', 'a') as f:
             print(f' {self.formula:<10}Formation_Energy_Vacancy: {formation_energy:.4f} eV', file=f)
         return formation_energy
 
-    def migration_energy_vacancy(self, index0 = 0, index1 = 1):
+    def formation_energy_divacancies(self, index0 = 0, index1 = 1) -> float:
+        """
+        Calculate the divacancy formation energy by removing two atoms at the specified indices and relaxing the structure.
+        Parameters
+        ----------
+        index1 : int, optional
+            Index of the first atom to remove for divacancy formation (default: 0).
+        index2 : int, optional
+            Index of the second atom to remove for divacancy formation (default: 1).
+        Returns
+        -------
+        float
+            mono-vacancy formation energy in eV.
+        """
+        atoms = self.atoms.copy()
+        index0, index1 = sorted((index0, index1))
+        Morph(atoms).create_vacancy(index = index1)
+        Morph(atoms).create_vacancy(index = index0)
+        formation_energy = self._formation_energy_defect(atoms)
+        dump_xyz('MaterialProperties.xyz', atoms)
+        with open('MaterialProperties.out', 'a') as f:
+            print(f' {self.formula:<10}Formation_Energy_Divacancies: {formation_energy:.4f} eV', file=f)
+        return formation_energy
+
+    def migration_energy_vacancy(self, index0 = 0, index1 = 1) -> list[float]:
+        """
+        Calculate the migration energy of a vacancy by performing a NEB calculation.
+        Parameters
+        ----------
+        index0 : int, optional
+            Index of the atom to be removed for the initial vacancy (default: 0).
+        index1 : int, optional
+            Index of the neighboring site to which the vacancy migrates (default: 1).
+        Returns
+        -------
+        float      
+            Vacancy migration energy in eV.
+        """
+
         os.makedirs('migration_energy_vacancy', exist_ok=True)
         atoms = self.atoms.copy() 
         symbol = atoms[index0].symbol
@@ -365,11 +415,11 @@ class MaterialCalculator():
         del final[index1]
 
         initial.calc = self.calc
-        relax_structure(initial, **self.kwargs)
-        relax_cell = initial.get_cell()
-        final.set_cell(relax_cell)
+        relax(initial, **self.kwargs)
+        cell = initial.get_cell()
+        final.set_cell(cell)
         final.calc = self.calc
-        relax_structure(final, **self.kwargs, constant_cell=True)
+        relax(final, **self.kwargs, constant_cell=True)
 
         images = [initial] + [initial.copy() for _ in range(11)] + [final]
         for i in images:
@@ -377,7 +427,7 @@ class MaterialCalculator():
         neb = NEB(images, climb=True, allow_shared_calculator=True)
         neb.interpolate()
         try:
-            relax_structure(neb, **self.kwargs, constant_cell=True)
+            relax(neb, **self.kwargs, constant_cell=True)
         except Exception:
             raise RuntimeError(
                 "relax_structure() failed — comment out the calc-check lines in that function "
@@ -405,15 +455,202 @@ class MaterialCalculator():
         
         return energies
     
-    def formation_energy_sia(self, vector = (1, 0, 0), index = 0):
+    def formation_energy_sia(self, vector = (1, 1, 1), index = 0) -> float:
+        """
+        Calculate the self-interstitial atom (SIA) formation energy by adding an atom at the specified index.
+        Parameters
+        ----------
+        vector : tuple[int, int, int], optional
+            Relative position vector (in lattice units) from the original atom to the interstitial site (default: (1, 0, 0)).
+        index : int, optional
+            Index of the original atom to which the interstitial atom is added (default: 0).
+        Returns
+        -------
+        float
+            Self-interstitial atom formation energy in eV.
+        """
         atoms = self.atoms.copy()
-        atoms.calc = self.calc
-        energy_per_atom = self.epa
         Morph(atoms).create_self_interstitial_atom(vector, index = index)
-        relax_structure(atoms, **self.kwargs)
-        formation_energy = atoms.get_potential_energy() - energy_per_atom * len(atoms)
-
+        formation_energy = self._formation_energy_defect(atoms)
         dump_xyz('MaterialProperties.xyz', atoms)
         with open('MaterialProperties.out', 'a') as f:
             print(f' {self.formula:<10}{vector} Formation_Energy_Sia: {formation_energy:.4} eV', file=f)
         return formation_energy
+    
+class AlloyCalculator(MaterialCalculator):
+    def __init__(self, 
+                 alloy_info: AlloyInfo,
+                 supercell: tuple[int, int, int],
+                 calculator: Calculator, 
+                 clamped: bool = False, 
+                 **kwargs):
+        self.atoms = alloy_info.create_bulk_atoms(supercell = supercell)
+        super().__init__(self.atoms, calculator, clamped, **kwargs)
+
+    def stacking_fault(self, a, b, miller, distance):
+        '''
+        ---------------------------------------------------------------------------------------------------
+        For FCC-Al                  |   For BCC-Nb
+        surf. I        surf. II     |   surf. I              surf. II            surf. III
+        (-1, 1,  0)    (-1, 1,  0)  |   (-1, 1, -2)          ( 1,-1,  0)         ( 1, -4/5, 1/5)
+        ( 1, 1, -2)    ( 1, 1,  0)  |   (-1, 1,  1) <111>    ( 1, 1, -1) <111>   ( 1,  1,    -1)  <111>
+        ( 1, 1,  1)    ( 0, 0,  1)  |   ( 1, 1,  0) {110}    ( 1, 1,  2) {112}   ( 1,  2,     3)  {123}
+                                    
+        ---------------------------------------------------------------------------------------------------
+        For HCP-Ti 
+        for basal {0001} Normal--[0001]          for prism {10-10} Normal--[10-10]              
+        uvws =  [[-2,1,1,0],  [[-1, 0,0]          uvws =  [[-1,2,-1, 0],    [[0,1,0] 
+                 [0,-1,1,0],   [-1,-2,0]                   [0, 0, 0, 1],     [0,0,1] 
+                 [0, 0,0,1]]   [ 0, 0,1]]                  [1, 0,-1, 0]]     [2,1,0]] 
+             
+        ---------------------------------------------------------------------------------------------------                                                       
+        for Pyramidal I narrow  {10-11} Normal: None    for Pyramidal I wide {10-11} Normal: None   
+        uvws = [[-1, 2,-1, 0],  [0,  1,0]               uvws = [[-1,-1,  2, 3],     [[-1,-1,1]      
+                [-1, 0, 1, 2],  [-2,-1,2]                       [-1, 0,  1, 2],      [-2,-1,2]      
+                 {1,  0,-1, 1}]                                  {1,  0, -1, 1}]                 
+                                                                                                                                                         
+        for Pyramidal II {11-22} Normal       
+        uvws =  [[-1,-1, 2,3],     [[-1,-1,1]
+                [-1, 1, 0,0],      [-1, 1,0]
+                {1,1,-2,  2}       [N,  N,N]]                                                                         
+        ---------------------------------------------------------------------------------------------------
+        Hexagonal Miller direction indices to Miller-Bravais indices and back:
+        [-1,-1,2,3] = [-1,-1,1]
+        [-1, 1,0,0] = [-1, 1,0]
+        ---------------------------------------------------------------------------------------------------
+        ''' 
+        atoms = self.atoms.copy()
+        atoms.calc = self.calc
+
+        slab = cut(atoms, a, b, clength=None, origo=(0,0,0), nlayers = 18, extend=1.0, tolerance=0.01, maxatoms=None)
+        rotate(slab, a,(1,0,0),b,(0,1,0), center=(0,0,0))
+        slab.calc = self.calc
+        relax(slab)
+        slab.center(axis=2)
+        #slab.constraints = FixAtoms(indices=[atom.index for atom in slab if atom.position[2] < 1/2 * slab.cell[2][2]])
+        box = slab.get_cell()
+        S = (box[0][0] * box[1][1] - box[0][1] * box[1][0]) * 2
+
+        shift_distance = np.linalg.norm(np.array(a)) * distance
+        shift_indices = [atom.index for atom in slab if atom.position[2] > 1/2 * slab.cell[2][2]]
+        slide_steps = shift_distance / 10
+        
+        energies = []
+        for i in range(11):
+            slab_shift = slab.copy()
+            slab_shift.positions[shift_indices] += [slide_steps * i, 0,0]
+            slab_shift.calc = self.calc
+            relax(slab_shift, fixed_line=True)
+            defects_energy = slab_shift.get_potential_energy() / S
+            energies.append(defects_energy)
+            dump_xyz('MaterialProperties.xyz', slab_shift)
+
+        energies = [e - energies[0] for e in energies]
+        with open('MaterialProperties.out', 'a') as f:
+            print(f' {self.info:<7}{miller} Stacking_Fault: {max(energies) * 1000:.4f} meV/A^2', file=f)
+
+        plt.plot(np.linspace(0, 1, len(energies)), energies, marker='o', label=f'{self.info}')  
+        plt.legend()
+        plt.savefig(f'{self.info}_stacking_fault_{miller}.png')
+        plt.close()
+        return energies
+    
+    def bcc_metal_screw_dipole_move(self, fmax = 0.02, steps = 500):
+        lc = self.lc
+        symbols = []
+        compositions = []
+        for symbol, composition in re.findall(r'([A-Z][a-z]*)(\d*)', self.formula):
+            symbols.append(symbol)
+            compositions.append(int(composition) if composition else 1)
+        if len(symbols) > 1:
+            element_ratio = np.array(compositions) / sum(compositions)
+            element_counts = np.ceil(element_ratio * 135).astype(int)
+            symbols = np.repeat(symbols, element_counts)
+            np.random.shuffle(symbols)
+            sym = symbols[:135]
+        else:
+            sym = [symbols[0] for _ in range(135)]
+
+        initial_screw = read_xyz(str(files('nexus.calc').joinpath('str', 'Fe_screw.xyz')))
+        for i in initial_screw:
+            i.set_chemical_symbols(sym)
+            i.calc = self.calc
+
+        initial = initial_screw[0]
+        final = initial_screw[1]
+
+        unit_cell = initial.cell.copy()
+        initial.set_cell(lc * unit_cell, scale_atoms=True)
+        relax(initial, method='ucf')
+        initial_cell = initial.cell.copy()
+        final.set_cell(initial_cell, scale_atoms=True)
+        relax(final, method='ucf')
+
+        images = [initial] + [initial.copy() for i in range(15)] + [final]
+        for i in images:
+            i.calc = self.calc
+        neb = NEB(images, allow_shared_calculator=True)
+        neb.interpolate()    
+        optimizer = FIRE(neb)
+        optimizer.run(fmax=fmax, steps=steps)
+        energies = [image.get_potential_energy() / 2  for image in images]
+        energies = np.array(energies)
+        energies -= min(energies)
+        for image in images:
+            dump_xyz('MaterialProperties.xyz', image)  
+
+        plt.plot(np.linspace(0, 1, len(energies)), energies, marker='o', label=f'{self.formula}')
+        plt.legend()
+        plt.savefig(f'{self.formula}_screw_dipole_move.png')
+        plt.close()
+        return energies
+
+    def bcc_metal_screw_one_move(self, fmax = 0.02, steps = 500):
+        lc = self.lc
+        symbols = []
+        compositions = []
+        for symbol, composition in re.findall(r'([A-Z][a-z]*)(\d*)', self.formula):
+            symbols.append(symbol)
+            compositions.append(int(composition) if composition else 1)
+        if len(symbols) > 1:
+            element_ratio = np.array(compositions) / sum(compositions)
+            element_counts = np.ceil(element_ratio * 135).astype(int)
+            symbols = np.repeat(symbols, element_counts)
+            np.random.shuffle(symbols)
+            sym = symbols[:135]
+        else:
+            sym = [symbols[0] for _ in range(135)]
+        
+        initial_screw = read_xyz(str(files('nexus.calc').joinpath('str', 'Fe_screw.xyz')))
+        for i in initial_screw:
+            i.set_chemical_symbols(sym)
+            i.calc = self.calc
+
+        initial = initial_screw[0]
+        final = initial_screw[2]
+
+        unit_cell = initial.cell.copy()
+        initial.set_cell(lc * unit_cell, scale_atoms=True)
+        relax(initial, method='ucf')
+        initial_cell = initial.cell.copy()
+        final.set_cell(initial_cell, scale_atoms=True)
+        relax(final, method='ucf')
+
+        images = [initial] + [initial.copy() for i in range(15)] + [final]
+        for i in images:
+            i.calc = self.calc
+        neb = NEB(images, allow_shared_calculator=True)
+        neb.interpolate()    
+        optimizer = FIRE(neb)
+        optimizer.run(fmax=fmax, steps=steps)
+        energies = [image.get_potential_energy() for image in images]
+        energies = np.array(energies)
+        energies -= min(energies)
+        for image in images:
+            dump_xyz('MaterialProperties.xyz', image)  
+
+        plt.plot(np.linspace(0, 1, len(energies)), energies, marker='o', label=f'{self.formula}')
+        plt.legend()
+        plt.savefig(f'{self.formula}_screw_one_move.png')
+        plt.close()
+        return energies
