@@ -128,6 +128,8 @@ class AlloyInfo():
             symbols = np.repeat(self.symbols, element_counts)
             np.random.shuffle(symbols)
             atoms.set_chemical_symbols(symbols[:len(atoms)])
+        atoms.info['formula'] = self.formula
+        atoms.info['config_type'] = f'{self.formula}_{self.lattice_type}_bulk'
         return atoms
 
     def create_interstitial_atoms(self, supercell = (3, 3, 3), 
@@ -202,7 +204,8 @@ class AlloyInfo():
             symbols = [self.symbols[0] for _ in range(len(positions))]
 
         atoms = Atoms(symbols = symbols, positions = positions, cell = cell, pbc = True)
-        atoms.info['config_type'] = f'{self.formula} bcc {model} screw'
+        atoms.info['formula'] = self.formula
+        atoms.info['config_type'] = f'{self.formula}_bcc_{model}_screw'
         return atoms
 
     def __str__(self):
