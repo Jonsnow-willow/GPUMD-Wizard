@@ -1,6 +1,17 @@
+import re
 import torch
 import torch.nn as nn
+from ase.data import atomic_numbers
 from .descriptor import Descriptor 
+
+K_C_SP = 14.399645
+ZBL_A_INV_FACTOR = 2.134563
+UNIVERSAL_ZBL_COEFFS = [
+    0.18175, 3.1998,
+    0.50986, 0.94229,
+    0.28022, 0.4029,
+    0.02817, 0.20162,
+]
 
 class NEP(nn.Module):
     def __init__(self, para):
@@ -32,6 +43,7 @@ class NEP(nn.Module):
             self.element_mlps[element] = nn.Sequential(*layers)
         
         self._init_descriptor_scaler(input_dim)
+        self._configure_zbl()
         self.shared_bias = nn.Parameter(torch.zeros(1))
 
     def forward(self, batch):
@@ -42,13 +54,25 @@ class NEP(nn.Module):
             positions = positions.clone().detach().requires_grad_(True)
             batch = batch.copy()
             batch["positions"] = positions
+        else:
+            batch = batch.copy()
         
-        descriptors = self.descriptor(batch)
+        strain = None
+        descriptor_batch = batch
+        if batch.get("compute_virial", True):
+            strain = torch.zeros((3, 3), device=positions.device, dtype=positions.dtype, requires_grad=True)
+            deformation = torch.eye(3, device=positions.device, dtype=positions.dtype) + strain
+            descriptor_batch = batch.copy()
+            descriptor_batch["positions"] = positions @ deformation.T
+            descriptor_batch["radial_offsets"] = batch["radial_offsets"].to(device=positions.device, dtype=positions.dtype) @ deformation.T
+            descriptor_batch["angular_offsets"] = batch["angular_offsets"].to(device=positions.device, dtype=positions.dtype) @ deformation.T
+        
+        descriptors = self.descriptor(descriptor_batch)
         g_total = self._combine_descriptors(descriptors)         # [N_atoms, input_dim]
         n_atoms = g_total.shape[0]
         g_total = g_total * self.q_scaler
 
-        e_atom = torch.zeros(n_atoms, device=g_total.device)
+        e_atom = torch.zeros(n_atoms, device=g_total.device, dtype=g_total.dtype)
         for i, element in enumerate(self.elements):
             mask = (types == i)  
             if mask.any():
@@ -56,18 +80,26 @@ class NEP(nn.Module):
                 e_element = self.element_mlps[element](g_element).squeeze(-1)  # [N_atoms_element]
                 e_element -= self.shared_bias
                 e_atom[mask] = e_element
+
+        if self.zbl_enabled:
+            e_atom = e_atom + self._zbl_atomic_energy(
+                types=types,
+                positions=descriptor_batch["positions"],
+                angular_neighbors=descriptor_batch["angular_neighbors"],
+                angular_offsets=descriptor_batch["angular_offsets"],
+            )
         
-        n_atoms_per_structure = batch["n_atoms_per_structure"]
+        n_atoms_per_structure = batch["n_atoms_per_structure"].detach().cpu().tolist()
         atom_idx = 0
         e_total_list = []
         virial_list = []
 
         forces = None
+        total_energy = e_atom.sum()
         if positions.requires_grad:
             forces = -torch.autograd.grad(
-                outputs=e_atom.sum(),
+                outputs=total_energy,
                 inputs=positions,
-                grad_outputs=torch.ones_like(e_atom.sum()),
                 create_graph=self.training,
                 retain_graph=True
             )[0]
@@ -75,11 +107,17 @@ class NEP(nn.Module):
         for n_atoms_in_structure in n_atoms_per_structure:
             e_structure = e_atom[atom_idx:atom_idx + n_atoms_in_structure].sum()
             e_total_list.append(e_structure)
-            if positions.requires_grad and forces is not None:
-                pos_struct = positions[atom_idx:atom_idx + n_atoms_in_structure]
-                force_struct = forces[atom_idx:atom_idx + n_atoms_in_structure]
-                virial_struct = -torch.einsum('ni,nj->ij', pos_struct, force_struct)
-                virial_list.append(virial_struct.reshape(-1))
+            if strain is not None:
+                virial_struct = torch.autograd.grad(
+                    outputs=e_structure,
+                    inputs=strain,
+                    create_graph=self.training,
+                    retain_graph=True,
+                    allow_unused=True,
+                )[0]
+                if virial_struct is None:
+                    virial_struct = torch.zeros((3, 3), device=g_total.device, dtype=g_total.dtype)
+                virial_list.append((-virial_struct).reshape(-1))
             atom_idx += n_atoms_in_structure
 
         e_total = torch.stack(e_total_list)
@@ -126,15 +164,34 @@ class NEP(nn.Module):
         idx = 0
         tokens = lines[idx].split()
         idx += 1
-        if not tokens[0].startswith("nep"):
+        header = tokens[0].lower()
+        match = re.fullmatch(r"nep(\d+)(?:_(.*))?", header)
+        if match is None:
             raise ValueError("Invalid nep.txt: first line should start with nep4 or nep5.")
-        version = int(tokens[0][3:])
+        version = int(match.group(1))
+        suffix = match.group(2) or ""
+        has_zbl = "zbl" in suffix.split("_")
         if version != 4:
             raise NotImplementedError("Only nep4 is supported by torchNEP loader.")
         num_types = int(tokens[1])
         elements = tokens[2:]
         if len(elements) != num_types:
             raise ValueError("Invalid nep.txt: element count mismatch.")
+
+        zbl = None
+        if has_zbl:
+            tokens = lines[idx].split()
+            idx += 1
+            if tokens[0] != "zbl" or len(tokens) not in (3, 4):
+                raise ValueError("Invalid nep.txt: zbl line not found after nep4_zbl header.")
+            zbl = {
+                "rc_inner": float(tokens[1]),
+                "rc_outer": float(tokens[2]),
+                "flexible": float(tokens[1]) == 0.0 and float(tokens[2]) == 0.0,
+            }
+            if len(tokens) == 4:
+                zbl["typewise_cutoff_factor"] = float(tokens[3])
+                raise NotImplementedError("Typewise ZBL cutoffs are not supported in torchNEP.")
 
         tokens = lines[idx].split()
         idx += 1
@@ -208,6 +265,8 @@ class NEP(nn.Module):
             "hidden_dims": [num_neurons],
             "n_types": num_types,
         }
+        if zbl is not None and not zbl["flexible"]:
+            para["zbl"] = zbl
 
         model = cls(para)
         num_L = model.num_L
@@ -250,6 +309,16 @@ class NEP(nn.Module):
             model.q_scaler.copy_(q_scaler)
             model.para["descriptor_scaler"] = q_scaler.detach().cpu().tolist()
 
+            if zbl is not None and zbl["flexible"]:
+                num_type_zbl = num_types * (num_types + 1) // 2
+                zbl_parameters = torch.tensor(
+                    [next(stream) for _ in range(10 * num_type_zbl)],
+                    dtype=torch.float32,
+                ).reshape(num_type_zbl, 10)
+                zbl["parameters"] = zbl_parameters.detach().cpu().reshape(-1).tolist()
+                model.para["zbl"] = zbl
+                model._configure_zbl()
+
         if device is not None:
             model.to(device)
 
@@ -286,7 +355,12 @@ class NEP(nn.Module):
             
     def save_to_nep_format(self, filepath):
         with open(filepath, 'w') as f:
-            f.write(f"nep4 {len(self.elements)} " + " ".join(self.elements) + "\n")
+            zbl = self.para.get("zbl", None)
+            header = "nep4_zbl" if zbl is not None else "nep4"
+            f.write(f"{header} {len(self.elements)} " + " ".join(self.elements) + "\n")
+            if zbl is not None:
+                zbl_config = self._normalize_zbl_config(zbl)
+                f.write(f"zbl {zbl_config['rc_inner']} {zbl_config['rc_outer']}\n")
             f.write(f"cutoff {self.para['rcut_radial']} {self.para['rcut_angular']} {self.para['NN_radial']} {self.para['NN_angular']}\n")
             f.write(f"n_max {int(self.para['n_desc_radial']) - 1} {int(self.para['n_desc_angular']) - 1}\n")
             f.write(f"basis_size {int(self.para['k_max_radial']) - 1} {int(self.para['k_max_angular']) - 1}\n")
@@ -338,10 +412,127 @@ class NEP(nn.Module):
             for val in scaler.tolist():
                 f.write(f"{val:15.7e}\n")
 
+            if zbl is not None:
+                zbl_config = self._normalize_zbl_config(zbl)
+                if zbl_config["flexible"]:
+                    for val in zbl_config["parameters"]:
+                        f.write(f"{val:15.7e}\n")
+
     def _init_descriptor_scaler(self, input_dim):
         scaler_tensor = torch.ones(input_dim, dtype=torch.float32)
         self.register_buffer("q_scaler", scaler_tensor)
         self.para["descriptor_scaler"] = scaler_tensor.tolist()
+
+    def _normalize_zbl_config(self, zbl):
+        if zbl is None:
+            return None
+        if isinstance(zbl, dict):
+            rc_inner = float(zbl["rc_inner"])
+            rc_outer = float(zbl["rc_outer"])
+            flexible = bool(zbl.get("flexible", rc_inner == 0.0 and rc_outer == 0.0))
+            parameters = zbl.get("parameters")
+            if flexible and parameters is None:
+                raise ValueError("Flexible ZBL requires fitted ZBL parameters.")
+            return {
+                "rc_inner": rc_inner,
+                "rc_outer": rc_outer,
+                "flexible": flexible,
+                "parameters": parameters,
+            }
+        if len(zbl) != 2:
+            raise ValueError("ZBL config should be a dict or [rc_inner, rc_outer].")
+        rc_inner = float(zbl[0])
+        rc_outer = float(zbl[1])
+        flexible = rc_inner == 0.0 and rc_outer == 0.0
+        if flexible:
+            raise ValueError("Flexible ZBL requires fitted ZBL parameters.")
+        return {
+            "rc_inner": rc_inner,
+            "rc_outer": rc_outer,
+            "flexible": False,
+            "parameters": None,
+        }
+
+    def _configure_zbl(self):
+        zbl = self._normalize_zbl_config(self.para.get("zbl", None))
+        self.zbl_enabled = zbl is not None
+        self.zbl_config = zbl
+
+        atomic_number_tensor = torch.tensor(
+            [atomic_numbers[element] for element in self.elements],
+            dtype=torch.float32,
+        )
+        if hasattr(self, "zbl_atomic_numbers"):
+            self.zbl_atomic_numbers = atomic_number_tensor.to(self.zbl_atomic_numbers.device)
+        else:
+            self.register_buffer("zbl_atomic_numbers", atomic_number_tensor)
+
+        if zbl is not None and zbl["flexible"]:
+            params = torch.tensor(zbl["parameters"], dtype=torch.float32).reshape(-1, 10)
+        else:
+            params = torch.zeros((0, 10), dtype=torch.float32)
+        if hasattr(self, "zbl_parameters"):
+            self.zbl_parameters = params.to(self.zbl_parameters.device)
+        else:
+            self.register_buffer("zbl_parameters", params)
+
+        coeffs = torch.tensor(UNIVERSAL_ZBL_COEFFS, dtype=torch.float32).reshape(4, 2)
+        if hasattr(self, "universal_zbl_coeffs"):
+            self.universal_zbl_coeffs = coeffs.to(self.universal_zbl_coeffs.device)
+        else:
+            self.register_buffer("universal_zbl_coeffs", coeffs)
+
+    def _zbl_atomic_energy(self, types, positions, angular_neighbors, angular_offsets):
+        mask = angular_neighbors != -1
+        n_atoms = positions.shape[0]
+        if not mask.any():
+            return positions.new_zeros(n_atoms)
+
+        safe_neighbors = angular_neighbors.clone()
+        safe_neighbors[~mask] = 0
+        r_vec = (
+            positions[safe_neighbors]
+            + angular_offsets.to(device=positions.device, dtype=positions.dtype)
+            - positions.unsqueeze(1)
+        )
+        distances = torch.linalg.norm(r_vec, dim=-1)
+        safe_distances = torch.where(mask, torch.clamp(distances, min=1.0e-12), torch.ones_like(distances))
+        type_i = types.unsqueeze(1).expand_as(safe_neighbors)
+        type_j = types[safe_neighbors]
+        zbl_atomic_numbers = self.zbl_atomic_numbers.to(device=positions.device, dtype=positions.dtype)
+        z_i = zbl_atomic_numbers[type_i]
+        z_j = zbl_atomic_numbers[type_j]
+        a_inv = (torch.pow(z_i, 0.23) + torch.pow(z_j, 0.23)) * ZBL_A_INV_FACTOR
+        zizj = K_C_SP * z_i * z_j
+
+        if self.zbl_config["flexible"]:
+            t1 = torch.minimum(type_i, type_j)
+            t2 = torch.maximum(type_i, type_j)
+            zbl_index = t1 * self.n_elements - (t1 * (t1 - 1)) // 2 + (t2 - t1)
+            params = self.zbl_parameters.to(device=positions.device, dtype=positions.dtype)[zbl_index]
+            rc_inner = params[..., 0]
+            rc_outer = params[..., 1]
+            coeffs = params[..., 2:].reshape(*params.shape[:-1], 4, 2)
+        else:
+            rc_inner = positions.new_full(distances.shape, self.zbl_config["rc_inner"])
+            rc_outer = positions.new_full(distances.shape, self.zbl_config["rc_outer"])
+            coeffs = self.universal_zbl_coeffs.to(device=positions.device, dtype=positions.dtype).view(1, 1, 4, 2)
+
+        x = safe_distances * a_inv
+        phi = torch.sum(coeffs[..., 0] * torch.exp(-coeffs[..., 1] * x.unsqueeze(-1)), dim=-1)
+        screened = zizj * phi / safe_distances
+        cutoff_width = torch.clamp(rc_outer - rc_inner, min=1.0e-12)
+        fc = torch.where(
+            safe_distances < rc_inner,
+            torch.ones_like(safe_distances),
+            torch.where(
+                safe_distances < rc_outer,
+                0.5 * torch.cos(torch.pi * (safe_distances - rc_inner) / cutoff_width) + 0.5,
+                torch.zeros_like(safe_distances),
+            ),
+        )
+        edge_energy = 0.5 * screened * fc * mask
+        return torch.sum(edge_energy, dim=1)
 
     def compute_descriptor_scaler(self, dataloader, device=None):
         """

@@ -73,7 +73,11 @@ def collate_fn(batch):
         result["energy"] = torch.stack([e if e is not None else torch.tensor(0.0, dtype=torch.float32) for e in energy_list])
         result["is_energy"] = torch.tensor(is_energy, dtype=torch.bool)
     
-    result["forces"] = torch.cat(forces_list, dim=0)
+    has_forces = [f is not None for f in forces_list]
+    if all(has_forces):
+        result["forces"] = torch.cat(forces_list, dim=0)
+    elif any(has_forces):
+        raise ValueError("Cannot collate a mixed batch with some missing force labels.")
     
     if any(is_virial):
         result["virial"] = torch.stack([v if v is not None else torch.zeros(9, dtype=torch.float32) for v in virial_list])
@@ -82,9 +86,10 @@ def collate_fn(batch):
     return result
 
 class StructureDataset(Dataset):
-    def __init__(self, frames, para):
+    def __init__(self, frames, para, require_forces=True):
         self.frames = frames
         self.para = para
+        self.require_forces = require_forces
         self.elements = para["elements"]
         self.cutoff_radial = para["rcut_radial"]
         self.cutoff_angular = para["rcut_angular"]
@@ -146,19 +151,19 @@ class StructureDataset(Dataset):
         if 'energy' in atoms.info and atoms.info['energy'] is not None:
             result["energy"] = torch.tensor(atoms.info['energy'], dtype=torch.float32)
         
-        # check forces
         if 'forces' not in atoms.info or atoms.info['forces'] is None:
-            raise ValueError(f"Forces data is missing for structure with {n_atoms} atoms")
-        
-        forces = atoms.info['forces']
-        if not hasattr(forces, '__len__') or len(forces) != n_atoms:
-            raise ValueError(f"Forces shape mismatch: expected {n_atoms} atoms, got forces shape {getattr(forces, 'shape', len(forces) if hasattr(forces, '__len__') else 'unknown')}")
-        
-        forces = torch.tensor(forces, dtype=torch.float32)  # [N_atoms, 3]
-        if forces.shape != (n_atoms, 3):
-            raise ValueError(f"Forces shape incorrect: expected ({n_atoms}, 3), got {forces.shape}")
-        
-        result["forces"] = forces
+            if self.require_forces:
+                raise ValueError(f"Forces data is missing for structure with {n_atoms} atoms")
+        else:
+            forces = atoms.info['forces']
+            if not hasattr(forces, '__len__') or len(forces) != n_atoms:
+                raise ValueError(f"Forces shape mismatch: expected {n_atoms} atoms, got forces shape {getattr(forces, 'shape', len(forces) if hasattr(forces, '__len__') else 'unknown')}")
+            
+            forces = torch.tensor(forces, dtype=torch.float32)  # [N_atoms, 3]
+            if forces.shape != (n_atoms, 3):
+                raise ValueError(f"Forces shape incorrect: expected ({n_atoms}, 3), got {forces.shape}")
+            
+            result["forces"] = forces
         
         if 'stress' in atoms.info and atoms.info['stress'] is not None:
             stress = atoms.info['stress']

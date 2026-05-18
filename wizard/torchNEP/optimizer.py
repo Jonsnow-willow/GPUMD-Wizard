@@ -90,6 +90,7 @@ class Optimizer:
             for k, v in batch.items():
                 if isinstance(v, torch.Tensor):
                     batch[k] = v.to(self.device)
+            batch["compute_virial"] = "virial" in batch
             self.optimizer.zero_grad()
             prediction = self.model(batch)
             loss, loss_dict = self.compute_loss(prediction, batch, weights)
@@ -167,7 +168,9 @@ class SNES:
         self.save_path = save_path
         
         self.population_size = population_size
-        self.sigma_init = sigma_init
+        if sigma_init <= 0:
+            raise ValueError("sigma_init must be positive.")
+        self.sigma_init = float(sigma_init)
         self.patience = patience
         self.compute_q_scaler_once = compute_q_scaler_once
         self.q_scaler_initialized = False
@@ -184,7 +187,7 @@ class SNES:
             self.total_params += size
 
         self.theta = np.random.uniform(-0.5, 0.5, self.total_params)
-        self.sigma = np.full(self.total_params, 0.1)
+        self.sigma = np.full(self.total_params, self.sigma_init)
         
         self.best_loss = float('inf')
         self.best_params = self.theta.copy()
@@ -268,6 +271,7 @@ class SNES:
             for k, v in batch.items():
                 if isinstance(v, torch.Tensor):
                     batch[k] = v.to(self.device)
+            batch["compute_virial"] = "virial" in batch
             prediction = self.model(batch)
             loss, _ = self.compute_loss(prediction, batch)
             total_loss += loss if isinstance(loss, float) else float(loss)
