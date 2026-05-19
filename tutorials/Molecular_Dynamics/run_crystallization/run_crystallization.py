@@ -36,4 +36,4 @@ for alloy_info in alloy_infos:
               'dump_exyz 100000', 
               'dump_restart 10000', 
               'run 10000000']
-    Morph(atoms).gpumd(dirname=dirname, run_in=run_in, nep_path='../potentials/neptxt')
+    Morph(atoms).gpumd(dirname=dirname, run_in=run_in, nep_path='../potentials/nep.txt')
