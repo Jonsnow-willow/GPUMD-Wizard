@@ -18,7 +18,7 @@ run_in =['potential nep.txt',
 
 alloy_info = AlloyInfo('W',  'bcc', 3.185)
 atoms = alloy_info.create_bulk_atoms((20,20,20))
-Morph(atoms).gpumd()
+Morph(atoms).gpumd(nep_path='../potentials/nep.txt')
 
 pka_energy = 500 # eV
 for i in range(1000):
@@ -46,6 +46,6 @@ for i in range(1000):
     atoms.info['group'] = [group]
     
     Morph(atoms).set_pka(energy=pka_energy, direction=direction)
-    Morph(atoms).gpumd(f'{i}', run_in, nep_path='../potentials/MoNbTaVW.txt')
+    Morph(atoms).gpumd(f'{i}', run_in, nep_path='../potentials/nep.txt')
     
     
