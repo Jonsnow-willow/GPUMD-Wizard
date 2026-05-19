@@ -1,0 +1,24 @@
+version nep4
+elements Te Pb
+cutoff 8.0 4.0 100 30
+n_max 4 4
+basis_size 8 8
+l_max 4 2 1
+neuron 30
+
+train train.xyz
+test test.xyz
+optimizer adamw
+epochs 20
+batch_size 2
+learning_rate 1.0e-3
+weight_decay 1.0e-4
+
+lambda_energy 1.0
+lambda_force 1.0
+lambda_virial 0.1
+
+device auto
+seed 42
+save_every 5
+export_every 10

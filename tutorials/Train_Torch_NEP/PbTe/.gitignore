@@ -1,0 +1,6 @@
+checkpoints/
+exports/
+logs/
+__pycache__/
+force_results.png
+nep_model.pt

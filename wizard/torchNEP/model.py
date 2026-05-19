@@ -373,7 +373,7 @@ class NEP(nn.Module):
                     if isinstance(layer, nn.Linear):
                         weights = layer.weight.data.flatten().tolist()
                         for val in weights:
-                            f.write(f"{val:15.7e}\n")
+                            f.write(f"{val:18.10e}\n")
 
                         if layer.bias is not None:
                             bias = layer.bias.data
@@ -381,10 +381,10 @@ class NEP(nn.Module):
                                 bias = -bias
                             bias = bias.flatten().tolist()
                             for val in bias:
-                                f.write(f"{val:15.7e}\n")
+                                f.write(f"{val:18.10e}\n")
 
             bias_value = self.shared_bias.data.item()
-            f.write(f"{bias_value:15.7e}\n")
+            f.write(f"{bias_value:18.10e}\n")
 
             n_max_radial = int(self.para['n_desc_radial'])
             n_max_angular = int(self.para['n_desc_angular'])
@@ -398,7 +398,7 @@ class NEP(nn.Module):
                     for t1 in range(n_types):
                         for t2 in range(n_types):
                             val = radial_params[t1, t2, n, k].item()
-                            f.write(f"{val:15.7e}\n")
+                            f.write(f"{val:18.10e}\n")
 
             angular_params = self.descriptor.angular.c_table.data
             for n in range(n_max_angular):
@@ -406,17 +406,17 @@ class NEP(nn.Module):
                     for t1 in range(n_types):
                         for t2 in range(n_types):
                             val = angular_params[t1, t2, n, k].item()
-                            f.write(f"{val:15.7e}\n")
+                            f.write(f"{val:18.10e}\n")
 
             scaler = self.q_scaler.detach().cpu().reshape(-1)
             for val in scaler.tolist():
-                f.write(f"{val:15.7e}\n")
+                f.write(f"{val:18.10e}\n")
 
             if zbl is not None:
                 zbl_config = self._normalize_zbl_config(zbl)
                 if zbl_config["flexible"]:
                     for val in zbl_config["parameters"]:
-                        f.write(f"{val:15.7e}\n")
+                        f.write(f"{val:18.10e}\n")
 
     def _init_descriptor_scaler(self, input_dim):
         scaler_tensor = torch.ones(input_dim, dtype=torch.float32)
@@ -538,6 +538,12 @@ class NEP(nn.Module):
         """
         Estimate scaler = 1 / (max - min) for each descriptor dimension.
         """
+        q_min, q_max = self.compute_descriptor_min_max(dataloader, device=device)
+        if q_min is not None:
+            self.set_descriptor_scaler_from_min_max(q_min, q_max)
+        return self.q_scaler.detach().cpu().clone()
+
+    def compute_descriptor_min_max(self, dataloader, device=None):
         if device is None:
             device = next(self.parameters()).device
         prev_mode = self.training
@@ -559,6 +565,10 @@ class NEP(nn.Module):
                 else:
                     q_min = torch.minimum(q_min, batch_min)
                     q_max = torch.maximum(q_max, batch_max)
+        self.train(prev_mode)
+        return q_min, q_max
+
+    def set_descriptor_scaler_from_min_max(self, q_min, q_max):
         if q_min is not None:
             diff = q_max - q_min
             scaler = torch.ones_like(diff)
@@ -568,7 +578,6 @@ class NEP(nn.Module):
             with torch.no_grad():
                 self.q_scaler.copy_(tensor)
             self.para["descriptor_scaler"] = tensor.detach().cpu().tolist()
-        self.train(prev_mode)
         return self.q_scaler.detach().cpu().clone()
 
     def _combine_descriptors(self, descriptors):

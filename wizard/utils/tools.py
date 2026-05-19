@@ -397,20 +397,25 @@ def plot_force_results(frames, calcs, labels = None, e_val = [None, None], f_val
         e_2 = np.array(e_2)
         f_1 = np.concatenate(f_1)
         f_2 = np.concatenate(f_2)
-        v_1 = np.array(v_1).flatten()
-        v_2 = np.array(v_2).flatten()
         color = cmap(labels.index(label))
         axes[0].plot(e_2, e_1, ".", markersize=10, label=label, color=color)
         axes[1].plot(f_2, f_1, ".", markersize=10, label=label, color=color)
-        axes[2].plot(v_2, v_1, ".", markersize=10, label=label, color=color)
+        has_stress = len(v_1) > 0
+        if has_stress:
+            v_1 = np.array(v_1).flatten()
+            v_2 = np.array(v_2).flatten()
+            axes[2].plot(v_2, v_1, ".", markersize=10, label=label, color=color)
         if label not in label_colors:
             label_colors[label] = color
         e_rmse = np.sqrt(np.mean((e_1-e_2)**2)) 
         f_rmse = np.sqrt(np.mean((f_1-f_2)**2))
-        v_rmse = np.sqrt(np.mean((v_1-v_2)**2))
         print(f'{label}_E_rmse: {e_rmse * 1000:.2f} meV/atom')
         print(f'{label}_F_rmse: {f_rmse * 1000:.2f} meV/Å')
-        print(f'{label}_S_rmse: {v_rmse * 1000:.2f} meV/Å^3')
+        if has_stress:
+            v_rmse = np.sqrt(np.mean((v_1-v_2)**2))
+            print(f'{label}_S_rmse: {v_rmse * 1000:.2f} meV/Å^3')
+        else:
+            print(f'{label}_S_rmse: n/a')
 
 
     x_min, x_max = axes[0].get_xlim()
@@ -425,11 +430,12 @@ def plot_force_results(frames, calcs, labels = None, e_val = [None, None], f_val
     max_val = max(x_max, y_max)
     axes[1].plot([min_val, max_val], [min_val, max_val], 'k--')
 
-    x_min, x_max = axes[2].get_xlim()
-    y_min, y_max = axes[2].get_ylim()
-    min_val = min(x_min, y_min)
-    max_val = max(x_max, y_max)
-    axes[2].plot([min_val, max_val], [min_val, max_val], 'k--')
+    if axes[2].has_data():
+        x_min, x_max = axes[2].get_xlim()
+        y_min, y_max = axes[2].get_ylim()
+        min_val = min(x_min, y_min)
+        max_val = max(x_max, y_max)
+        axes[2].plot([min_val, max_val], [min_val, max_val], 'k--')
     
     if e_val[0] is not None and e_val[1] is not None:
         axes[0].set_xlim(e_val)
