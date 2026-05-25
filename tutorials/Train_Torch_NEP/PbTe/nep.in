@@ -13,6 +13,8 @@ epochs 20
 batch_size 2
 learning_rate 1.0e-3
 weight_decay 1.0e-4
+scheduler cosine
+min_learning_rate 1.0e-5
 
 lambda_energy 1.0
 lambda_force 1.0
@@ -22,3 +24,5 @@ device auto
 seed 42
 save_every 5
 export_every 10
+gradient_accumulation_steps 1
+gradient_clip_norm 5.0

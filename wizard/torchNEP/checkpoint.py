@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import random
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import torch
 
 from wizard.torchNEP.config import TrainConfig
@@ -26,6 +28,7 @@ class CheckpointManager:
         epoch: int,
         best_metric: float,
         metrics: dict[str, Any] | None = None,
+        scheduler=None,
     ) -> Path:
         path = self.path(name)
         base_model = unwrap_model(model)
@@ -33,22 +36,68 @@ class CheckpointManager:
             {
                 "model_state_dict": base_model.state_dict(),
                 "optimizer_state_dict": optimizer.state_dict() if optimizer is not None else None,
+                "scheduler_state_dict": scheduler.state_dict() if scheduler is not None else None,
                 "epoch": epoch,
                 "best_metric": best_metric,
                 "metrics": metrics or {},
                 "para": base_model.para,
                 "config": self.config.to_dict(),
+                "rng_state": capture_rng_state(),
             },
             path,
         )
         return path
 
-    def load(self, path: str | Path, model, optimizer=None, device=None) -> dict[str, Any]:
+    def load(
+        self,
+        path: str | Path,
+        model,
+        optimizer=None,
+        scheduler=None,
+        device=None,
+        restore_rng: bool = True,
+    ) -> dict[str, Any]:
         path = Path(path)
         if not path.is_absolute():
             path = self.config.run_dir / path
-        checkpoint = torch.load(path, map_location=device)
+        checkpoint = load_checkpoint_file(path, map_location=device)
         unwrap_model(model).load_state_dict(checkpoint["model_state_dict"])
         if optimizer is not None and checkpoint.get("optimizer_state_dict") is not None:
             optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+        if scheduler is not None and checkpoint.get("scheduler_state_dict") is not None:
+            scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
+        if restore_rng:
+            restore_rng_state(checkpoint.get("rng_state"))
         return checkpoint
+
+
+def load_checkpoint_file(path: str | Path, map_location=None) -> dict[str, Any]:
+    try:
+        return torch.load(path, map_location=map_location, weights_only=False)
+    except TypeError:
+        return torch.load(path, map_location=map_location)
+
+
+def capture_rng_state() -> dict[str, Any]:
+    state = {
+        "python": random.getstate(),
+        "numpy": np.random.get_state(),
+        "torch": torch.get_rng_state(),
+        "cuda": None,
+    }
+    if torch.cuda.is_available():
+        state["cuda"] = torch.cuda.get_rng_state_all()
+    return state
+
+
+def restore_rng_state(state: dict[str, Any] | None) -> None:
+    if not state:
+        return
+    if state.get("python") is not None:
+        random.setstate(state["python"])
+    if state.get("numpy") is not None:
+        np.random.set_state(state["numpy"])
+    if state.get("torch") is not None:
+        torch.set_rng_state(state["torch"])
+    if state.get("cuda") is not None and torch.cuda.is_available():
+        torch.cuda.set_rng_state_all(state["cuda"])

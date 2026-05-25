@@ -71,6 +71,16 @@ class OptimizerConfig:
 
 
 @dataclass
+class SchedulerConfig:
+    name: str = "none"
+    min_learning_rate: float = 0.0
+    step_size: int = 100
+    gamma: float = 0.5
+    patience: int = 20
+    factor: float = 0.5
+
+
+@dataclass
 class LossConfig:
     energy: float = 1.0
     forces: float = 1.0
@@ -88,6 +98,8 @@ class RuntimeConfig:
     export_every: int = 0
     resume: str | None = None
     compute_descriptor_scaler_once: bool = True
+    gradient_accumulation_steps: int = 1
+    gradient_clip_norm: float | None = None
 
 
 @dataclass
@@ -96,6 +108,7 @@ class TrainConfig:
     model: ModelConfig
     data: DataConfig = field(default_factory=DataConfig)
     optimizer: OptimizerConfig = field(default_factory=OptimizerConfig)
+    scheduler: SchedulerConfig = field(default_factory=SchedulerConfig)
     loss: LossConfig = field(default_factory=LossConfig)
     runtime: RuntimeConfig = field(default_factory=RuntimeConfig)
 

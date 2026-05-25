@@ -8,6 +8,7 @@ from wizard.torchNEP.config import (
     ModelConfig,
     OptimizerConfig,
     RuntimeConfig,
+    SchedulerConfig,
     TrainConfig,
 )
 
@@ -22,6 +23,7 @@ def load_train_config(run_dir: str | Path) -> TrainConfig:
     model = _build_model_config(parsed, run_dir)
     data = _build_data_config(parsed)
     optimizer = _build_optimizer_config(parsed)
+    scheduler = _build_scheduler_config(parsed)
     loss = _build_loss_config(parsed)
     runtime = _build_runtime_config(parsed)
     return TrainConfig(
@@ -29,6 +31,7 @@ def load_train_config(run_dir: str | Path) -> TrainConfig:
         model=model,
         data=data,
         optimizer=optimizer,
+        scheduler=scheduler,
         loss=loss,
         runtime=runtime,
     )
@@ -180,6 +183,17 @@ def _build_optimizer_config(parsed: dict[str, list[str]]) -> OptimizerConfig:
     )
 
 
+def _build_scheduler_config(parsed: dict[str, list[str]]) -> SchedulerConfig:
+    return SchedulerConfig(
+        name=_normalize_scheduler_name(_pop_scalar(parsed, "scheduler", default="none")),
+        min_learning_rate=float(_pop_first_scalar(parsed, ("min_learning_rate", "min_lr"), default="0.0")),
+        step_size=int(_pop_first_scalar(parsed, ("lr_step_size", "scheduler_step_size"), default="100")),
+        gamma=float(_pop_first_scalar(parsed, ("lr_gamma", "scheduler_gamma"), default="0.5")),
+        patience=int(_pop_first_scalar(parsed, ("lr_patience", "scheduler_patience"), default="20")),
+        factor=float(_pop_first_scalar(parsed, ("lr_factor", "scheduler_factor"), default="0.5")),
+    )
+
+
 def _build_loss_config(parsed: dict[str, list[str]]) -> LossConfig:
     lambda_energy = _pop_first_scalar(parsed, ("lambda_energy", "lambda_e"), default="1.0")
     lambda_force = _pop_first_scalar(parsed, ("lambda_force", "lambda_forces", "lambda_f"), default="1.0")
@@ -199,6 +213,12 @@ def _build_runtime_config(parsed: dict[str, list[str]]) -> RuntimeConfig:
         export_every=int(_pop_scalar(parsed, "export_every", default="0")),
         resume=_pop_scalar(parsed, "resume", default=None),
         compute_descriptor_scaler_once=_parse_bool(_pop_scalar(parsed, "compute_descriptor_scaler_once", default="true")),
+        gradient_accumulation_steps=int(
+            _pop_first_scalar(parsed, ("gradient_accumulation_steps", "accumulation_steps"), default="1")
+        ),
+        gradient_clip_norm=_parse_optional_float(
+            _pop_first_scalar(parsed, ("gradient_clip_norm", "clip_grad_norm"), default=None)
+        ),
     )
     if parsed:
         raise ValueError(f"Unsupported nep.in keys: {sorted(parsed)}")
@@ -253,6 +273,18 @@ def _normalize_optimizer_name(name: str) -> str:
     return name.lower().replace("-", "").replace("_", "")
 
 
+def _normalize_scheduler_name(name: str) -> str:
+    normalized = name.lower().replace("-", "").replace("_", "")
+    aliases = {
+        "off": "none",
+        "null": "none",
+        "cosineannealinglr": "cosine",
+        "steplr": "step",
+        "reducelronplateau": "plateau",
+    }
+    return aliases.get(normalized, normalized)
+
+
 def _require_length(key: str, values: list[str], expected: int) -> None:
     if len(values) != expected:
         raise ValueError(f"`{key}` expects {expected} values, got {len(values)}.")
@@ -267,3 +299,7 @@ def _parse_bool(value: str | bool) -> bool:
     if normalized in {"0", "false", "no", "n", "off"}:
         return False
     raise ValueError(f"Invalid boolean value: {value}")
+
+
+def _parse_optional_float(value: str | None) -> float | None:
+    return None if value is None else float(value)

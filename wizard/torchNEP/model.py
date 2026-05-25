@@ -2,6 +2,7 @@ import re
 import torch
 import torch.nn as nn
 from ase.data import atomic_numbers
+from .checkpoint import load_checkpoint_file
 from .descriptor import Descriptor 
 
 K_C_SP = 14.399645
@@ -135,7 +136,7 @@ class NEP(nn.Module):
     
     @classmethod
     def from_checkpoint(cls, filepath, device=None):
-        checkpoint = torch.load(filepath, map_location=device)
+        checkpoint = load_checkpoint_file(filepath, map_location=device)
         para = checkpoint['para']
         model = cls(para)
         state = checkpoint.get('model_state_dict', {})

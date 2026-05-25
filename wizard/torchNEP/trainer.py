@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import random
 import time
+from contextlib import nullcontext
 from dataclasses import dataclass
 
 import numpy as np
@@ -49,6 +50,7 @@ class GradientTrainer:
         self.model = self.context.wrap_model(NEP(config.model.to_nep_para()).to(self.device))
         self.train_loader, self.test_loader = build_dataloaders(config, context=self.context)
         self.optimizer = build_optimizer(self.model, config.optimizer)
+        self.scheduler = build_scheduler(self.optimizer, config.optimizer, config.scheduler)
         self.loss_fn = nn.L1Loss()
         self.checkpoints = CheckpointManager(config, create_dirs=self.context.is_main_process)
         self.metrics_logger = MetricsLogger(config.logs_dir / "metrics.csv") if self.context.is_main_process else None
@@ -77,8 +79,9 @@ class GradientTrainer:
             train_metrics = self.train_epoch()
             test_metrics = self.evaluate() if self.test_loader is not None else None
             score = test_metrics.total_loss if test_metrics is not None else train_metrics.total_loss
+            self.step_scheduler(score)
 
-            row = {"epoch": epoch, **train_metrics.as_dict("train")}
+            row = {"epoch": epoch, "lr": self.current_learning_rate(), **train_metrics.as_dict("train")}
             if test_metrics is not None:
                 row.update(test_metrics.as_dict("test"))
             last_row = row
@@ -88,14 +91,38 @@ class GradientTrainer:
                 self._log_epoch(epoch, train_metrics, test_metrics)
                 if score < self.best_metric:
                     self.best_metric = score
-                    self.checkpoints.save("best.pt", self.model, self.optimizer, epoch, self.best_metric, row)
+                    self.checkpoints.save(
+                        "best.pt",
+                        self.model,
+                        self.optimizer,
+                        epoch,
+                        self.best_metric,
+                        row,
+                        scheduler=self.scheduler,
+                    )
                 if self.config.runtime.save_every > 0 and epoch % self.config.runtime.save_every == 0:
-                    self.checkpoints.save("last.pt", self.model, self.optimizer, epoch, self.best_metric, row)
+                    self.checkpoints.save(
+                        "last.pt",
+                        self.model,
+                        self.optimizer,
+                        epoch,
+                        self.best_metric,
+                        row,
+                        scheduler=self.scheduler,
+                    )
                 if self.config.runtime.export_every > 0 and epoch % self.config.runtime.export_every == 0:
                     unwrap_model(self.model).save_to_nep_format(self.config.exports_dir / f"nep_epoch_{epoch}.txt")
 
         if self.is_main_process:
-            self.checkpoints.save("last.pt", self.model, self.optimizer, self.current_epoch, self.best_metric, last_row)
+            self.checkpoints.save(
+                "last.pt",
+                self.model,
+                self.optimizer,
+                self.current_epoch,
+                self.best_metric,
+                last_row,
+                scheduler=self.scheduler,
+            )
             unwrap_model(self.model).save_to_nep_format(self.config.exports_dir / "nep.txt")
             print("Training completed.")
         self.context.barrier()
@@ -131,13 +158,27 @@ class GradientTrainer:
         self.model.train()
         start = time.perf_counter()
         metrics = EpochMetrics()
-        for batch in self.train_loader:
+        accumulation_steps = self.config.runtime.gradient_accumulation_steps
+        if accumulation_steps < 1:
+            raise ValueError("gradient_accumulation_steps must be >= 1.")
+        self.optimizer.zero_grad(set_to_none=True)
+        total_steps = len(self.train_loader)
+        final_accumulation_steps = total_steps % accumulation_steps or accumulation_steps
+        for step, batch in enumerate(self.train_loader, 1):
             batch = self._prepare_batch(batch)
-            self.optimizer.zero_grad(set_to_none=True)
-            prediction = self.model(batch)
-            loss, loss_dict = self.compute_loss(prediction, batch)
-            loss.backward()
-            self.optimizer.step()
+            should_step = step % accumulation_steps == 0 or step == total_steps
+            scale = final_accumulation_steps if step == total_steps else accumulation_steps
+            sync_context = nullcontext()
+            if self.context.is_distributed and not should_step and hasattr(self.model, "no_sync"):
+                sync_context = self.model.no_sync()
+            with sync_context:
+                prediction = self.model(batch)
+                loss, loss_dict = self.compute_loss(prediction, batch)
+                (loss / scale).backward()
+            if should_step:
+                self.clip_gradients()
+                self.optimizer.step()
+                self.optimizer.zero_grad(set_to_none=True)
             self._accumulate(metrics, loss.item(), loss_dict)
         metrics.seconds = time.perf_counter() - start
         return self._finalize_metrics(metrics)
@@ -245,12 +286,35 @@ class GradientTrainer:
         return metrics
 
     def _resume(self, resume_path: str) -> None:
-        checkpoint = self.checkpoints.load(resume_path, self.model, self.optimizer, device=self.device)
+        checkpoint = self.checkpoints.load(
+            resume_path,
+            self.model,
+            self.optimizer,
+            scheduler=self.scheduler,
+            device=self.device,
+        )
         self.current_epoch = int(checkpoint.get("epoch", 0))
         self.best_metric = float(checkpoint.get("best_metric", float("inf")))
         self.q_scaler_initialized = True
         if self.is_main_process:
             print(f"Resumed from {resume_path} at epoch {self.current_epoch}.")
+
+    def step_scheduler(self, score: float) -> None:
+        if self.scheduler is None:
+            return
+        if isinstance(self.scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
+            self.scheduler.step(score)
+        else:
+            self.scheduler.step()
+
+    def current_learning_rate(self) -> float:
+        return float(self.optimizer.param_groups[0]["lr"])
+
+    def clip_gradients(self) -> None:
+        clip_norm = self.config.runtime.gradient_clip_norm
+        if clip_norm is None or clip_norm <= 0:
+            return
+        torch.nn.utils.clip_grad_norm_(self.model.parameters(), clip_norm)
 
     def _log_start(self) -> None:
         if not self.is_main_process:
@@ -265,6 +329,7 @@ class GradientTrainer:
             f"lr={self.config.optimizer.learning_rate} "
             f"weight_decay={self.config.optimizer.weight_decay}"
         )
+        print(f"Scheduler: {self.config.scheduler.name}")
         print(f"Device: {self.device}")
         print(f"Execution: {self.context.describe()}")
         print(f"Parameters: {sum(p.numel() for p in self.model.parameters())}")
@@ -309,6 +374,33 @@ def build_optimizer(model: nn.Module, config) -> torch.optim.Optimizer:
         betas=config.betas,
         eps=config.eps,
     )
+
+
+def build_scheduler(optimizer: torch.optim.Optimizer, optimizer_config, scheduler_config):
+    name = scheduler_config.name
+    if name == "none":
+        return None
+    if name == "cosine":
+        return torch.optim.lr_scheduler.CosineAnnealingLR(
+            optimizer,
+            T_max=max(1, optimizer_config.epochs),
+            eta_min=scheduler_config.min_learning_rate,
+        )
+    if name == "step":
+        return torch.optim.lr_scheduler.StepLR(
+            optimizer,
+            step_size=max(1, scheduler_config.step_size),
+            gamma=scheduler_config.gamma,
+        )
+    if name == "plateau":
+        return torch.optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer,
+            mode="min",
+            factor=scheduler_config.factor,
+            patience=scheduler_config.patience,
+            min_lr=scheduler_config.min_learning_rate,
+        )
+    raise ValueError(f"Unsupported scheduler: {name}. Use none, cosine, step, or plateau.")
 
 
 def set_seed(seed: int) -> None:
