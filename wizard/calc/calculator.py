@@ -64,7 +64,7 @@ class MaterialCalculator():
         atom_energy : float
             Energy per atom (eV/atom).
         info : str
-            Configuration type label from atoms.info, if available.
+            Output label composed from formula and config_type.
         """
         if not isinstance(atoms, Atoms):
             raise TypeError('Input configuration must be an ASE Atoms object'
@@ -82,8 +82,9 @@ class MaterialCalculator():
         self.clamped = clamped
         self.kwargs = kwargs
         self.atom_energy = atoms.get_potential_energy() / len(atoms)
-        self.info = atoms.info.get('config_type', '')
-        self.formula = atoms.info.get('formula', atoms.get_chemical_formula())
+        formula = atoms.info.get('formula', atoms.get_chemical_formula())
+        config_type = atoms.info.get('config_type')
+        self.info = f'{formula}_{config_type}' if config_type else formula
         self.symbols = sorted(set(atoms.get_chemical_symbols()))
     
     def isolate_atom_energy(self) -> list[str]:
@@ -99,7 +100,8 @@ class MaterialCalculator():
         for symbol in self.symbols:
             atoms = Atoms([symbol], positions=[(0, 0, 0)], cell=[20, 20, 20], pbc=True)
             atoms.calc = self.calc
-            atoms.info['config_type'] = f'{symbol}_isolate_atom'
+            atoms.info['formula'] = symbol
+            atoms.info['config_type'] = 'isolate_atom'
             iso_atom_energy = atoms.get_potential_energy()
             output.append(f" {symbol:<10}Iso_Atom_Energy: {iso_atom_energy:.4f} eV")
             dump_xyz('MaterialProperties.xyz', atoms)
@@ -290,7 +292,7 @@ class MaterialCalculator():
         atoms = self.atoms.copy()
         calc = self.calc
         PhonoCalc(atoms, calc).get_band_structure(special_points=special_points, labels_path=labels_path)
-        fig_path = plot_band_structure(atoms, self.formula, self.info)
+        fig_path = plot_band_structure(atoms, self.info)
         return fig_path
              
     def formation_energy_surface(self, hkl = (1, 0, 0), layers = 10, shuffle_symbols = False) -> float:
@@ -337,7 +339,7 @@ class MaterialCalculator():
         dump_xyz('MaterialProperties.xyz', bulk)
         dump_xyz('MaterialProperties.xyz', slab)
         with open('MaterialProperties.out', 'a') as f:
-            print(f' {self.formula:<10}{hkl_str} Surface_Energy: {formation_energy / J / 1e-20 :.4f} J/m^2', file=f)
+            print(f' {self.info:<10}{hkl_str} Surface_Energy: {formation_energy / J / 1e-20 :.4f} J/m^2', file=f)
         return formation_energy * 1000
     
     def _formation_energy_defect(self, atoms : Atoms) -> float:
@@ -362,7 +364,7 @@ class MaterialCalculator():
         formation_energy = self._formation_energy_defect(atoms)
         dump_xyz('MaterialProperties.xyz', atoms)
         with open('MaterialProperties.out', 'a') as f:
-            print(f' {self.formula:<10}Formation_Energy_Vacancy: {formation_energy:.4f} eV', file=f)
+            print(f' {self.info:<10}Formation_Energy_Vacancy: {formation_energy:.4f} eV', file=f)
         return formation_energy
 
     def formation_energy_divacancies(self, index0 = 0, index1 = 1) -> float:
@@ -386,7 +388,7 @@ class MaterialCalculator():
         formation_energy = self._formation_energy_defect(atoms)
         dump_xyz('MaterialProperties.xyz', atoms)
         with open('MaterialProperties.out', 'a') as f:
-            print(f' {self.formula:<10}Formation_Energy_Divacancies: {formation_energy:.4f} eV', file=f)
+            print(f' {self.info:<10}Formation_Energy_Divacancies: {formation_energy:.4f} eV', file=f)
         return formation_energy
 
     def migration_energy_vacancy(self, index0 = 0, index1 = 1) -> list[float]:
@@ -442,13 +444,13 @@ class MaterialCalculator():
         ax.plot(np.linspace(0, 1, len(energies)), energies, '-o')
         ax.set_xlabel('Reaction Coordinate')
         ax.set_ylabel('Energy (eV)')
-        ax.set_title(f'{self.formula} {symbol}-Vacancy Migration Energy')
-        fig_path = os.path.join('migration_energy_vacancy', f'{self.formula}_{symbol}-vacancy_migration_energy.png')
+        ax.set_title(f'{self.info} {symbol}-Vacancy Migration Energy')
+        fig_path = os.path.join('migration_energy_vacancy', f'{self.info}_{symbol}-vacancy_migration_energy.png')
         fig.savefig(fig_path)   
         plt.close(fig)
 
         with open('MaterialProperties.out', 'a') as f:
-            print(f' {self.formula:<10}Migration_Energy_({symbol}-Vacancy): {migration_energy:.4f} eV', file=f)
+            print(f' {self.info:<10}Migration_Energy_({symbol}-Vacancy): {migration_energy:.4f} eV', file=f)
         
         return energies
     
@@ -471,16 +473,21 @@ class MaterialCalculator():
         formation_energy = self._formation_energy_defect(atoms)
         dump_xyz('MaterialProperties.xyz', atoms)
         with open('MaterialProperties.out', 'a') as f:
-            print(f' {self.formula:<10}{vector} Formation_Energy_Sia: {formation_energy:.4} eV', file=f)
+            print(f' {self.info:<10}{vector} Formation_Energy_Sia: {formation_energy:.4} eV', file=f)
         return formation_energy
     
 class AlloyCalculator(MaterialCalculator):
     def __init__(self, 
-                 atoms: Atoms,
                  alloy_info: AlloyInfo,
-                 calculator: Calculator, 
+                 calculator: Calculator,
+                 supercell: tuple = (3, 3, 3), 
                  clamped: bool = False,
                  **kwargs): 
         if not isinstance(alloy_info, AlloyInfo):
             raise TypeError('Input alloy_info must be an AlloyInfo object'
                             f', not type {type(alloy_info)}.')
+        
+        atoms = alloy_info.create_bulk_atoms(supercell = supercell)
+        super().__init__(atoms, calculator, clamped, **kwargs)
+
+    
