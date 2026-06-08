@@ -6,7 +6,8 @@ import numpy as np
 import os
 
 from ase import Atoms
-from ase.build import surface
+from ase.build import cut, rotate, surface
+from ase.constraints import FixAtoms
 from ase.calculators.calculator import Calculator
 from ase.neb import NEB
 from ase.units import J
@@ -487,6 +488,7 @@ class AlloyCalculator(MaterialCalculator):
             raise TypeError('Input alloy_info must be an AlloyInfo object'
                             f', not type {type(alloy_info)}.')
         
+        self.alloy_info = alloy_info
         atoms = alloy_info.create_bulk_atoms(supercell = supercell)
         super().__init__(atoms, calculator, clamped, **kwargs)
 
@@ -526,13 +528,13 @@ class AlloyCalculator(MaterialCalculator):
         atoms.calc = self.calc
 
         slab = cut(atoms, a, b, clength=None, origo=(0,0,0), nlayers = 18, extend=1.0, tolerance=0.01, maxatoms=None)
-        rotate(slab, a,(1,0,0),b,(0,1,0), center=(0,0,0))
+        rotate(slab, a, (1,0,0), b, (0,1,0), center=(0,0,0))
         slab.calc = self.calc
-        relax(slab)
+        relax(slab, constant_cell=True, **self.kwargs)
         slab.center(axis=2)
-        #slab.constraints = FixAtoms(indices=[atom.index for atom in slab if atom.position[2] < 1/2 * slab.cell[2][2]])
+        slab.constraints = FixAtoms(indices=[atom.index for atom in slab if atom.position[2] < 1/2 * slab.cell[2][2]])
         box = slab.get_cell()
-        S = (box[0][0] * box[1][1] - box[0][1] * box[1][0]) * 2
+        S = np.linalg.norm(np.cross(box[0], box[1])) * 2
 
         shift_distance = np.linalg.norm(np.array(a)) * distance
         shift_indices = [atom.index for atom in slab if atom.position[2] > 1/2 * slab.cell[2][2]]
@@ -541,121 +543,69 @@ class AlloyCalculator(MaterialCalculator):
         energies = []
         for i in range(11):
             slab_shift = slab.copy()
-            slab_shift.positions[shift_indices] += [slide_steps * i, 0,0]
+            slab_shift.positions[shift_indices] += [slide_steps * i, 0, 0]
             slab_shift.calc = self.calc
-            relax(slab_shift, fixed_line=True)
+            relax(slab_shift, constant_cell=True, **self.kwargs)
             defects_energy = slab_shift.get_potential_energy() / S
             energies.append(defects_energy)
             dump_xyz('MaterialProperties.xyz', slab_shift)
 
-        energies = [e - energies[0] for e in energies]
+        energies = np.array(energies)
+        energies -= energies[0]
+        miller_str = '-'.join(map(str, miller))
         with open('MaterialProperties.out', 'a') as f:
-            print(f' {self.info:<7}{miller} Stacking_Fault: {max(energies) * 1000:.4f} meV/A^2', file=f)
+            print(f' {self.info:<7}{miller_str} Stacking_Fault: {max(energies) * 1000:.4f} meV/A^2', file=f)
 
         plt.plot(np.linspace(0, 1, len(energies)), energies, marker='o', label=f'{self.info}')  
         plt.legend()
-        plt.savefig(f'{self.info}_stacking_fault_{miller}.png')
+        plt.savefig(f'{self.info}_{miller_str}_stacking_fault.png')
         plt.close()
         return energies
     
-    def bcc_metal_screw_dipole_move(self, fmax = 0.02, steps = 500):
-        lc = self.lc
-        symbols = []
-        compositions = []
-        for symbol, composition in re.findall(r'([A-Z][a-z]*)(\d*)', self.formula):
-            symbols.append(symbol)
-            compositions.append(int(composition) if composition else 1)
-        if len(symbols) > 1:
-            element_ratio = np.array(compositions) / sum(compositions)
-            element_counts = np.ceil(element_ratio * 135).astype(int)
-            symbols = np.repeat(symbols, element_counts)
-            np.random.shuffle(symbols)
-            sym = symbols[:135]
-        else:
-            sym = [symbols[0] for _ in range(135)]
+    def _bcc_metal_screw_move(self, final_model, energy_divisor = 1.0, image_count = 15):
+        initial = self.alloy_info.create_screw_atoms(model = 'initial')
+        final = self.alloy_info.create_screw_atoms(model = final_model)
+        final.set_chemical_symbols(initial.get_chemical_symbols())
 
-        initial_screw = read_xyz(str(files('nexus.calc').joinpath('str', 'Fe_screw.xyz')))
-        for i in initial_screw:
-            i.set_chemical_symbols(sym)
-            i.calc = self.calc
+        initial.calc = self.calc
+        relax(initial, **self.kwargs)
+        final.set_cell(initial.get_cell(), scale_atoms=True)
+        final.calc = self.calc
+        relax(final, constant_cell=True, **self.kwargs)
 
-        initial = initial_screw[0]
-        final = initial_screw[1]
+        images = [initial] + [initial.copy() for _ in range(image_count)] + [final]
+        for image in images:
+            image.calc = self.calc
+        neb = NEB(images, climb=True, allow_shared_calculator=True)
+        neb.interpolate()
+        try:
+            relax(neb, constant_cell=True, **self.kwargs)
+        except Exception as exc:
+            raise RuntimeError(f'Failed to relax {final_model} screw NEB images.') from exc
 
-        unit_cell = initial.cell.copy()
-        initial.set_cell(lc * unit_cell, scale_atoms=True)
-        relax(initial, method='ucf')
-        initial_cell = initial.cell.copy()
-        final.set_cell(initial_cell, scale_atoms=True)
-        relax(final, method='ucf')
-
-        images = [initial] + [initial.copy() for i in range(15)] + [final]
-        for i in images:
-            i.calc = self.calc
-        neb = NEB(images, allow_shared_calculator=True)
-        neb.interpolate()    
-        optimizer = FIRE(neb)
-        optimizer.run(fmax=fmax, steps=steps)
-        energies = [image.get_potential_energy() / 2  for image in images]
-        energies = np.array(energies)
+        energies = np.array([image.get_potential_energy() for image in images]) / energy_divisor
+        migration_energy = max(energies) - min(energies)
         energies -= min(energies)
         for image in images:
             dump_xyz('MaterialProperties.xyz', image)  
 
-        plt.plot(np.linspace(0, 1, len(energies)), energies, marker='o', label=f'{self.formula}')
+        formula = final.info.get('formula', final.get_chemical_formula())
+        config_type = final.info.get('config_type', f'bcc_{final_model}_screw')
+        info = f'{formula}_{config_type}' if config_type else formula
+        coords = np.linspace(0, 1, len(energies))
+        with open('MaterialProperties.out', 'a') as f:
+            print(f' {info:<10}Screw_Migration_Energy: {migration_energy:.4f} eV', file=f)
+
+        plt.plot(coords, energies, marker='o', label=f'{info}')
         plt.legend()
-        plt.savefig(f'{self.formula}_screw_dipole_move.png')
+        plt.savefig(f'{info}_screw_migration.png')
         plt.close()
         return energies
-
-    def bcc_metal_screw_one_move(self, fmax = 0.02, steps = 500):
-        lc = self.lc
-        symbols = []
-        compositions = []
-        for symbol, composition in re.findall(r'([A-Z][a-z]*)(\d*)', self.formula):
-            symbols.append(symbol)
-            compositions.append(int(composition) if composition else 1)
-        if len(symbols) > 1:
-            element_ratio = np.array(compositions) / sum(compositions)
-            element_counts = np.ceil(element_ratio * 135).astype(int)
-            symbols = np.repeat(symbols, element_counts)
-            np.random.shuffle(symbols)
-            sym = symbols[:135]
-        else:
-            sym = [symbols[0] for _ in range(135)]
-        
-        initial_screw = read_xyz(str(files('nexus.calc').joinpath('str', 'Fe_screw.xyz')))
-        for i in initial_screw:
-            i.set_chemical_symbols(sym)
-            i.calc = self.calc
-
-        initial = initial_screw[0]
-        final = initial_screw[2]
-
-        unit_cell = initial.cell.copy()
-        initial.set_cell(lc * unit_cell, scale_atoms=True)
-        relax(initial, method='ucf')
-        initial_cell = initial.cell.copy()
-        final.set_cell(initial_cell, scale_atoms=True)
-        relax(final, method='ucf')
-
-        images = [initial] + [initial.copy() for i in range(15)] + [final]
-        for i in images:
-            i.calc = self.calc
-        neb = NEB(images, allow_shared_calculator=True)
-        neb.interpolate()    
-        optimizer = FIRE(neb)
-        optimizer.run(fmax=fmax, steps=steps)
-        energies = [image.get_potential_energy() for image in images]
-        energies = np.array(energies)
-        energies -= min(energies)
-        for image in images:
-            dump_xyz('MaterialProperties.xyz', image)  
-
-        plt.plot(np.linspace(0, 1, len(energies)), energies, marker='o', label=f'{self.formula}')
-        plt.legend()
-        plt.savefig(f'{self.formula}_screw_one_move.png')
-        plt.close()
-        return energies
+    
+    def bcc_metal_screw_dipole_move(self, image_count = 15):
+        return self._bcc_metal_screw_move('dipole_move', energy_divisor=2.0, image_count=image_count)
+    
+    def bcc_metal_screw_one_move(self, image_count = 15):
+        return self._bcc_metal_screw_move('one_move', image_count=image_count)
 
     
