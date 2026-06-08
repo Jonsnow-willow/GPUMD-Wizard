@@ -128,12 +128,11 @@ class AlloyInfo():
             symbols = np.repeat(self.symbols, element_counts)
             np.random.shuffle(symbols)
             atoms.set_chemical_symbols(symbols[:len(atoms)])
-        atoms.info['formula'] = self.formula
-        atoms.info['config_type'] = f'{self.formula}_{self.lattice_type}_bulk'
+        atoms.info['config_type'] = f'{self.lattice_type}_bulk'
         return atoms
 
     def create_interstitial_atoms(self, supercell = (3, 3, 3), 
-                                  intersitials = [
+                                  interstitials = [
                                         {'symbol': 'C', 'type': 'oct', 'num': 5},
                                         {'symbol': 'H', 'type': 'tet', 'num': 10},
                                   ]) -> Atoms:
@@ -141,11 +140,11 @@ class AlloyInfo():
         cell = atoms.get_cell()
         used_sites = set()
 
-        for intersitial in intersitials:
-            symbol = intersitial['symbol']
-            intersitial_type = intersitial['type']
-            num = intersitial['num']
-            sites = np.array(INTERSTITIAL_SITES[self.lattice_type][intersitial_type])
+        for interstitial in interstitials:
+            symbol = interstitial['symbol']
+            interstitial_type = interstitial['type']
+            num = interstitial['num']
+            sites = np.array(INTERSTITIAL_SITES[self.lattice_type][interstitial_type])
             interstitial_sites = []
             for i in range(supercell[0]):
                 for j in range(supercell[1]):
@@ -160,6 +159,7 @@ class AlloyInfo():
                 used_sites.add(tuple(scaled_position))
                 atoms.append(Atom(symbol = symbol, position = np.dot(scaled_position, cell)))
         atoms.wrap()
+        atoms.info['config_type'] = f'{self.lattice_type}_bulk_interstitial'
         return atoms
     
     def create_screw_atoms(self, model = 'bulk') -> Atoms:
@@ -188,12 +188,10 @@ class AlloyInfo():
                 z = ((-i) % 3) * burgers / 3
                 positions.append([x, y, z])
         positions = np.array(positions)
-
         if model in SCREW_Z_DISPLACEMENTS:
             positions[:, 2] += SCREW_Z_DISPLACEMENTS[model].reshape(-1) * burgers
         positions *= lc
         cell *= lc
-
         if len(self.symbols) > 1:
             element_ratio = np.array(self.compositions) / sum(self.compositions)
             element_counts = np.ceil(element_ratio * len(positions)).astype(int)
@@ -202,10 +200,8 @@ class AlloyInfo():
             symbols = symbols[:len(positions)]
         else:
             symbols = [self.symbols[0] for _ in range(len(positions))]
-
         atoms = Atoms(symbols = symbols, positions = positions, cell = cell, pbc = True)
-        atoms.info['formula'] = self.formula
-        atoms.info['config_type'] = f'{self.formula}_bcc_{model}_screw'
+        atoms.info['config_type'] = f'bcc_{model}_screw'
         return atoms
 
     def __str__(self):
