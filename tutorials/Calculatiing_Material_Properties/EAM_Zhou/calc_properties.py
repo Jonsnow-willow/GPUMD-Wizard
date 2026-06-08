@@ -29,7 +29,7 @@ def main():
         cmds = ["pair_style eam/alloy",
                 "pair_coeff * * potentials/" + alloy_info.formula + ".eam.alloy " + alloy_info.formula]
         calc = LAMMPSlib(lmpcmds=cmds, log_file='log.' + alloy_info.formula, keep_alive=True)
-        material_calculator = MaterialCalculator(atoms, calc, alloy_info)
+        material_calculator = MaterialCalculator(atoms, calc)
         material_calculator.lattice_constant()
         material_calculator.elastic_constant()
         material_calculator.eos_curve()
@@ -38,12 +38,12 @@ def main():
 
         # calculate phonon dispersion
         atoms = alloy_info.create_bulk_atoms((3,3,3))
-        material_calculator = MaterialCalculator(atoms, calc, alloy_info)
+        material_calculator = MaterialCalculator(atoms, calc)
         material_calculator.phonon_dispersion()
 
         # calculate point defect properties
         atoms = alloy_info.create_bulk_atoms((3,4,5))
-        material_calculator = MaterialCalculator(atoms, calc, alloy_info, fmax=0.02)
+        material_calculator = MaterialCalculator(atoms, calc, fmax=0.02)
         material_calculator.formation_energy_vacancy()
         for v in vectors:
             material_calculator.formation_energy_sia(v)
@@ -51,4 +51,3 @@ def main():
           
 if __name__ == "__main__":
     main()
-

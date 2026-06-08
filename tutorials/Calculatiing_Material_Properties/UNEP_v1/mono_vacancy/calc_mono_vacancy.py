@@ -27,7 +27,7 @@ AlloyInfo('Zr', 'hcp', 3.240, 5.157)
 for alloy_info in alloy_infos:
     atoms = alloy_info.create_bulk_atoms((3,4,5))
     calc = CPUNEP('../potentials/4-4-80/nep.txt')
-    material_calculator = MaterialCalculator(atoms, calc, alloy_info)
+    material_calculator = MaterialCalculator(atoms, calc)
     e = material_calculator.formation_energy_vacancy()
     data['NEP'][alloy_info.formula] = e
 

@@ -28,8 +28,9 @@ AlloyInfo('Zr', 'hcp', 3.240, 5.157)
 
 for alloy_info in alloy_infos:
     atoms = alloy_info.create_bulk_atoms((1,1,1))
-    material_calculator = MaterialCalculator(atoms, calc, alloy_info)
-    _, Cij = material_calculator.elastic_constant()
+    material_calculator = MaterialCalculator(atoms, calc)
+    result = material_calculator.elastic_constant()
+    Cij = result['Cij']
     nep_data[alloy_info.formula] = {}
     nep_data[alloy_info.formula]['C11'] = Cij[0][0]
     nep_data[alloy_info.formula]['C12'] = Cij[0][1]

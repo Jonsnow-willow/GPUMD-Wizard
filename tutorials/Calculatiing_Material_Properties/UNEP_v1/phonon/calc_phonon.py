@@ -24,6 +24,5 @@ calc = CPUNEP('../potentials/4-4-80/nep.txt')
 
 for alloy_info in alloy_infos:
     atoms = alloy_info.create_bulk_atoms((3,3,3))
-    material_calculator = MaterialCalculator(atoms, calc, alloy_info)
+    material_calculator = MaterialCalculator(atoms, calc)
     material_calculator.phonon_dispersion()
-    
