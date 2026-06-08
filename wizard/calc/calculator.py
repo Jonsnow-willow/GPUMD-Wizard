@@ -6,7 +6,7 @@ import numpy as np
 import os
 
 from ase import Atoms
-from ase.build import cut, rotate, surface
+from ase.build import surface
 from ase.calculators.calculator import Calculator
 from ase.neb import NEB
 from ase.units import J
@@ -84,6 +84,7 @@ class MaterialCalculator():
         self.atom_energy = atoms.get_potential_energy() / len(atoms)
         self.info = atoms.info.get('config_type', '')
         self.formula = atoms.info.get('formula', atoms.get_chemical_formula())
+        self.symbols = sorted(set(atoms.get_chemical_symbols()))
     
     def isolate_atom_energy(self) -> list[str]:
         """
@@ -94,10 +95,8 @@ class MaterialCalculator():
         list[str]
             Lines with per-atom reference energies, e.g. "Fe Iso_Atom_Energy: -4.1234 eV".
         """
-        symbols = self.atoms.get_chemical_symbols()
-        symbols = sorted(set(symbols))
         output = []
-        for symbol in symbols:
+        for symbol in self.symbols:
             atoms = Atoms([symbol], positions=[(0, 0, 0)], cell=[20, 20, 20], pbc=True)
             atoms.calc = self.calc
             atoms.info['config_type'] = f'{symbol}_isolate_atom'
@@ -477,134 +476,11 @@ class MaterialCalculator():
     
 class AlloyCalculator(MaterialCalculator):
     def __init__(self, 
+                 atoms: Atoms,
                  alloy_info: AlloyInfo,
-                 supercell: tuple[int, int, int],
                  calculator: Calculator, 
-                 clamped: bool = False, 
-                 **kwargs):
+                 clamped: bool = False,
+                 **kwargs): 
         if not isinstance(alloy_info, AlloyInfo):
             raise TypeError('Input alloy_info must be an AlloyInfo object'
                             f', not type {type(alloy_info)}.')
-        self.alloy_info = alloy_info
-        self.supercell = supercell
-        atoms = alloy_info.create_bulk_atoms(supercell = supercell)
-        super().__init__(atoms, calculator, clamped, **kwargs)
-        self.formula = alloy_info.formula
-        self.lattice_type = alloy_info.lattice_type
-        self.lattice_constant = alloy_info.lattice_constant
-        self.lc = alloy_info.lattice_constant[0]
-        self.symbols = alloy_info.symbols.copy()
-        self.compositions = alloy_info.compositions.copy()
-
-    def _relax_kwargs(self, **overrides):
-        relax_kwargs = self.kwargs.copy()
-        relax_kwargs.update(overrides)
-        return relax_kwargs
-
-    def stacking_fault(self, a, b, miller, distance, layers = 18, num_steps = 10) -> list[float]:
-        """Calculate a generalized stacking-fault energy curve."""
-        atoms = self.atoms.copy()
-        slab = cut(atoms, a, b, clength=None, origo=(0,0,0), nlayers = layers,
-                   extend=1.0, tolerance=0.01, maxatoms=None)
-        rotate(slab, a, (1,0,0), b, (0,1,0), center=(0,0,0))
-        slab.calc = self.calc
-        relax(slab, **self._relax_kwargs(constant_cell=True))
-        slab.center(axis=2)
-        box = slab.get_cell()
-        S = np.linalg.norm(np.cross(box[0], box[1])) * 2
-
-        shift_distance = np.linalg.norm(np.array(a)) * distance
-        shift_indices = [atom.index for atom in slab if atom.position[2] > 1/2 * slab.cell[2][2]]
-        slide_step = shift_distance / num_steps
-        
-        energies = []
-        for i in range(num_steps + 1):
-            slab_shift = slab.copy()
-            slab_shift.positions[shift_indices] += [slide_step * i, 0, 0]
-            slab_shift.calc = self.calc
-            relax(slab_shift, **self._relax_kwargs(constant_cell=True))
-            defects_energy = slab_shift.get_potential_energy() / S
-            energies.append(defects_energy)
-            dump_xyz('MaterialProperties.xyz', slab_shift)
-
-        energies = np.array(energies)
-        energies -= energies[0]
-        miller_str = '-'.join(map(str, miller))
-        os.makedirs('stacking_fault_out', exist_ok=True)
-        os.makedirs('stacking_fault_png', exist_ok=True)
-        out_path = os.path.join('stacking_fault_out', f'{self.formula}_{miller_str}_stacking_fault.out')
-        fig_path = os.path.join('stacking_fault_png', f'{self.formula}_{miller_str}_stacking_fault.png')
-        coords = np.linspace(0, 1, len(energies))
-
-        with open(out_path, 'w') as f:
-            f.write("Reaction_Coordinate   Energy(meV/A^2)\n")
-            for coord, energy in zip(coords, energies):
-                f.write(f"{coord:.4f}   {energy * 1000:.4f}\n")
-        with open('MaterialProperties.out', 'a') as f:
-            print(f' {self.info:<7}{miller} Stacking_Fault: {max(energies) * 1000:.4f} meV/A^2', file=f)
-
-        plt.plot(coords, energies * 1000, marker='o', label=f'{self.info}')
-        plt.xlabel('Reaction Coordinate')
-        plt.ylabel('Energy (meV/A^2)')
-        plt.legend()
-        plt.savefig(fig_path)
-        plt.close()
-        return energies.tolist()
-    
-    def _bcc_metal_screw_move(self, final_model, energy_divisor = 1.0,
-                              image_count = 15, fmax = 0.02, steps = 500) -> list[float]:
-        initial = self.alloy_info.create_screw_atoms(model = 'initial')
-        final = self.alloy_info.create_screw_atoms(model = final_model)
-
-        initial.calc = self.calc
-        relax(initial, **self._relax_kwargs(fmax=fmax, steps=steps))
-        final.set_cell(initial.get_cell(), scale_atoms=True)
-        final.calc = self.calc
-        relax(final, **self._relax_kwargs(fmax=fmax, steps=steps, constant_cell=True))
-
-        images = [initial] + [initial.copy() for _ in range(image_count)] + [final]
-        for i in images:
-            i.calc = self.calc
-        neb = NEB(images, climb=True, allow_shared_calculator=True)
-        neb.interpolate()
-        neb_kwargs = self._relax_kwargs(fmax=fmax, steps=steps, constant_cell=True)
-        neb_kwargs.setdefault('minimizer', 'fire')
-        try:
-            relax(neb, **neb_kwargs)
-        except Exception as exc:
-            raise RuntimeError(f'Failed to relax {final_model} screw NEB images.') from exc
-
-        energies = np.array([image.get_potential_energy() for image in images]) / energy_divisor
-        migration_energy = max(energies) - min(energies)
-        energies -= min(energies)
-        for image in images:
-            dump_xyz('MaterialProperties.xyz', image)  
-
-        os.makedirs('screw_out', exist_ok=True)
-        os.makedirs('screw_png', exist_ok=True)
-        coords = np.linspace(0, 1, len(energies))
-        out_path = os.path.join('screw_out', f'{self.formula}_{final_model}_screw.out')
-        fig_path = os.path.join('screw_png', f'{self.formula}_{final_model}_screw.png')
-
-        with open(out_path, 'w') as f:
-            f.write("Reaction_Coordinate   Energy(eV)\n")
-            for coord, energy in zip(coords, energies):
-                f.write(f"{coord:.4f}   {energy:.4f}\n")
-        with open('MaterialProperties.out', 'a') as f:
-            print(f' {self.formula:<10}Screw_{final_model}_Migration_Energy: {migration_energy:.4f} eV', file=f)
-
-        plt.plot(coords, energies, marker='o', label=f'{self.formula}')
-        plt.xlabel('Reaction Coordinate')
-        plt.ylabel('Energy (eV)')
-        plt.legend()
-        plt.savefig(fig_path)
-        plt.close()
-        return energies.tolist()
-
-    def bcc_metal_screw_dipole_move(self, fmax = 0.02, steps = 500, image_count = 15) -> list[float]:
-        return self._bcc_metal_screw_move('dipole_move', energy_divisor=2.0,
-                                          image_count=image_count, fmax=fmax, steps=steps)
-
-    def bcc_metal_screw_one_move(self, fmax = 0.02, steps = 500, image_count = 15) -> list[float]:
-        return self._bcc_metal_screw_move('one_move', image_count=image_count,
-                                          fmax=fmax, steps=steps)
