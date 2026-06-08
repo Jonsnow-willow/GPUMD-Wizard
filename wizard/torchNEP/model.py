@@ -535,16 +535,16 @@ class NEP(nn.Module):
         edge_energy = 0.5 * screened * fc * mask
         return torch.sum(edge_energy, dim=1)
 
-    def compute_descriptor_scaler(self, dataloader, device=None):
+    def compute_descriptor_scaler(self, dataloader, device=None, max_batches=None):
         """
         Estimate scaler = 1 / (max - min) for each descriptor dimension.
         """
-        q_min, q_max = self.compute_descriptor_min_max(dataloader, device=device)
+        q_min, q_max = self.compute_descriptor_min_max(dataloader, device=device, max_batches=max_batches)
         if q_min is not None:
             self.set_descriptor_scaler_from_min_max(q_min, q_max)
         return self.q_scaler.detach().cpu().clone()
 
-    def compute_descriptor_min_max(self, dataloader, device=None):
+    def compute_descriptor_min_max(self, dataloader, device=None, max_batches=None):
         if device is None:
             device = next(self.parameters()).device
         prev_mode = self.training
@@ -552,7 +552,9 @@ class NEP(nn.Module):
         q_min = None
         q_max = None
         with torch.no_grad():
-            for batch in dataloader:
+            for batch_idx, batch in enumerate(dataloader):
+                if max_batches is not None and batch_idx >= max_batches:
+                    break
                 batch = {k: (v.to(device) if isinstance(v, torch.Tensor) else v) for k, v in batch.items()}
                 descriptors = self.descriptor(batch)
                 g_total = self._combine_descriptors(descriptors)

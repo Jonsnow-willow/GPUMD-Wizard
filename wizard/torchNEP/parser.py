@@ -150,9 +150,16 @@ def _build_data_config(parsed: dict[str, list[str]]) -> DataConfig:
     return DataConfig(
         train_file=train_file,
         test_file=test_file,
+        data_format=_normalize_data_format(_pop_scalar(parsed, "data_format", default="auto")),
         batch_size=int(batch_size),
         num_workers=int(_pop_scalar(parsed, "num_workers", default="0")),
         shuffle=_parse_bool(_pop_scalar(parsed, "shuffle", default="true")),
+        lazy_threshold_mb=float(_pop_scalar(parsed, "lazy_threshold_mb", default="512.0")),
+        max_train_frames=_parse_optional_int(_pop_scalar(parsed, "max_train_frames", default=None)),
+        max_test_frames=_parse_optional_int(_pop_scalar(parsed, "max_test_frames", default=None)),
+        frame_stride=int(_pop_scalar(parsed, "frame_stride", default="1")),
+        index_dir=_pop_scalar(parsed, "index_dir", default=".torchnep_index"),
+        cache_index=_parse_bool(_pop_scalar(parsed, "cache_index", default="true")),
     )
 
 
@@ -218,6 +225,9 @@ def _build_runtime_config(parsed: dict[str, list[str]]) -> RuntimeConfig:
         ),
         gradient_clip_norm=_parse_optional_float(
             _pop_first_scalar(parsed, ("gradient_clip_norm", "clip_grad_norm"), default=None)
+        ),
+        descriptor_scaler_max_batches=_parse_optional_int(
+            _pop_first_scalar(parsed, ("descriptor_scaler_max_batches", "q_scaler_max_batches"), default=None)
         ),
     )
     if parsed:
@@ -285,6 +295,20 @@ def _normalize_scheduler_name(name: str) -> str:
     return aliases.get(normalized, normalized)
 
 
+def _normalize_data_format(name: str) -> str:
+    normalized = name.lower().replace("-", "_")
+    aliases = {
+        "lazy": "lazy_xyz",
+        "lazyxyz": "lazy_xyz",
+        "extxyz": "lazy_xyz",
+        "extended_xyz": "lazy_xyz",
+    }
+    normalized = aliases.get(normalized, normalized)
+    if normalized not in {"auto", "eager", "lazy_xyz"}:
+        raise ValueError("data_format must be auto, eager, or lazy_xyz.")
+    return normalized
+
+
 def _require_length(key: str, values: list[str], expected: int) -> None:
     if len(values) != expected:
         raise ValueError(f"`{key}` expects {expected} values, got {len(values)}.")
@@ -303,3 +327,7 @@ def _parse_bool(value: str | bool) -> bool:
 
 def _parse_optional_float(value: str | None) -> float | None:
     return None if value is None else float(value)
+
+
+def _parse_optional_int(value: str | None) -> int | None:
+    return None if value is None else int(value)

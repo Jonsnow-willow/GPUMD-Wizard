@@ -6,12 +6,17 @@ from torch.utils.data.distributed import DistributedSampler
 from wizard.torchNEP.config import TrainConfig
 from wizard.torchNEP.dataset import StructureDataset, collate_fn
 from wizard.torchNEP.distributed import DistributedContext
+from wizard.torchNEP.lazy_xyz import LazyExtendedXYZDataset, default_index_path
 from wizard.utils.io import read_xyz
 
 
 def build_dataloaders(config: TrainConfig, context: DistributedContext | None = None):
-    train_dataset = build_dataset(config, split="train")
-    test_dataset = build_dataset(config, split="test") if config.test_path and config.test_path.exists() else None
+    train_dataset = build_dataset(config, split="train", context=context)
+    test_dataset = (
+        build_dataset(config, split="test", context=context)
+        if config.test_path and config.test_path.exists()
+        else None
+    )
     train_sampler = build_sampler(
         train_dataset,
         context=context,
@@ -58,17 +63,72 @@ def build_sampler(dataset, context: DistributedContext | None, shuffle: bool, se
     )
 
 
-def build_dataset(config: TrainConfig, split: str):
+def build_dataset(config: TrainConfig, split: str, context: DistributedContext | None = None):
+    if config.data.frame_stride < 1:
+        raise ValueError("frame_stride must be >= 1.")
     if split == "train":
         xyz_path = config.train_path
+        max_frames = config.data.max_train_frames
     elif split == "test":
         xyz_path = config.test_path
         if xyz_path is None:
             raise ValueError("No test file configured.")
+        max_frames = config.data.max_test_frames
     else:
         raise ValueError(f"Unknown split: {split}")
 
+    if should_use_lazy_dataset(config, xyz_path):
+        return build_lazy_dataset(config, split=split, xyz_path=xyz_path, max_frames=max_frames, context=context)
+
     frames = read_xyz(str(xyz_path))
+    if config.data.frame_stride > 1:
+        frames = frames[:: config.data.frame_stride]
+    if max_frames is not None:
+        frames = frames[:max_frames]
     if not frames:
         raise ValueError(f"No frames found in {xyz_path}")
     return StructureDataset(frames=frames, para=config.model.to_nep_para(), require_forces=True)
+
+
+def should_use_lazy_dataset(config: TrainConfig, xyz_path) -> bool:
+    data_format = config.data.data_format
+    if data_format == "eager":
+        return False
+    if data_format == "lazy_xyz":
+        return True
+    size_mb = xyz_path.stat().st_size / (1024 * 1024)
+    return size_mb >= config.data.lazy_threshold_mb
+
+
+def build_lazy_dataset(
+    config: TrainConfig,
+    split: str,
+    xyz_path,
+    max_frames: int | None,
+    context: DistributedContext | None,
+):
+    index_path = default_index_path(
+        config.run_dir,
+        config.data.index_dir,
+        xyz_path,
+        split=split,
+    )
+    kwargs = {
+        "xyz_path": xyz_path,
+        "para": config.model.to_nep_para(),
+        "index_path": index_path,
+        "cache_index": config.data.cache_index,
+        "frame_stride": config.data.frame_stride,
+        "max_frames": max_frames,
+        "require_forces": True,
+    }
+    if context is not None and context.is_distributed:
+        dataset = None
+        if context.is_main_process:
+            dataset = LazyExtendedXYZDataset(**kwargs)
+        context.barrier()
+        if dataset is None:
+            dataset = LazyExtendedXYZDataset(**kwargs)
+        context.barrier()
+        return dataset
+    return LazyExtendedXYZDataset(**kwargs)

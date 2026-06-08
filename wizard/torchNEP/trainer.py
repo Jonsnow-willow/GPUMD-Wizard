@@ -137,8 +137,15 @@ class GradientTrainer:
             self.q_scaler_initialized = True
             return
         base_model = unwrap_model(self.model)
+        max_batches = self.config.runtime.descriptor_scaler_max_batches
+        if max_batches is not None and max_batches < 1:
+            raise ValueError("descriptor_scaler_max_batches must be >= 1.")
         if self.context.is_distributed:
-            q_min, q_max = base_model.compute_descriptor_min_max(self.train_loader, device=self.device)
+            q_min, q_max = base_model.compute_descriptor_min_max(
+                self.train_loader,
+                device=self.device,
+                max_batches=max_batches,
+            )
             if q_min is None or q_max is None:
                 q_min = torch.full_like(base_model.q_scaler, float("inf"))
                 q_max = torch.full_like(base_model.q_scaler, float("-inf"))
@@ -146,11 +153,16 @@ class GradientTrainer:
             self.context.all_reduce_max(q_max)
             scaler = base_model.set_descriptor_scaler_from_min_max(q_min, q_max)
         else:
-            scaler = base_model.compute_descriptor_scaler(self.train_loader, device=self.device)
+            scaler = base_model.compute_descriptor_scaler(
+                self.train_loader,
+                device=self.device,
+                max_batches=max_batches,
+            )
         self.q_scaler_initialized = True
         if self.is_main_process:
+            sample_text = "" if max_batches is None else f" from at most {max_batches} batch(es)"
             print(
-                "Initialized q_scaler once "
+                f"Initialized q_scaler once{sample_text} "
                 f"(min={torch.min(scaler).item():.6e}, max={torch.max(scaler).item():.6e})."
             )
 

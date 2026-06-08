@@ -50,9 +50,16 @@ class ModelConfig:
 class DataConfig:
     train_file: str = "train.xyz"
     test_file: str | None = None
+    data_format: str = "auto"
     batch_size: int = 5
     num_workers: int = 0
     shuffle: bool = True
+    lazy_threshold_mb: float = 512.0
+    max_train_frames: int | None = None
+    max_test_frames: int | None = None
+    frame_stride: int = 1
+    index_dir: str = ".torchnep_index"
+    cache_index: bool = True
 
 
 @dataclass
@@ -100,6 +107,7 @@ class RuntimeConfig:
     compute_descriptor_scaler_once: bool = True
     gradient_accumulation_steps: int = 1
     gradient_clip_norm: float | None = None
+    descriptor_scaler_max_batches: int | None = None
 
 
 @dataclass
