@@ -215,7 +215,7 @@ class MaterialCalculator():
                 f.write(f"{volume:.2f}   {energy:.4f}\n")
         return fig_path
     
-    def dimer_curve(self, distances=np.arange(1.2, 2.8, 0.1)) -> list[str]:
+    def dimer_curve(self, distances: np.ndarray = np.arange(1.2, 2.8, 0.1)) -> list[str]:
         """
         Generate energy curves for dimers of each element type in the structure.
         For each unique pair of elements (including self-pairs), this method creates a dimer structure, calculates its energy at various interatomic distances, and saves the results.
@@ -265,7 +265,7 @@ class MaterialCalculator():
                     f.write(f"{distance:.2f}   {energy:.4f}\n")
         return fig_paths
 
-    def phonon_dispersion(self, special_points=None, labels_path=None) -> str:
+    def phonon_dispersion(self, special_points: dict = None, labels_path: list = None) -> str:
         """
         Calculate and plot the phonon dispersion relation using PhonoCalc.
 
@@ -294,7 +294,7 @@ class MaterialCalculator():
         fig_path = plot_band_structure(atoms, self.info)
         return fig_path
              
-    def formation_energy_surface(self, hkl = (1, 0, 0), layers = 10, shuffle_symbols = False) -> float:
+    def formation_energy_surface(self, hkl: tuple = (1, 0, 0), layers: int = 10, shuffle_symbols: bool = False) -> float:
         """
         Calculate the surface formation energy of a given Miller index (hkl) using the slab method.
         Parameters
@@ -341,12 +341,12 @@ class MaterialCalculator():
             print(f' {self.info:<10}{hkl_str} Surface_Energy: {formation_energy / J / 1e-20 :.4f} J/m^2', file=f)
         return formation_energy * 1000
     
-    def _formation_energy_defect(self, atoms : Atoms) -> float:
+    def _formation_energy_defect(self, atoms: Atoms) -> float:
         atoms.calc = self.calc
         relax(atoms, **self.kwargs)
         return atoms.get_potential_energy() - self.atom_energy * len(atoms)
 
-    def formation_energy_vacancy(self, index = 0) -> float:
+    def formation_energy_vacancy(self, index: int = 0) -> float:
         """
         Calculate the vacancy formation energy by removing an atom at the specified index and relaxing the structure.
         Parameters
@@ -366,7 +366,7 @@ class MaterialCalculator():
             print(f' {self.info:<10}Formation_Energy_Vacancy: {formation_energy:.4f} eV', file=f)
         return formation_energy
 
-    def formation_energy_divacancies(self, index0 = 0, index1 = 1) -> float:
+    def formation_energy_divacancies(self, index0: int = 0, index1: int = 1) -> float:
         """
         Calculate the divacancy formation energy by removing two atoms at the specified indices and relaxing the structure.
         Parameters
@@ -390,7 +390,7 @@ class MaterialCalculator():
             print(f' {self.info:<10}Formation_Energy_Divacancies: {formation_energy:.4f} eV', file=f)
         return formation_energy
 
-    def migration_energy_vacancy(self, index0 = 0, index1 = 1) -> list[float]:
+    def migration_energy_vacancy(self, index0: int = 0, index1: int = 1) -> list[float]:
         """
         Calculate the migration energy of a vacancy by performing a NEB calculation.
         Parameters
@@ -453,7 +453,7 @@ class MaterialCalculator():
         
         return energies
     
-    def formation_energy_sia(self, vector = (1, 1, 1), index = 0) -> float:
+    def formation_energy_sia(self, vector: tuple = (1, 1, 1), index: int = 0) -> float:
         """
         Calculate the self-interstitial atom (SIA) formation energy by adding an atom at the specified index.
         Parameters
@@ -491,7 +491,7 @@ class AlloyCalculator(MaterialCalculator):
         atoms = alloy_info.create_bulk_atoms(supercell = supercell)
         super().__init__(atoms, calculator, clamped, **kwargs)
 
-    def formation_energy_interstitial(self, symbol, interstitial_type, num = 1, chemical_potential = None) -> float:
+    def formation_energy_interstitial(self, symbol: str, interstitial_type: str, num: int = 1, chemical_potential: float = None) -> float:
         if chemical_potential is None:
             if len(self.symbols) == 1 and self.symbols[0] == symbol:
                 chemical_potential = self.atom_energy
@@ -517,7 +517,7 @@ class AlloyCalculator(MaterialCalculator):
             print(f' {self.info:<10}{symbol}_{interstitial_type} Formation_Energy_Interstitial: {formation_energy:.4f} eV', file=f)
         return formation_energy
     
-    def stacking_fault(self, a, b, miller, distance):
+    def stacking_fault(self, a: tuple, b: tuple, miller: tuple, distance: float) -> np.ndarray:
         '''
         ---------------------------------------------------------------------------------------------------
         For FCC-Al                  |   For BCC-Nb
@@ -587,7 +587,7 @@ class AlloyCalculator(MaterialCalculator):
         plt.close()
         return energies
     
-    def _bcc_metal_screw_move(self, final_model, energy_divisor = 1.0, image_count = 15):
+    def _bcc_metal_screw_move(self, final_model: str, energy_divisor: float = 1.0, image_count: int = 15) -> np.ndarray:
         initial = self.alloy_info.create_screw_atoms(model = 'initial')
         final = self.alloy_info.create_screw_atoms(model = final_model)
         final.set_chemical_symbols(initial.get_chemical_symbols())
@@ -624,10 +624,10 @@ class AlloyCalculator(MaterialCalculator):
         plt.close()
         return energies
     
-    def bcc_metal_screw_dipole_move(self, image_count = 15):
+    def bcc_metal_screw_dipole_move(self, image_count: int = 15) -> np.ndarray:
         return self._bcc_metal_screw_move('dipole_move', energy_divisor=2.0, image_count=image_count)
     
-    def bcc_metal_screw_one_move(self, image_count = 15):
+    def bcc_metal_screw_one_move(self, image_count: int = 15) -> np.ndarray:
         return self._bcc_metal_screw_move('one_move', image_count=image_count)
 
     
