@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-from ase import Atoms
+from ase import Atom, Atoms
 from ase.build import cut, rotate, surface
 from ase.constraints import FixAtoms
 from ase.calculators.calculator import Calculator
@@ -489,9 +489,37 @@ class AlloyCalculator(MaterialCalculator):
                             f', not type {type(alloy_info)}.')
         
         self.alloy_info = alloy_info
+        self.supercell = supercell
         atoms = alloy_info.create_bulk_atoms(supercell = supercell)
         super().__init__(atoms, calculator, clamped, **kwargs)
 
+    def formation_energy_interstitial(self, symbol, interstitial_type, num = 1, chemical_potential = None) -> float:
+        if chemical_potential is None:
+            if len(self.symbols) == 1 and self.symbols[0] == symbol:
+                chemical_potential = self.atom_energy
+            else:
+                raise ValueError('chemical_potential should be provided for interstitial atoms '
+                                 'that are not self-interstitials in a pure element.')
+
+        atoms = self.atoms.copy()
+        cell = atoms.get_cell()
+        interstitial_sites = self.alloy_info.get_interstitial_sites(self.supercell, interstitial_type)
+        indices = np.random.choice(len(interstitial_sites), num, replace = False)
+        for index in indices:
+            scaled_position = interstitial_sites[index]
+            atoms.append(Atom(symbol = symbol, position = np.dot(scaled_position, cell)))
+        atoms.wrap()
+        atoms.info['config_type'] = f'{self.alloy_info.lattice_type}_{symbol}_{interstitial_type}_interstitial'
+        atoms.calc = self.calc
+        relax(atoms, **self.kwargs)
+        reference_energy = self.atom_energy * len(self.atoms)
+        defect_energy = atoms.get_potential_energy()
+        formation_energy = defect_energy - reference_energy - num * chemical_potential
+        dump_xyz('MaterialProperties.xyz', atoms)
+        with open('MaterialProperties.out', 'a') as f:
+            print(f' {self.info:<10}{symbol}_{interstitial_type} Formation_Energy_Interstitial: {formation_energy:.4f} eV', file=f)
+        return formation_energy
+    
     def stacking_fault(self, a, b, miller, distance):
         '''
         ---------------------------------------------------------------------------------------------------
