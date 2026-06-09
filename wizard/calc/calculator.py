@@ -101,8 +101,6 @@ class MaterialCalculator():
         for symbol in self.symbols:
             atoms = Atoms([symbol], positions=[(0, 0, 0)], cell=[20, 20, 20], pbc=True)
             atoms.calc = self.calc
-            atoms.info['formula'] = symbol
-            atoms.info['config_type'] = 'isolate_atom'
             iso_atom_energy = atoms.get_potential_energy()
             output.append(f" {symbol:<10}Iso_Atom_Energy: {iso_atom_energy:.4f} eV")
             dump_xyz('MaterialProperties.xyz', atoms)
@@ -509,7 +507,6 @@ class AlloyCalculator(MaterialCalculator):
             scaled_position = interstitial_sites[index]
             atoms.append(Atom(symbol = symbol, position = np.dot(scaled_position, cell)))
         atoms.wrap()
-        atoms.info['config_type'] = f'{self.alloy_info.lattice_type}_{symbol}_{interstitial_type}_interstitial'
         atoms.calc = self.calc
         relax(atoms, **self.kwargs)
         reference_energy = self.atom_energy * len(self.atoms)
@@ -617,16 +614,13 @@ class AlloyCalculator(MaterialCalculator):
         for image in images:
             dump_xyz('MaterialProperties.xyz', image)  
 
-        formula = final.info.get('formula', final.get_chemical_formula())
-        config_type = final.info.get('config_type', f'bcc_{final_model}_screw')
-        info = f'{formula}_{config_type}' if config_type else formula
         coords = np.linspace(0, 1, len(energies))
         with open('MaterialProperties.out', 'a') as f:
-            print(f' {info:<10}Screw_Migration_Energy: {migration_energy:.4f} eV', file=f)
+            print(f' {self.info:<10}{final_model} Screw_Migration_Energy: {migration_energy:.4f} eV', file=f)
 
-        plt.plot(coords, energies, marker='o', label=f'{info}')
+        plt.plot(coords, energies, marker='o', label=f'{self.info}_{final_model}')
         plt.legend()
-        plt.savefig(f'{info}_screw_migration.png')
+        plt.savefig(f'{self.info}_{final_model}_screw_migration.png')
         plt.close()
         return energies
     
