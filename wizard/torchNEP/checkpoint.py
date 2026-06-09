@@ -98,6 +98,13 @@ def restore_rng_state(state: dict[str, Any] | None) -> None:
     if state.get("numpy") is not None:
         np.random.set_state(state["numpy"])
     if state.get("torch") is not None:
-        torch.set_rng_state(state["torch"])
+        torch_state = state["torch"]
+        if isinstance(torch_state, torch.Tensor):
+            torch_state = torch_state.detach().cpu()
+        torch.set_rng_state(torch_state)
     if state.get("cuda") is not None and torch.cuda.is_available():
-        torch.cuda.set_rng_state_all(state["cuda"])
+        cuda_states = [
+            cuda_state.detach().cpu() if isinstance(cuda_state, torch.Tensor) else cuda_state
+            for cuda_state in state["cuda"]
+        ]
+        torch.cuda.set_rng_state_all(cuda_states)

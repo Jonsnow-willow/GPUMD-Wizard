@@ -29,8 +29,8 @@ def build_dataloaders(config: TrainConfig, context: DistributedContext | None = 
         batch_size=config.data.batch_size,
         shuffle=config.data.shuffle if train_sampler is None else False,
         sampler=train_sampler,
-        num_workers=config.data.num_workers,
         collate_fn=collate_fn,
+        **dataloader_performance_kwargs(config, context),
     )
     test_loader = None
     if test_dataset is not None:
@@ -44,10 +44,35 @@ def build_dataloaders(config: TrainConfig, context: DistributedContext | None = 
                 shuffle=False,
                 seed=config.runtime.seed,
             ),
-            num_workers=config.data.num_workers,
             collate_fn=collate_fn,
+            **dataloader_performance_kwargs(config, context),
         )
     return train_loader, test_loader
+
+
+def dataloader_performance_kwargs(config: TrainConfig, context: DistributedContext | None = None) -> dict:
+    num_workers = config.data.num_workers
+    pin_memory_default = context is not None and context.device.type == "cuda"
+    pin_memory = resolve_auto_bool(config.data.pin_memory, default=pin_memory_default)
+    kwargs = {
+        "num_workers": num_workers,
+        "pin_memory": pin_memory,
+    }
+    if num_workers > 0:
+        kwargs["persistent_workers"] = resolve_auto_bool(config.data.persistent_workers, default=True)
+        if config.data.prefetch_factor is not None:
+            if config.data.prefetch_factor < 1:
+                raise ValueError("prefetch_factor must be >= 1.")
+            kwargs["prefetch_factor"] = config.data.prefetch_factor
+    return kwargs
+
+
+def resolve_auto_bool(value: bool | str, default: bool) -> bool:
+    if isinstance(value, bool):
+        return value
+    if value == "auto":
+        return default
+    raise ValueError(f"Expected boolean or auto, got {value!r}.")
 
 
 def build_sampler(dataset, context: DistributedContext | None, shuffle: bool, seed: int):

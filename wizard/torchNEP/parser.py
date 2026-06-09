@@ -153,6 +153,9 @@ def _build_data_config(parsed: dict[str, list[str]]) -> DataConfig:
         data_format=_normalize_data_format(_pop_scalar(parsed, "data_format", default="auto")),
         batch_size=int(batch_size),
         num_workers=int(_pop_scalar(parsed, "num_workers", default="0")),
+        pin_memory=_parse_auto_bool(_pop_scalar(parsed, "pin_memory", default="auto")),
+        persistent_workers=_parse_auto_bool(_pop_scalar(parsed, "persistent_workers", default="auto")),
+        prefetch_factor=_parse_optional_int(_pop_scalar(parsed, "prefetch_factor", default="2")),
         shuffle=_parse_bool(_pop_scalar(parsed, "shuffle", default="true")),
         lazy_threshold_mb=float(_pop_scalar(parsed, "lazy_threshold_mb", default="512.0")),
         max_train_frames=_parse_optional_int(_pop_scalar(parsed, "max_train_frames", default=None)),
@@ -323,6 +326,14 @@ def _parse_bool(value: str | bool) -> bool:
     if normalized in {"0", "false", "no", "n", "off"}:
         return False
     raise ValueError(f"Invalid boolean value: {value}")
+
+
+def _parse_auto_bool(value: str | bool) -> bool | str:
+    if isinstance(value, bool):
+        return value
+    if value.lower() == "auto":
+        return "auto"
+    return _parse_bool(value)
 
 
 def _parse_optional_float(value: str | None) -> float | None:

@@ -53,7 +53,13 @@ class DistributedContext:
         if self.device.type == "cuda":
             torch.cuda.set_device(self.device)
         if not dist.is_initialized():
-            dist.init_process_group(backend=self.backend)
+            try:
+                if self.device.type == "cuda":
+                    dist.init_process_group(backend=self.backend, device_id=self.device)
+                else:
+                    dist.init_process_group(backend=self.backend)
+            except TypeError:
+                dist.init_process_group(backend=self.backend)
 
     def wrap_model(self, model: torch.nn.Module) -> torch.nn.Module:
         if not self.is_distributed:
@@ -69,7 +75,10 @@ class DistributedContext:
 
     def barrier(self) -> None:
         if self.process_group_initialized:
-            dist.barrier()
+            if self.device.type == "cuda":
+                dist.barrier(device_ids=[self.device.index])
+            else:
+                dist.barrier()
 
     def broadcast_tensor(self, tensor: torch.Tensor, src: int = 0) -> torch.Tensor:
         if self.process_group_initialized:

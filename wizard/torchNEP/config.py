@@ -53,6 +53,9 @@ class DataConfig:
     data_format: str = "auto"
     batch_size: int = 5
     num_workers: int = 0
+    pin_memory: bool | str = "auto"
+    persistent_workers: bool | str = "auto"
+    prefetch_factor: int | None = 2
     shuffle: bool = True
     lazy_threshold_mb: float = 512.0
     max_train_frames: int | None = None

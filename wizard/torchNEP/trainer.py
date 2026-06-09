@@ -25,6 +25,8 @@ class EpochMetrics:
     virial_loss: float = 0.0
     batches: int = 0
     seconds: float = 0.0
+    data_seconds: float = 0.0
+    compute_seconds: float = 0.0
 
     def as_dict(self, prefix: str) -> dict[str, float]:
         return {
@@ -33,6 +35,8 @@ class EpochMetrics:
             f"{prefix}_forces": self.forces_loss,
             f"{prefix}_virial": self.virial_loss,
             f"{prefix}_seconds": self.seconds,
+            f"{prefix}_data_seconds": self.data_seconds,
+            f"{prefix}_compute_seconds": self.compute_seconds,
         }
 
 
@@ -169,14 +173,22 @@ class GradientTrainer:
     def train_epoch(self) -> EpochMetrics:
         self.model.train()
         start = time.perf_counter()
-        metrics = EpochMetrics()
+        loss_sums = torch.zeros(4, device=self.device, dtype=torch.float64)
+        batches = 0
+        data_seconds = 0.0
+        compute_seconds = 0.0
         accumulation_steps = self.config.runtime.gradient_accumulation_steps
         if accumulation_steps < 1:
             raise ValueError("gradient_accumulation_steps must be >= 1.")
         self.optimizer.zero_grad(set_to_none=True)
         total_steps = len(self.train_loader)
         final_accumulation_steps = total_steps % accumulation_steps or accumulation_steps
-        for step, batch in enumerate(self.train_loader, 1):
+        iterator = iter(self.train_loader)
+        for step in range(1, total_steps + 1):
+            data_start = time.perf_counter()
+            batch = next(iterator)
+            data_seconds += time.perf_counter() - data_start
+            compute_start = time.perf_counter()
             batch = self._prepare_batch(batch)
             should_step = step % accumulation_steps == 0 or step == total_steps
             scale = final_accumulation_steps if step == total_steps else accumulation_steps
@@ -191,21 +203,44 @@ class GradientTrainer:
                 self.clip_gradients()
                 self.optimizer.step()
                 self.optimizer.zero_grad(set_to_none=True)
-            self._accumulate(metrics, loss.item(), loss_dict)
-        metrics.seconds = time.perf_counter() - start
-        return self._finalize_metrics(metrics)
+            self._accumulate_loss_sums(loss_sums, loss, loss_dict)
+            batches += 1
+            compute_seconds += time.perf_counter() - compute_start
+        return self._finalize_metrics(
+            loss_sums=loss_sums,
+            batches=batches,
+            seconds=time.perf_counter() - start,
+            data_seconds=data_seconds,
+            compute_seconds=compute_seconds,
+        )
 
     def evaluate(self) -> EpochMetrics:
         self.model.eval()
         start = time.perf_counter()
-        metrics = EpochMetrics()
-        for batch in self.test_loader:
+        loss_sums = torch.zeros(4, device=self.device, dtype=torch.float64)
+        batches = 0
+        data_seconds = 0.0
+        compute_seconds = 0.0
+        iterator = iter(self.test_loader)
+        total_steps = len(self.test_loader)
+        for _ in range(total_steps):
+            data_start = time.perf_counter()
+            batch = next(iterator)
+            data_seconds += time.perf_counter() - data_start
+            compute_start = time.perf_counter()
             batch = self._prepare_batch(batch)
             prediction = self.model(batch)
             loss, loss_dict = self.compute_loss(prediction, batch)
-            self._accumulate(metrics, float(loss.detach().cpu()), loss_dict)
-        metrics.seconds = time.perf_counter() - start
-        return self._finalize_metrics(metrics)
+            self._accumulate_loss_sums(loss_sums, loss, loss_dict)
+            batches += 1
+            compute_seconds += time.perf_counter() - compute_start
+        return self._finalize_metrics(
+            loss_sums=loss_sums,
+            batches=batches,
+            seconds=time.perf_counter() - start,
+            data_seconds=data_seconds,
+            compute_seconds=compute_seconds,
+        )
 
     def compute_loss(self, prediction, batch):
         weights = self.config.loss.weights()
@@ -221,12 +256,12 @@ class GradientTrainer:
             target = target / n_atoms_per_structure.float()
             energy_loss = self.loss_fn(pred, target)
             loss = _add_loss(loss, weights["energy"] * energy_loss)
-            loss_dict["energy_loss"] = float(energy_loss.detach().cpu())
+            loss_dict["energy_loss"] = energy_loss.detach()
 
         if "forces" in prediction and "forces" in batch:
             forces_loss = self.loss_fn(prediction["forces"], batch["forces"])
             loss = _add_loss(loss, weights["forces"] * forces_loss)
-            loss_dict["forces_loss"] = float(forces_loss.detach().cpu())
+            loss_dict["forces_loss"] = forces_loss.detach()
 
         if "virial" in prediction and "virial" in batch and "is_virial" in batch:
             mask = batch["is_virial"]
@@ -237,15 +272,16 @@ class GradientTrainer:
             target = target / n_atoms_per_structure.float().unsqueeze(-1)
             virial_loss = self.loss_fn(pred, target)
             loss = _add_loss(loss, weights["virial"] * virial_loss)
-            loss_dict["virial_loss"] = float(virial_loss.detach().cpu())
+            loss_dict["virial_loss"] = virial_loss.detach()
 
         if loss is None:
             raise ValueError("No loss terms were available for this batch.")
         return loss, loss_dict
 
     def _prepare_batch(self, batch):
+        non_blocking = self.device.type == "cuda"
         prepared = {
-            key: value.to(self.device) if isinstance(value, torch.Tensor) else value
+            key: value.to(self.device, non_blocking=non_blocking) if isinstance(value, torch.Tensor) else value
             for key, value in batch.items()
         }
         prepared["compute_virial"] = "virial" in prepared and self.config.loss.virial != 0.0
@@ -256,39 +292,56 @@ class GradientTrainer:
         if hasattr(sampler, "set_epoch"):
             sampler.set_epoch(epoch)
 
-    def _accumulate(self, metrics: EpochMetrics, total_loss: float, loss_dict: dict[str, float]) -> None:
-        metrics.total_loss += total_loss
-        metrics.energy_loss += loss_dict.get("energy_loss", 0.0)
-        metrics.forces_loss += loss_dict.get("forces_loss", 0.0)
-        metrics.virial_loss += loss_dict.get("virial_loss", 0.0)
-        metrics.batches += 1
+    def _accumulate_loss_sums(self, loss_sums: torch.Tensor, total_loss: torch.Tensor, loss_dict: dict[str, torch.Tensor]) -> None:
+        loss_sums[0] += total_loss.detach().to(dtype=torch.float64)
+        if "energy_loss" in loss_dict:
+            loss_sums[1] += loss_dict["energy_loss"].to(dtype=torch.float64)
+        if "forces_loss" in loss_dict:
+            loss_sums[2] += loss_dict["forces_loss"].to(dtype=torch.float64)
+        if "virial_loss" in loss_dict:
+            loss_sums[3] += loss_dict["virial_loss"].to(dtype=torch.float64)
 
-    def _finalize_metrics(self, metrics: EpochMetrics) -> EpochMetrics:
+    def _finalize_metrics(
+        self,
+        loss_sums: torch.Tensor,
+        batches: int,
+        seconds: float,
+        data_seconds: float,
+        compute_seconds: float,
+    ) -> EpochMetrics:
         if self.context.is_distributed:
-            totals = torch.tensor(
-                [
-                    metrics.total_loss,
-                    metrics.energy_loss,
-                    metrics.forces_loss,
-                    metrics.virial_loss,
-                    float(metrics.batches),
-                ],
+            totals = torch.cat([
+                loss_sums,
+                torch.tensor([float(batches)], device=self.device, dtype=torch.float64),
+            ])
+            self.context.all_reduce_sum(totals)
+            loss_sums = totals[:4]
+            batches = int(totals[4].item())
+
+            seconds = torch.tensor(
+                [seconds, data_seconds, compute_seconds],
                 device=self.device,
                 dtype=torch.float64,
             )
-            self.context.all_reduce_sum(totals)
-            metrics.total_loss = float(totals[0].item())
-            metrics.energy_loss = float(totals[1].item())
-            metrics.forces_loss = float(totals[2].item())
-            metrics.virial_loss = float(totals[3].item())
-            metrics.batches = int(totals[4].item())
-
-            seconds = torch.tensor(metrics.seconds, device=self.device, dtype=torch.float64)
             self.context.all_reduce_max(seconds)
-            metrics.seconds = float(seconds.item())
-        return self._average(metrics)
+            seconds, data_seconds, compute_seconds = (
+                float(seconds[0].item()),
+                float(seconds[1].item()),
+                float(seconds[2].item()),
+            )
+        else:
+            loss_sums = loss_sums.detach()
 
-    def _average(self, metrics: EpochMetrics) -> EpochMetrics:
+        metrics = EpochMetrics(
+            total_loss=float(loss_sums[0].item()),
+            energy_loss=float(loss_sums[1].item()),
+            forces_loss=float(loss_sums[2].item()),
+            virial_loss=float(loss_sums[3].item()),
+            batches=batches,
+            seconds=seconds,
+            data_seconds=data_seconds,
+            compute_seconds=compute_seconds,
+        )
         if metrics.batches == 0:
             return metrics
         metrics.total_loss /= metrics.batches
@@ -356,7 +409,10 @@ class GradientTrainer:
         )
         if test_metrics is not None:
             message += f" | test={test_metrics.total_loss:.6f}"
-        message += f" | {train_metrics.seconds:.2f}s"
+        message += (
+            f" | {train_metrics.seconds:.2f}s "
+            f"(data={train_metrics.data_seconds:.2f}s compute={train_metrics.compute_seconds:.2f}s)"
+        )
         print(message)
 
 
