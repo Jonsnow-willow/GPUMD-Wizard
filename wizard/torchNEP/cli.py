@@ -12,6 +12,7 @@ from wizard.torchNEP.evaluate import (
     require_existing,
     resolve_artifact_path,
 )
+from wizard.torchNEP.mlp_launcher import run_mlp_launch
 from wizard.torchNEP.parser import load_train_config
 from wizard.torchNEP.train import train_from_config, train_run
 
@@ -48,6 +49,12 @@ def build_parser() -> argparse.ArgumentParser:
     inspect_parser = subparsers.add_parser("inspect", help="Inspect checkpoint metadata.")
     inspect_parser.add_argument("run_dir", nargs="?", default=".", type=Path, help="Run directory containing nep.in.")
     inspect_parser.add_argument("--artifact", default="checkpoints/best.pt", help="Checkpoint to inspect.")
+
+    launch_parser = subparsers.add_parser("mlp-launch", help="Launch a TorchNEP command with Volc MLP multi-node torchrun settings.")
+    launch_parser.add_argument("--master-port", type=int, default=29630, help="Rendezvous port on MLP worker-0.")
+    launch_parser.add_argument("--nproc-per-node", type=int, default=None, help="Override processes per node. Defaults to MLP_GPU.")
+    launch_parser.add_argument("--dry-run", action="store_true", help="Print the inferred torchrun command without executing it.")
+    launch_parser.add_argument("torchnep_args", nargs=argparse.REMAINDER, help="TorchNEP command to run, e.g. train RUN_DIR --device cuda.")
     return parser
 
 
@@ -69,6 +76,16 @@ def main(argv: list[str] | None = None) -> None:
             config.optimizer.epochs = args.epochs
         train_from_config(config)
         return
+
+    if args.command == "mlp-launch":
+        raise SystemExit(
+            run_mlp_launch(
+                args.torchnep_args,
+                master_port=args.master_port,
+                nproc_per_node=args.nproc_per_node,
+                dry_run=args.dry_run,
+            )
+        )
 
     config = load_train_config(args.run_dir)
     if getattr(args, "device", None) is not None:
