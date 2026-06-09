@@ -99,7 +99,7 @@ SCREW_Z_DISPLACEMENTS = {
 }
 
 class AlloyInfo():
-    def __init__(self, formula, lattice_type, *lattice_constant):
+    def __init__(self, formula: str, lattice_type: str, *lattice_constant: float):
         lattice_type = lattice_type.lower()
         if lattice_type not in SUPPORTED_LATTICE_TYPES:
             raise ValueError(
@@ -114,7 +114,7 @@ class AlloyInfo():
             self.symbols.append(symbol)
             self.compositions.append(int(composition) if composition else 1)
     
-    def create_bulk_atoms(self, supercell = (3, 3, 3)) -> Atoms:
+    def create_bulk_atoms(self, supercell: tuple = (3, 3, 3)) -> Atoms:
         symbol, crystalstructure, lc = self.symbols[0], self.lattice_type, self.lattice_constant
         if crystalstructure == 'hcp':
             atoms = bulk(symbol, crystalstructure, a = lc[0], c = lc[1]) * supercell
@@ -131,7 +131,7 @@ class AlloyInfo():
         atoms.info['config_type'] = f'{self.lattice_type}_bulk'
         return atoms
 
-    def get_interstitial_sites(self, supercell = (3, 3, 3), interstitial_type = 'oct') -> np.ndarray:
+    def get_interstitial_sites(self, supercell: tuple = (3, 3, 3), interstitial_type: str = 'oct') -> np.ndarray:
         sites = np.array(INTERSTITIAL_SITES[self.lattice_type][interstitial_type])
         interstitial_sites = []
         for i in range(supercell[0]):
@@ -141,8 +141,8 @@ class AlloyInfo():
                     interstitial_sites.extend((sites + offset) / supercell)
         return np.array(interstitial_sites)
 
-    def create_interstitial_atoms(self, supercell = (3, 3, 3), 
-                                  interstitials = [
+    def create_interstitial_atoms(self, supercell: tuple = (3, 3, 3), 
+                                  interstitials: list = [
                                         {'symbol': 'C', 'type': 'oct', 'num': 5},
                                         {'symbol': 'H', 'type': 'tet', 'num': 10},
                                   ]) -> Atoms:
@@ -166,7 +166,7 @@ class AlloyInfo():
         atoms.info['config_type'] = f'{self.lattice_type}_bulk_interstitial'
         return atoms
     
-    def create_screw_atoms(self, model = 'bulk') -> Atoms:
+    def create_screw_atoms(self, model: str = 'bulk') -> Atoms:
         if self.lattice_type != 'bcc':
             raise ValueError('Screw dislocation atoms are only supported for bcc.')
         model = model.lower()
@@ -208,19 +208,19 @@ class AlloyInfo():
         atoms.info['config_type'] = f'bcc_{model}_screw'
         return atoms
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Formula: {self.formula}, Lattice Type: {self.lattice_type}, Lattice Constant: {self.lattice_constant}"
 
 class Morph():
-    def __init__(self, atoms):
+    def __init__(self, atoms: Atoms):
         if not isinstance(atoms, Atoms):
             raise TypeError("atoms must be an instance of ase.Atoms")
         self.atoms = atoms
         
-    def gpumd(self, dirname = 'relax', run_in = ['potential nep.txt', 'velocity 300', 'time_step 1', 
+    def gpumd(self, dirname: str = 'relax', run_in: list = ['potential nep.txt', 'velocity 300', 'time_step 1', 
              'ensemble npt_scr 300 300 200 0 500 2000', 'dump_thermo 1000', 'dump_restart 30000', 
-             'dump_exyz 10000','run 30000'], nep_path = 'nep.txt', gpumd_path = 'gpumd',
-              electron_stopping_path = 'electron_stopping_fit.txt', run = True):
+             'dump_exyz 10000','run 30000'], nep_path: str = 'nep.txt', gpumd_path: str = 'gpumd',
+              electron_stopping_path: str = 'electron_stopping_fit.txt', run: bool = True):
         atoms = self.atoms
         if os.path.exists(dirname):
             raise FileExistsError('Directory already exists')
@@ -239,7 +239,7 @@ class Morph():
             os.system(gpumd_path)
         os.chdir(original_directory)
 
-    def set_pka(self, energy, direction, index = None, symbol = None):
+    def set_pka(self, energy: float, direction, index: int = None, symbol: str = None):
         atoms = self.atoms
         direction = np.asarray(direction)
         if atoms.has('momenta') is None:
@@ -273,7 +273,7 @@ class Morph():
         print(f'Mass: {atoms[index].mass:.2f}')
         print(f'Velocity: {vx:.4f}, {vy:.4f}, {vz:.4f} (Angstrom/fs)')
        
-    def velocity(self, vx, vy, vz, group = 0):
+    def velocity(self, vx: float, vy: float, vz: float, group: int = 0):
         atoms = self.atoms
         if atoms.has('momenta') is None:
             raise ValueError('The velocities of atoms are not set.')
@@ -305,14 +305,14 @@ class Morph():
         random.shuffle(s)
         atoms.set_chemical_symbols(s)
 
-    def coord_element_set(self, coord, symbol):
+    def coord_element_set(self, coord, symbol: str):
         atoms = self.atoms
         for atom in atoms:
             if np.allclose(atom.position, coord):
                 atom.symbol = symbol
                 break
 
-    def random_center(self, index = None):
+    def random_center(self, index: int = None):
         atoms = self.atoms
         if index is None:
             index = np.random.randint(0, len(atoms))
@@ -324,12 +324,12 @@ class Morph():
         for atom in atoms:
             atom.position %= atoms.cell.diagonal()
 
-    def scale_lattice(self, scale):
+    def scale_lattice(self, scale: float):
         atoms = self.atoms
         origin_cell = atoms.cell.copy()
         atoms.set_cell(scale * origin_cell, scale_atoms=True)
 
-    def create_self_interstitial_atom(self, vector, symbol = None, index = 0):
+    def create_self_interstitial_atom(self, vector: tuple, symbol: str = None, index: int = 0):
         atoms = self.atoms
         if symbol is not None:
             atom = Atom(symbol, atoms[index].position - vector)
@@ -338,7 +338,7 @@ class Morph():
         atoms[index].position += vector
         atoms.append(atom)
 
-    def create_random_interstitial(self, symbols, num=1):
+    def create_random_interstitial(self, symbols: list, num: int = 1):
         atoms_to_insert = []
         for _ in range(num):
             symbol = random.choice(symbols)
@@ -346,10 +346,10 @@ class Morph():
             atoms_to_insert.append(atom)
         self.insert_atoms(atoms_to_insert)
 
-    def create_vacancy(self, index = 0):
+    def create_vacancy(self, index: int = 0):
         del self.atoms[index]
 
-    def create_vacancies(self, num_vacancies):
+    def create_vacancies(self, num_vacancies: int):
         atoms = self.atoms
         if num_vacancies > len(atoms):
             raise ValueError("num_vacancies should be less than or equal to the total number of atoms.")
@@ -360,7 +360,7 @@ class Morph():
             del self.atoms[index]
         return removed_atoms
     
-    def insert_atoms(self, atoms_to_insert, distance=1.2):
+    def insert_atoms(self, atoms_to_insert: list, distance: float = 1.2):
         indices_to_insert = np.random.choice(len(self.atoms), len(atoms_to_insert), replace=False)
         target_atoms = self.atoms[indices_to_insert]
         for atom_to_insert, target_atom in zip(atoms_to_insert, target_atoms):
@@ -371,6 +371,6 @@ class Morph():
             atom_to_insert.position = new_position
             self.atoms.append(atom_to_insert)
             
-    def create_fks(self, num_vacancies):
+    def create_fks(self, num_vacancies: int):
         removed_atoms = self.create_vacancies(num_vacancies)
         self.insert_atoms(removed_atoms)
