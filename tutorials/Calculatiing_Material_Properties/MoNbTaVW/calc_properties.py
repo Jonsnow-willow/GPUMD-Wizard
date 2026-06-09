@@ -27,7 +27,7 @@ def main():
         material_calculator.migration_energy_vacancy()
 
     alloy_info = AlloyInfo('VNbMoTaW',  'bcc', 3.195)
-    material_calculator = AlloyCalculator(alloy_info, (3,3,3), calc)
+    material_calculator = AlloyCalculator(alloy_info, calc, supercell=(3,3,3))
     material_calculator.isolate_atom_energy()
     material_calculator.lattice_constant()
     material_calculator.dimer_curve()
