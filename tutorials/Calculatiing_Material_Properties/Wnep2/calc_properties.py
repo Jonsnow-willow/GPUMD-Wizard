@@ -35,7 +35,7 @@ def main():
                (2,2,1),(3,1,1),(3,1,0),(3,2,1),(3,2,0)]
     sia_vectors = [(1,1,1),(1,0,0),(1,1,0)]
     nths = [1,2,3]
-    material_calculator = AlloyCalculator(alloy_info, (3,3,3), calc)
+    material_calculator = AlloyCalculator(alloy_info, calc, supercell=(3,3,3))
     material_calculator.lattice_constant()
     material_calculator.elastic_constant()
     material_calculator.eos_curve()
@@ -57,5 +57,4 @@ def main():
         
 if __name__ == "__main__":
     main()
-
 
