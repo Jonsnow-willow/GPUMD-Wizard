@@ -131,6 +131,16 @@ class AlloyInfo():
         atoms.info['config_type'] = f'{self.lattice_type}_bulk'
         return atoms
 
+    def get_interstitial_sites(self, supercell = (3, 3, 3), interstitial_type = 'oct') -> np.ndarray:
+        sites = np.array(INTERSTITIAL_SITES[self.lattice_type][interstitial_type])
+        interstitial_sites = []
+        for i in range(supercell[0]):
+            for j in range(supercell[1]):
+                for k in range(supercell[2]):
+                    offset = np.array([i, j, k])
+                    interstitial_sites.extend((sites + offset) / supercell)
+        return np.array(interstitial_sites)
+
     def create_interstitial_atoms(self, supercell = (3, 3, 3), 
                                   interstitials = [
                                         {'symbol': 'C', 'type': 'oct', 'num': 5},
@@ -144,13 +154,7 @@ class AlloyInfo():
             symbol = interstitial['symbol']
             interstitial_type = interstitial['type']
             num = interstitial['num']
-            sites = np.array(INTERSTITIAL_SITES[self.lattice_type][interstitial_type])
-            interstitial_sites = []
-            for i in range(supercell[0]):
-                for j in range(supercell[1]):
-                    for k in range(supercell[2]):
-                        offset = np.array([i, j, k])
-                        interstitial_sites.extend((sites + offset) / supercell)
+            interstitial_sites = self.get_interstitial_sites(supercell, interstitial_type)
             interstitial_sites = [site for site in interstitial_sites if tuple(site) not in used_sites]
             indices = np.random.choice(len(interstitial_sites), num, replace = False)
 
