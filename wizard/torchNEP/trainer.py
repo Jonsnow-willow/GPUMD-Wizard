@@ -407,6 +407,7 @@ class GradientTrainer:
             optimizer,
             scheduler=scheduler,
             device=self.device,
+            restore_rng=not self.config.runtime.resume_model_only,
         )
         self.current_epoch = int(checkpoint.get("epoch", 0))
         if self.config.runtime.resume_model_only or self.config.runtime.resume_reset_best:
