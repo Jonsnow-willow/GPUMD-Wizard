@@ -206,6 +206,16 @@ class GradientTrainer:
             self._accumulate_loss_sums(loss_sums, loss, loss_dict)
             batches += 1
             compute_seconds += time.perf_counter() - compute_start
+            self._log_progress(
+                epoch=self.current_epoch,
+                step=step,
+                total_steps=total_steps,
+                loss_sums=loss_sums,
+                batches=batches,
+                seconds=time.perf_counter() - start,
+                data_seconds=data_seconds,
+                compute_seconds=compute_seconds,
+            )
         return self._finalize_metrics(
             loss_sums=loss_sums,
             batches=batches,
@@ -350,6 +360,44 @@ class GradientTrainer:
         metrics.virial_loss /= metrics.batches
         return metrics
 
+    def _log_progress(
+        self,
+        epoch: int,
+        step: int,
+        total_steps: int,
+        loss_sums: torch.Tensor,
+        batches: int,
+        seconds: float,
+        data_seconds: float,
+        compute_seconds: float,
+    ) -> None:
+        interval = self.config.runtime.progress_log_interval
+        if interval <= 0 or step == total_steps or step % interval != 0:
+            return
+        metrics = self._finalize_metrics(
+            loss_sums=loss_sums.clone(),
+            batches=batches,
+            seconds=seconds,
+            data_seconds=data_seconds,
+            compute_seconds=compute_seconds,
+        )
+        if not self.is_main_process:
+            return
+        steps_per_second = step / max(metrics.seconds, 1.0e-12)
+        print(
+            f"Epoch {epoch:4d}/{self.config.optimizer.epochs} "
+            f"step {step:6d}/{total_steps}: "
+            f"train={metrics.total_loss:.6f} "
+            f"E={metrics.energy_loss:.6f} "
+            f"F={metrics.forces_loss:.6f} "
+            f"V={metrics.virial_loss:.6f} "
+            f"lr={self.current_learning_rate():.6g} "
+            f"| {metrics.seconds:.2f}s "
+            f"(data={metrics.data_seconds:.2f}s compute={metrics.compute_seconds:.2f}s "
+            f"{steps_per_second:.4f} step/s)",
+            flush=True,
+        )
+
     def _resume(self, resume_path: str) -> None:
         checkpoint = self.checkpoints.load(
             resume_path,
@@ -413,7 +461,7 @@ class GradientTrainer:
             f" | {train_metrics.seconds:.2f}s "
             f"(data={train_metrics.data_seconds:.2f}s compute={train_metrics.compute_seconds:.2f}s)"
         )
-        print(message)
+        print(message, flush=True)
 
 
 def build_optimizer(model: nn.Module, config) -> torch.optim.Optimizer:

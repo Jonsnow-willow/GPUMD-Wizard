@@ -222,6 +222,9 @@ def _build_runtime_config(parsed: dict[str, list[str]]) -> RuntimeConfig:
         save_every=int(_pop_scalar(parsed, "save_every", default="1")),
         export_every=int(_pop_scalar(parsed, "export_every", default="0")),
         resume=_pop_scalar(parsed, "resume", default=None),
+        progress_log_interval=int(
+            _pop_first_scalar(parsed, ("progress_log_interval", "log_interval"), default="0")
+        ),
         compute_descriptor_scaler_once=_parse_bool(_pop_scalar(parsed, "compute_descriptor_scaler_once", default="true")),
         gradient_accumulation_steps=int(
             _pop_first_scalar(parsed, ("gradient_accumulation_steps", "accumulation_steps"), default="1")

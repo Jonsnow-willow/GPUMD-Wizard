@@ -107,6 +107,7 @@ class RuntimeConfig:
     save_every: int = 1
     export_every: int = 0
     resume: str | None = None
+    progress_log_interval: int = 0
     compute_descriptor_scaler_once: bool = True
     gradient_accumulation_steps: int = 1
     gradient_clip_norm: float | None = None
