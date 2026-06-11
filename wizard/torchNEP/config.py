@@ -107,6 +107,8 @@ class RuntimeConfig:
     save_every: int = 1
     export_every: int = 0
     resume: str | None = None
+    resume_model_only: bool = False
+    resume_reset_best: bool = False
     progress_log_interval: int = 0
     compute_descriptor_scaler_once: bool = True
     gradient_accumulation_steps: int = 1

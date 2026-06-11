@@ -222,6 +222,12 @@ def _build_runtime_config(parsed: dict[str, list[str]]) -> RuntimeConfig:
         save_every=int(_pop_scalar(parsed, "save_every", default="1")),
         export_every=int(_pop_scalar(parsed, "export_every", default="0")),
         resume=_pop_scalar(parsed, "resume", default=None),
+        resume_model_only=_parse_bool(
+            _pop_first_scalar(parsed, ("resume_model_only", "model_only_resume"), default="false")
+        ),
+        resume_reset_best=_parse_bool(
+            _pop_first_scalar(parsed, ("resume_reset_best", "reset_best_on_resume"), default="false")
+        ),
         progress_log_interval=int(
             _pop_first_scalar(parsed, ("progress_log_interval", "log_interval"), default="0")
         ),

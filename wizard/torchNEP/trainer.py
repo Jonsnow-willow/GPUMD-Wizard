@@ -399,18 +399,24 @@ class GradientTrainer:
         )
 
     def _resume(self, resume_path: str) -> None:
+        optimizer = None if self.config.runtime.resume_model_only else self.optimizer
+        scheduler = None if self.config.runtime.resume_model_only else self.scheduler
         checkpoint = self.checkpoints.load(
             resume_path,
             self.model,
-            self.optimizer,
-            scheduler=self.scheduler,
+            optimizer,
+            scheduler=scheduler,
             device=self.device,
         )
         self.current_epoch = int(checkpoint.get("epoch", 0))
-        self.best_metric = float(checkpoint.get("best_metric", float("inf")))
+        if self.config.runtime.resume_model_only or self.config.runtime.resume_reset_best:
+            self.best_metric = float("inf")
+        else:
+            self.best_metric = float(checkpoint.get("best_metric", float("inf")))
         self.q_scaler_initialized = True
         if self.is_main_process:
-            print(f"Resumed from {resume_path} at epoch {self.current_epoch}.")
+            mode = "model only" if self.config.runtime.resume_model_only else "full state"
+            print(f"Resumed {mode} from {resume_path} at epoch {self.current_epoch}.", flush=True)
 
     def step_scheduler(self, score: float) -> None:
         if self.scheduler is None:
