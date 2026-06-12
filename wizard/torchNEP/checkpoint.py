@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import random
 from pathlib import Path
 from typing import Any
@@ -107,4 +108,28 @@ def restore_rng_state(state: dict[str, Any] | None) -> None:
             cuda_state.detach().cpu() if isinstance(cuda_state, torch.Tensor) else cuda_state
             for cuda_state in state["cuda"]
         ]
-        torch.cuda.set_rng_state_all(cuda_states)
+        restore_cuda_rng_state(cuda_states)
+
+
+def restore_cuda_rng_state(cuda_states: list[Any]) -> None:
+    if not cuda_states:
+        return
+    device_count = torch.cuda.device_count()
+    if device_count <= 0:
+        return
+
+    local_rank = _parse_int(os.environ.get("LOCAL_RANK"))
+    if local_rank is not None and 0 <= local_rank < len(cuda_states):
+        torch.cuda.set_rng_state(cuda_states[local_rank], device=torch.cuda.current_device())
+        return
+
+    torch.cuda.set_rng_state_all(cuda_states[:device_count])
+
+
+def _parse_int(value: str | None) -> int | None:
+    if value is None:
+        return None
+    try:
+        return int(value)
+    except ValueError:
+        return None
