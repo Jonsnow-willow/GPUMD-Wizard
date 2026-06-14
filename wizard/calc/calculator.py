@@ -15,7 +15,7 @@ from calorine.tools import get_elastic_stiffness_tensor
 
 from .phono import PhonoCalc
 from ..core.minimize import relax
-from ..model.atoms import Morph, AlloyInfo
+from ..structure.atoms import Morph, AlloyInfo
 from ..utils.io import dump_xyz
 from ..utils.tools import plot_band_structure
 

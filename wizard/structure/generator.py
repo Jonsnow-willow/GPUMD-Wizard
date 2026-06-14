@@ -1,4 +1,4 @@
-from wizard.model.atoms import AlloyInfo
+from wizard.structure.atoms import AlloyInfo
 from calorine.tools import relax_structure
 import itertools
 

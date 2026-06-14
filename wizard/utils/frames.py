@@ -1,5 +1,5 @@
 from wizard.utils.io import dump_xyz
-from wizard.model.atoms import Morph
+from wizard.structure.atoms import Morph
 from calorine.tools import relax_structure
 import numpy as np 
 import random 

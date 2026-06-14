@@ -1,4 +1,4 @@
-from wizard.model.generator import Generator
+from wizard.structure.generator import Generator
 from wizard.utils.frames import MultiMol
 from calorine.calculators import CPUNEP
 

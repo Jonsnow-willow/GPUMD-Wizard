@@ -1,5 +1,5 @@
 from wizard.utils.frames import MultiMol
-from wizard.model.atoms import Morph
+from wizard.structure.atoms import Morph
 from calorine.tools import relax_structure
 from wizard.utils.io import read_xyz
 from calorine.calculators import CPUNEP

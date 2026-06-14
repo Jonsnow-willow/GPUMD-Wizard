@@ -1,5 +1,5 @@
-from wizard.model.atoms import AlloyInfo
-from wizard.model.atoms import Morph
+from wizard.structure.atoms import AlloyInfo
+from wizard.structure.atoms import Morph
 from wizard.utils.io import read_xyz
 import numpy as np
 

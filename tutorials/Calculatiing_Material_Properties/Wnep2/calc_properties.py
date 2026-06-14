@@ -5,7 +5,7 @@
 # ----------------------------------------------------------------------------------
 """
 
-from wizard.model.atoms import AlloyInfo
+from wizard.structure.atoms import AlloyInfo
 from wizard.calc.calculator import AlloyCalculator
 from calorine.calculators import CPUNEP
 

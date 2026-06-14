@@ -1,4 +1,4 @@
-from wizard.model.atoms import AlloyInfo
+from wizard.structure.atoms import AlloyInfo
 from wizard.calc.calculator import MaterialCalculator
 from calorine.calculators import CPUNEP
 

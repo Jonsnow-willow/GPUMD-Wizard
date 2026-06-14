@@ -1,4 +1,4 @@
-from wizard.model.atoms import AlloyInfo, Morph
+from wizard.structure.atoms import AlloyInfo, Morph
 from wizard.utils.io import read_xyz
 import numpy as np
        
