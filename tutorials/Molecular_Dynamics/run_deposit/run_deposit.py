@@ -1,9 +1,8 @@
 from ase.build import surface
 from ase import Atom
 from wizard.utils.io import read_xyz
-from wizard.structure.atoms import AlloyInfo
+from wizard.structure.atoms import AlloyInfo, Morph
 from calorine.calculators import CPUNEP
-from wizard.structure.atoms import Morph
 import numpy as np
 
 alloy_info = AlloyInfo('Cu', 'fcc', 3.631)

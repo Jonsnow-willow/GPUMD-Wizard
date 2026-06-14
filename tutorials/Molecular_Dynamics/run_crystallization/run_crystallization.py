@@ -1,5 +1,4 @@
-from wizard.structure.atoms import AlloyInfo
-from wizard.structure.atoms import Morph
+from wizard.structure.atoms import AlloyInfo, Morph
 
 alloy_infos = [
     AlloyInfo('V',  'bcc', 2.997),
