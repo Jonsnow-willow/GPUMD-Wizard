@@ -6,7 +6,7 @@ PROJECT_ROOT = THIS_DIR.parents[3]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from wizard.torchNEP.evaluate import compare_artifacts, evaluate_artifact, format_summary
+from wizard.torchNEP.evaluation.evaluate import compare_artifacts, evaluate_artifact, format_summary
 from wizard.torchNEP.parser import load_train_config
 
 

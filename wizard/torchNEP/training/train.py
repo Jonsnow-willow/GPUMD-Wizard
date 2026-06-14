@@ -4,7 +4,7 @@ from pathlib import Path
 
 from wizard.torchNEP.config import TrainConfig
 from wizard.torchNEP.parser import load_train_config
-from wizard.torchNEP.trainer import GradientTrainer
+from wizard.torchNEP.training.trainer import GradientTrainer
 
 
 def train_run(run_dir: str | Path):

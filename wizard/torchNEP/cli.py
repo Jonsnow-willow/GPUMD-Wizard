@@ -3,8 +3,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from wizard.torchNEP.checkpoint import load_checkpoint_file
-from wizard.torchNEP.evaluate import (
+from wizard.torchNEP.evaluation.evaluate import (
     compare_artifacts,
     evaluate_artifact,
     export_artifact,
@@ -12,9 +11,10 @@ from wizard.torchNEP.evaluate import (
     require_existing,
     resolve_artifact_path,
 )
-from wizard.torchNEP.mlp_launcher import run_mlp_launch
 from wizard.torchNEP.parser import load_train_config
-from wizard.torchNEP.train import train_from_config, train_run
+from wizard.torchNEP.runtime.mlp_launcher import run_mlp_launch
+from wizard.torchNEP.training.checkpoint import load_checkpoint_file
+from wizard.torchNEP.training.train import train_from_config, train_run
 
 
 def build_parser() -> argparse.ArgumentParser:

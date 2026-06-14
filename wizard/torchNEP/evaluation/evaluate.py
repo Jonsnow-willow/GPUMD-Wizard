@@ -8,10 +8,10 @@ import torch
 from torch.utils.data import DataLoader
 
 from wizard.torchNEP.config import TrainConfig
-from wizard.torchNEP.data import build_dataset
-from wizard.torchNEP.dataset import collate_fn
-from wizard.torchNEP.distributed import resolve_device
-from wizard.torchNEP.model import NEP
+from wizard.torchNEP.datasets.data import build_dataset
+from wizard.torchNEP.datasets.dataset import collate_fn
+from wizard.torchNEP.nep.model import NEP
+from wizard.torchNEP.runtime.distributed import resolve_device
 
 
 @dataclass

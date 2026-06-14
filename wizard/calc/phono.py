@@ -1,7 +1,6 @@
 import traceback
 import numpy as np
 import spglib
-import ase
 from ase import Atoms
 from ase.cell import Cell
 from phonopy import Phonopy

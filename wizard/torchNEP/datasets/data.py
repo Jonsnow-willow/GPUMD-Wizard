@@ -4,9 +4,9 @@ from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
 from wizard.torchNEP.config import TrainConfig
-from wizard.torchNEP.dataset import StructureDataset, collate_fn
-from wizard.torchNEP.distributed import DistributedContext
-from wizard.torchNEP.lazy_xyz import LazyExtendedXYZDataset, default_index_path
+from wizard.torchNEP.datasets.dataset import StructureDataset, collate_fn
+from wizard.torchNEP.datasets.lazy_xyz import LazyExtendedXYZDataset, default_index_path
+from wizard.torchNEP.runtime.distributed import DistributedContext
 from wizard.utils.io import read_xyz
 
 

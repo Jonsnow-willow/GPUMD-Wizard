@@ -1,6 +1,6 @@
 from ase.calculators.calculator import Calculator, all_changes
-from .dataset import StructureDataset, collate_fn
-from .model import NEP
+from wizard.torchNEP.datasets.dataset import StructureDataset, collate_fn
+from wizard.torchNEP.nep.model import NEP
 import numpy as np
 import torch
 

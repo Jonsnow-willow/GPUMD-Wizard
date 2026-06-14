@@ -9,12 +9,12 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from wizard.torchNEP.checkpoint import CheckpointManager
 from wizard.torchNEP.config import TrainConfig
-from wizard.torchNEP.data import build_dataloaders
-from wizard.torchNEP.distributed import DistributedContext, unwrap_model
-from wizard.torchNEP.metrics import MetricsLogger
-from wizard.torchNEP.model import NEP
+from wizard.torchNEP.datasets.data import build_dataloaders
+from wizard.torchNEP.nep.model import NEP
+from wizard.torchNEP.runtime.distributed import DistributedContext, unwrap_model
+from wizard.torchNEP.training.checkpoint import CheckpointManager
+from wizard.torchNEP.training.metrics import MetricsLogger
 
 
 @dataclass

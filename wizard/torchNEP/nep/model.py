@@ -2,8 +2,8 @@ import re
 import torch
 import torch.nn as nn
 from ase.data import atomic_numbers
-from .checkpoint import load_checkpoint_file
 from .descriptor import Descriptor 
+from wizard.torchNEP.training.checkpoint import load_checkpoint_file
 
 K_C_SP = 14.399645
 ZBL_A_INV_FACTOR = 2.134563

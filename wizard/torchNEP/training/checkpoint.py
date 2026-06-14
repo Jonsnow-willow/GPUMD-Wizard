@@ -9,7 +9,7 @@ import numpy as np
 import torch
 
 from wizard.torchNEP.config import TrainConfig
-from wizard.torchNEP.distributed import unwrap_model
+from wizard.torchNEP.runtime.distributed import unwrap_model
 
 
 class CheckpointManager:

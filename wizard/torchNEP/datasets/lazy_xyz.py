@@ -10,7 +10,7 @@ import torch
 from ase.data import atomic_numbers
 from torch.utils.data import Dataset
 
-from wizard.torchNEP.neighbor import build_neighbor_list
+from wizard.torchNEP.datasets.neighbor import build_neighbor_list
 
 
 class LazyExtendedXYZDataset(Dataset):
