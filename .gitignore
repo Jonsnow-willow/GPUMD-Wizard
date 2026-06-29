@@ -2,4 +2,4 @@
 .DS_Store
 *.ipynb
 benchmark
-ResNEP
+wizard/torchNEP/resnep/
