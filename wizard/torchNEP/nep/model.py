@@ -14,6 +14,21 @@ UNIVERSAL_ZBL_COEFFS = [
     0.02817, 0.20162,
 ]
 
+
+def structure_ids_from_counts(n_atoms_per_structure, device):
+    counts = n_atoms_per_structure.to(device=device, dtype=torch.long)
+    return torch.repeat_interleave(torch.arange(counts.numel(), device=device), counts)
+
+
+def deform_vectors_by_structure(vectors, deformation, atom_structure_ids):
+    per_atom_deformation = deformation[atom_structure_ids]
+    if vectors.ndim == 2:
+        return torch.einsum("ni,nji->nj", vectors, per_atom_deformation)
+    if vectors.ndim == 3:
+        return torch.einsum("nmi,nji->nmj", vectors, per_atom_deformation)
+    raise ValueError(f"Expected vectors with ndim 2 or 3, got {vectors.ndim}.")
+
+
 class NEP(nn.Module):
     def __init__(self, para):
         super().__init__()
@@ -61,12 +76,29 @@ class NEP(nn.Module):
         strain = None
         descriptor_batch = batch
         if batch.get("compute_virial", True):
-            strain = torch.zeros((3, 3), device=positions.device, dtype=positions.dtype, requires_grad=True)
-            deformation = torch.eye(3, device=positions.device, dtype=positions.dtype) + strain
+            n_structures = int(batch["n_atoms_per_structure"].numel())
+            strain = torch.zeros((n_structures, 3, 3), device=positions.device, dtype=positions.dtype, requires_grad=True)
+            deformation = torch.eye(3, device=positions.device, dtype=positions.dtype).unsqueeze(0) + strain
+            atom_structure_ids = structure_ids_from_counts(
+                batch["n_atoms_per_structure"],
+                device=positions.device,
+            )
             descriptor_batch = batch.copy()
-            descriptor_batch["positions"] = positions @ deformation.T
-            descriptor_batch["radial_offsets"] = batch["radial_offsets"].to(device=positions.device, dtype=positions.dtype) @ deformation.T
-            descriptor_batch["angular_offsets"] = batch["angular_offsets"].to(device=positions.device, dtype=positions.dtype) @ deformation.T
+            descriptor_batch["positions"] = deform_vectors_by_structure(
+                positions,
+                deformation,
+                atom_structure_ids,
+            )
+            descriptor_batch["radial_offsets"] = deform_vectors_by_structure(
+                batch["radial_offsets"].to(device=positions.device, dtype=positions.dtype),
+                deformation,
+                atom_structure_ids,
+            )
+            descriptor_batch["angular_offsets"] = deform_vectors_by_structure(
+                batch["angular_offsets"].to(device=positions.device, dtype=positions.dtype),
+                deformation,
+                atom_structure_ids,
+            )
         
         descriptors = self.descriptor(descriptor_batch)
         g_total = self._combine_descriptors(descriptors)         # [N_atoms, input_dim]
@@ -93,7 +125,6 @@ class NEP(nn.Module):
         n_atoms_per_structure = batch["n_atoms_per_structure"].detach().cpu().tolist()
         atom_idx = 0
         e_total_list = []
-        virial_list = []
 
         forces = None
         total_energy = e_atom.sum()
@@ -108,21 +139,21 @@ class NEP(nn.Module):
         for n_atoms_in_structure in n_atoms_per_structure:
             e_structure = e_atom[atom_idx:atom_idx + n_atoms_in_structure].sum()
             e_total_list.append(e_structure)
-            if strain is not None:
-                virial_struct = torch.autograd.grad(
-                    outputs=e_structure,
-                    inputs=strain,
-                    create_graph=self.training,
-                    retain_graph=True,
-                    allow_unused=True,
-                )[0]
-                if virial_struct is None:
-                    virial_struct = torch.zeros((3, 3), device=g_total.device, dtype=g_total.dtype)
-                virial_list.append((-virial_struct).reshape(-1))
             atom_idx += n_atoms_in_structure
 
         e_total = torch.stack(e_total_list)
-        virial = torch.stack(virial_list) if virial_list else None
+        virial = None
+        if strain is not None:
+            virial = torch.autograd.grad(
+                outputs=e_total.sum(),
+                inputs=strain,
+                create_graph=self.training,
+                retain_graph=True,
+                allow_unused=True,
+            )[0]
+            if virial is None:
+                virial = torch.zeros_like(strain)
+            virial = -virial.reshape(strain.shape[0], -1)
 
         result = {
             "energies": e_atom,
