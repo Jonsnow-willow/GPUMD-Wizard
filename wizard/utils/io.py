@@ -17,8 +17,7 @@ def dump_xyz(filename: str, atoms: Atoms):
     def is_valid_key(key: str) -> bool:
         return key in atoms.info and atoms.info[key] is not None
     
-    valid_keys = {key: is_valid_key(key) for key in ['energy', 'stress', 'forces', 'group', 'config_type', 'weight']}
-
+    valid_keys = {key: is_valid_key(key) for key in ['energy', 'stress', 'forces', 'group', 'config_type', 'weight', 'mag']}
     with open(filename, 'a') as f:
         out_string = ""
         out_string += str(int(len(atoms))) + "\n"
@@ -41,6 +40,17 @@ def dump_xyz(filename: str, atoms: Atoms):
             out_string += ":vel:R:3"
         if valid_keys['forces']:
             out_string += ":force:R:3"
+        if valid_keys['mag']:
+            mag = atoms.info['mag']
+            num_atoms = len(atoms)
+            if len(mag) != num_atoms:
+                raise ValueError(
+                    f"Mag data dimensions do not match number of atoms ({num_atoms})"
+            )
+            mag_count = len(np.asarray(mag[0]).reshape(-1))
+            if mag_count not in [1, 3]:
+                raise ValueError("Mag data should have 1 or 3 components")
+            out_string += f":mag:R:{mag_count}"
         if valid_keys['group']:
             group = atoms.info['group']
             num_atoms = len(atoms)
@@ -60,6 +70,9 @@ def dump_xyz(filename: str, atoms: Atoms):
                 out_string += ' {:>15.8e} {:>15.8e} {:>15.8e}'.format(*velocites[atom.index])
             if valid_keys['forces']:
                 out_string += ' {:>15.8e} {:>15.8e} {:>15.8e}'.format(*atoms.info['forces'][atom.index])
+            if valid_keys['mag']:
+                for m in np.asarray(mag[atom.index]).reshape(-1):
+                    out_string += ' {:>15.8e}'.format(m)
             if valid_keys['group']:
                 for g in group:
                     out_string += f" {int(g[atom.index])}"
@@ -122,6 +135,16 @@ def _read_group(words_in_line: list[str], parsed_properties: dict[str, slice]) -
     else:
         return None
 
+def _read_mag(words_in_line: list[str], parsed_properties: dict[str, slice]) -> float | tuple[float, ...] | None:
+    if 'mag' in parsed_properties:
+        mag = words_in_line[parsed_properties['mag']]
+        if len(mag) not in [1, 3]:
+            raise ValueError("Mag data should have 1 or 3 components")
+        mag = tuple(float(m) for m in mag)
+        return mag[0] if len(mag) == 1 else mag
+    else:
+        return None
+
 def read_xyz(filename: str) -> list[Atoms]:
     """
     Read the atomic positions and other information from a file in XYZ format.
@@ -138,6 +161,7 @@ def read_xyz(filename: str) -> list[Atoms]:
             forces = []
             velocities = []
             group = []
+            mag = []
             natoms = int(line.strip())
             comment = f.readline().lower().strip()
             if "pbc=\"" in comment:
@@ -179,6 +203,7 @@ def read_xyz(filename: str) -> list[Atoms]:
                 forces.append(_read_force(words_in_line, parsed_properties_dict))
                 velocities.append(_read_velocity(words_in_line, parsed_properties_dict))
                 group.append(_read_group(words_in_line, parsed_properties_dict))
+                mag.append(_read_mag(words_in_line, parsed_properties_dict))
             if "force" not in comment:
                 forces = None
             if "vel" not in comment:
@@ -187,6 +212,10 @@ def read_xyz(filename: str) -> list[Atoms]:
                 group = [np.asarray(col, dtype=int) for col in zip(*group)] 
             else:
                 group = None
+            if "mag" in comment:
+                mag = np.asarray(mag)
+            else:
+                mag = None
             atoms = Atoms(
                 symbols=symbols,
                 positions=positions,
@@ -194,6 +223,6 @@ def read_xyz(filename: str) -> list[Atoms]:
                 cell=cell,
                 pbc=pbc,
                 velocities=velocities,
-                info={'energy': energy, 'stress': stress, 'forces': forces, 'group': group, 'config_type': config_type, 'weight': weight})
+                info={'energy': energy, 'stress': stress, 'forces': forces, 'group': group, 'config_type': config_type, 'weight': weight, 'mag': mag})
             frames.append(atoms)
     return frames
