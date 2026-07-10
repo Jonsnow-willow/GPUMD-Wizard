@@ -1,5 +1,5 @@
 ---
-title: "GPUMD-Wizard: ASE-native workflows for GPUMD and neuroevolution potentials"
+title: "GPUMD-Wizard: A Python package for materials discovery with machine-learned potentials"
 tags:
   - Python
   - atomistic simulation
