@@ -1,5 +1,5 @@
 ---
-title: "GPUMD-Wizard: A Python package for materials discovery with machine-learned potentials"
+title: "GPUMD-Wizard: A Python package for atomistic simulation, potential training, and property evaluation"
 tags:
   - Python
   - atomistic simulation
