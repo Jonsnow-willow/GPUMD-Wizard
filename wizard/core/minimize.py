@@ -1,6 +1,6 @@
 from ase.optimize import BFGS, LBFGS, FIRE, GPMin
 from ase.optimize.sciopt import SciPyFminBFGS
-from ase.constraints import ExpCellFilter
+from ase.filters import ExpCellFilter
 from ase.units import GPa
 from ase import Atoms
 
