@@ -7,7 +7,7 @@ import os
 
 from ase import Atom, Atoms
 from ase.build import cut, rotate, surface
-from ase.constraints import FixAtoms
+from ase.constraints import FixedLine
 from ase.calculators.calculator import Calculator
 from ase.neb import NEB
 from ase.units import J
@@ -557,7 +557,6 @@ class AlloyCalculator(MaterialCalculator):
         slab.calc = self.calc
         relax(slab, constant_cell=True, **self.kwargs)
         slab.center(axis=2)
-        slab.constraints = FixAtoms(indices=[atom.index for atom in slab if atom.position[2] < 1/2 * slab.cell[2][2]])
         box = slab.get_cell()
         S = np.linalg.norm(np.cross(box[0], box[1])) * 2
 
@@ -569,6 +568,9 @@ class AlloyCalculator(MaterialCalculator):
         for i in range(11):
             slab_shift = slab.copy()
             slab_shift.positions[shift_indices] += [slide_steps * i, 0, 0]
+            slab_shift.set_constraint(
+                FixedLine(indices=range(len(slab_shift)), direction=(0, 0, 1))
+            )
             slab_shift.calc = self.calc
             relax(slab_shift, constant_cell=True, **self.kwargs)
             defects_energy = slab_shift.get_potential_energy() / S
