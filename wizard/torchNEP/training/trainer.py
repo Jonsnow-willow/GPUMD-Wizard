@@ -12,9 +12,13 @@ import torch.nn as nn
 from wizard.torchNEP.config import TrainConfig
 from wizard.torchNEP.datasets.data import build_dataloaders
 from wizard.torchNEP.nep.model import NEP
+from wizard.torchNEP.quantities import independent_virial_components
 from wizard.torchNEP.runtime.distributed import DistributedContext, unwrap_model
 from wizard.torchNEP.training.checkpoint import CheckpointManager
 from wizard.torchNEP.training.metrics import MetricsLogger
+
+
+LOSS_TERMS = ("energy", "forces", "virial")
 
 
 @dataclass
@@ -55,7 +59,6 @@ class GradientTrainer:
         self.train_loader, self.test_loader = build_dataloaders(config, context=self.context)
         self.optimizer = build_optimizer(self.model, config.optimizer)
         self.scheduler = build_scheduler(self.optimizer, config.optimizer, config.scheduler)
-        self.loss_fn = nn.L1Loss()
         self.checkpoints = CheckpointManager(config, create_dirs=self.context.is_main_process)
         self.metrics_logger = MetricsLogger(config.logs_dir / "metrics.csv") if self.context.is_main_process else None
         self.current_epoch = 0
@@ -173,7 +176,8 @@ class GradientTrainer:
     def train_epoch(self) -> EpochMetrics:
         self.model.train()
         start = time.perf_counter()
-        loss_sums = torch.zeros(4, device=self.device, dtype=torch.float64)
+        loss_sums = torch.zeros(3, device=self.device, dtype=torch.float64)
+        loss_counts = torch.zeros(3, device=self.device, dtype=torch.float64)
         batches = 0
         data_seconds = 0.0
         compute_seconds = 0.0
@@ -182,42 +186,55 @@ class GradientTrainer:
             raise ValueError("gradient_accumulation_steps must be >= 1.")
         self.optimizer.zero_grad(set_to_none=True)
         total_steps = len(self.train_loader)
-        final_accumulation_steps = total_steps % accumulation_steps or accumulation_steps
         iterator = iter(self.train_loader)
-        for step in range(1, total_steps + 1):
+
+        for window_start in range(0, total_steps, accumulation_steps):
+            window_size = min(accumulation_steps, total_steps - window_start)
             data_start = time.perf_counter()
-            batch = next(iterator)
+            window_batches = [next(iterator) for _ in range(window_size)]
             data_seconds += time.perf_counter() - data_start
-            compute_start = time.perf_counter()
-            batch = self._prepare_batch(batch)
-            should_step = step % accumulation_steps == 0 or step == total_steps
-            scale = final_accumulation_steps if step == total_steps else accumulation_steps
-            sync_context = nullcontext()
-            if self.context.is_distributed and not should_step and hasattr(self.model, "no_sync"):
-                sync_context = self.model.no_sync()
-            with sync_context:
-                prediction = self.model(batch)
-                loss, loss_dict = self.compute_loss(prediction, batch)
-                (loss / scale).backward()
-            if should_step:
-                self.clip_gradients()
-                self.optimizer.step()
-                self.optimizer.zero_grad(set_to_none=True)
-            self._accumulate_loss_sums(loss_sums, loss, loss_dict)
-            batches += 1
-            compute_seconds += time.perf_counter() - compute_start
-            self._log_progress(
-                epoch=self.current_epoch,
-                step=step,
-                total_steps=total_steps,
-                loss_sums=loss_sums,
-                batches=batches,
-                seconds=time.perf_counter() - start,
-                data_seconds=data_seconds,
-                compute_seconds=compute_seconds,
-            )
+
+            count_start = time.perf_counter()
+            normalization_counts = self._global_loss_counts(window_batches)
+            compute_seconds += time.perf_counter() - count_start
+
+            for window_index, batch in enumerate(window_batches):
+                step = window_start + window_index + 1
+                compute_start = time.perf_counter()
+                batch = self._prepare_batch(batch)
+                should_step = window_index == window_size - 1
+                sync_context = nullcontext()
+                if self.context.is_distributed and not should_step and hasattr(self.model, "no_sync"):
+                    sync_context = self.model.no_sync()
+                with sync_context:
+                    prediction = self.model(batch)
+                    loss, loss_statistics = self.compute_loss(
+                        prediction,
+                        batch,
+                        normalization_counts=normalization_counts,
+                    )
+                    loss.backward()
+                if should_step:
+                    self.clip_gradients()
+                    self.optimizer.step()
+                    self.optimizer.zero_grad(set_to_none=True)
+                self._accumulate_loss_statistics(loss_sums, loss_counts, loss_statistics)
+                batches += 1
+                compute_seconds += time.perf_counter() - compute_start
+                self._log_progress(
+                    epoch=self.current_epoch,
+                    step=step,
+                    total_steps=total_steps,
+                    loss_sums=loss_sums,
+                    loss_counts=loss_counts,
+                    batches=batches,
+                    seconds=time.perf_counter() - start,
+                    data_seconds=data_seconds,
+                    compute_seconds=compute_seconds,
+                )
         return self._finalize_metrics(
             loss_sums=loss_sums,
+            loss_counts=loss_counts,
             batches=batches,
             seconds=time.perf_counter() - start,
             data_seconds=data_seconds,
@@ -227,7 +244,8 @@ class GradientTrainer:
     def evaluate(self) -> EpochMetrics:
         self.model.eval()
         start = time.perf_counter()
-        loss_sums = torch.zeros(4, device=self.device, dtype=torch.float64)
+        loss_sums = torch.zeros(3, device=self.device, dtype=torch.float64)
+        loss_counts = torch.zeros(3, device=self.device, dtype=torch.float64)
         batches = 0
         data_seconds = 0.0
         compute_seconds = 0.0
@@ -237,25 +255,64 @@ class GradientTrainer:
             data_start = time.perf_counter()
             batch = next(iterator)
             data_seconds += time.perf_counter() - data_start
+            if not any(_batch_loss_counts(batch)):
+                raise ValueError("No loss terms were available for this batch.")
             compute_start = time.perf_counter()
             batch = self._prepare_batch(batch)
             prediction = self.model(batch)
-            loss, loss_dict = self.compute_loss(prediction, batch)
-            self._accumulate_loss_sums(loss_sums, loss, loss_dict)
+            loss_statistics = self._loss_statistics(prediction, batch)
+            self._accumulate_loss_statistics(loss_sums, loss_counts, loss_statistics)
             batches += 1
             compute_seconds += time.perf_counter() - compute_start
         return self._finalize_metrics(
             loss_sums=loss_sums,
+            loss_counts=loss_counts,
             batches=batches,
             seconds=time.perf_counter() - start,
             data_seconds=data_seconds,
             compute_seconds=compute_seconds,
         )
 
-    def compute_loss(self, prediction, batch):
+    def compute_loss(self, prediction, batch, normalization_counts: torch.Tensor | None = None):
         weights = self.config.loss.weights()
-        loss = None
-        loss_dict = {}
+        statistics = self._loss_statistics(prediction, batch)
+
+        if normalization_counts is None:
+            normalization_counts = statistics["counts"].detach().clone()
+            self.context.all_reduce_sum(normalization_counts)
+            if not torch.any(normalization_counts > 0).item():
+                raise ValueError("No loss terms were available for this batch.")
+        if normalization_counts.shape != statistics["counts"].shape:
+            raise ValueError(
+                f"Expected {len(LOSS_TERMS)} loss counts, got shape {tuple(normalization_counts.shape)}."
+            )
+
+        # DDP averages gradients across ranks. Multiplying each local numerator by
+        # world_size therefore produces a true global sum/global-count gradient.
+        ddp_scale = float(self.context.world_size if self.context.is_distributed else 1)
+        safe_counts = normalization_counts.to(
+            device=statistics["sums"].device,
+            dtype=statistics["sums"].dtype,
+        ).clamp_min(1.0)
+        active_terms = (normalization_counts > 0).to(
+            device=statistics["sums"].device,
+            dtype=statistics["sums"].dtype,
+        )
+        loss_weights = statistics["sums"].new_tensor([weights[name] for name in LOSS_TERMS])
+        normalized_terms = statistics["sums"] * ddp_scale / safe_counts * active_terms
+        loss = torch.sum(loss_weights * normalized_terms)
+        return loss, statistics
+
+    def _loss_statistics(self, prediction, batch) -> dict[str, torch.Tensor]:
+        reference = next(
+            (value for value in prediction.values() if isinstance(value, torch.Tensor)),
+            None,
+        )
+        if reference is None:
+            raise ValueError("Model prediction did not contain any tensors.")
+        zero = reference.sum() * 0.0
+        sums = [zero, zero, zero]
+        counts = [0, 0, 0]
 
         if "energy" in prediction and "energy" in batch and "is_energy" in batch:
             mask = batch["is_energy"]
@@ -264,29 +321,42 @@ class GradientTrainer:
             n_atoms_per_structure = batch["n_atoms_per_structure"][mask]
             pred = pred / n_atoms_per_structure.float()
             target = target / n_atoms_per_structure.float()
-            energy_loss = self.loss_fn(pred, target)
-            loss = _add_loss(loss, weights["energy"] * energy_loss)
-            loss_dict["energy_loss"] = energy_loss.detach()
+            residual = torch.abs(pred - target)
+            sums[0] = residual.sum()
+            counts[0] = residual.numel()
 
         if "forces" in prediction and "forces" in batch:
-            forces_loss = self.loss_fn(prediction["forces"], batch["forces"])
-            loss = _add_loss(loss, weights["forces"] * forces_loss)
-            loss_dict["forces_loss"] = forces_loss.detach()
+            residual = torch.abs(prediction["forces"] - batch["forces"])
+            sums[1] = residual.sum()
+            counts[1] = residual.numel()
 
         if "virial" in prediction and "virial" in batch and "is_virial" in batch:
             mask = batch["is_virial"]
-            pred = prediction["virial"][mask]
-            target = batch["virial"][mask]
+            pred = independent_virial_components(prediction["virial"][mask])
+            target = independent_virial_components(batch["virial"][mask])
             n_atoms_per_structure = batch["n_atoms_per_structure"][mask]
             pred = pred / n_atoms_per_structure.float().unsqueeze(-1)
             target = target / n_atoms_per_structure.float().unsqueeze(-1)
-            virial_loss = self.loss_fn(pred, target)
-            loss = _add_loss(loss, weights["virial"] * virial_loss)
-            loss_dict["virial_loss"] = virial_loss.detach()
+            residual = torch.abs(pred - target)
+            sums[2] = residual.sum()
+            counts[2] = residual.numel()
 
-        if loss is None:
-            raise ValueError("No loss terms were available for this batch.")
-        return loss, loss_dict
+        return {
+            "sums": torch.stack(sums),
+            "counts": reference.new_tensor(counts),
+        }
+
+    def _global_loss_counts(self, batches) -> torch.Tensor:
+        local_counts = [0, 0, 0]
+        for batch in batches:
+            batch_counts = _batch_loss_counts(batch)
+            for index, count in enumerate(batch_counts):
+                local_counts[index] += count
+        counts = torch.tensor(local_counts, device=self.device, dtype=torch.float32)
+        self.context.all_reduce_sum(counts)
+        if not torch.any(counts > 0).item():
+            raise ValueError("No loss terms were available for this accumulation window.")
+        return counts
 
     def _prepare_batch(self, batch):
         non_blocking = self.device.type == "cuda"
@@ -302,18 +372,19 @@ class GradientTrainer:
         if hasattr(sampler, "set_epoch"):
             sampler.set_epoch(epoch)
 
-    def _accumulate_loss_sums(self, loss_sums: torch.Tensor, total_loss: torch.Tensor, loss_dict: dict[str, torch.Tensor]) -> None:
-        loss_sums[0] += total_loss.detach().to(dtype=torch.float64)
-        if "energy_loss" in loss_dict:
-            loss_sums[1] += loss_dict["energy_loss"].to(dtype=torch.float64)
-        if "forces_loss" in loss_dict:
-            loss_sums[2] += loss_dict["forces_loss"].to(dtype=torch.float64)
-        if "virial_loss" in loss_dict:
-            loss_sums[3] += loss_dict["virial_loss"].to(dtype=torch.float64)
+    def _accumulate_loss_statistics(
+        self,
+        loss_sums: torch.Tensor,
+        loss_counts: torch.Tensor,
+        statistics: dict[str, torch.Tensor],
+    ) -> None:
+        loss_sums += statistics["sums"].detach().to(dtype=torch.float64)
+        loss_counts += statistics["counts"].detach().to(dtype=torch.float64)
 
     def _finalize_metrics(
         self,
         loss_sums: torch.Tensor,
+        loss_counts: torch.Tensor,
         batches: int,
         seconds: float,
         data_seconds: float,
@@ -322,11 +393,13 @@ class GradientTrainer:
         if self.context.is_distributed:
             totals = torch.cat([
                 loss_sums,
+                loss_counts,
                 torch.tensor([float(batches)], device=self.device, dtype=torch.float64),
             ])
             self.context.all_reduce_sum(totals)
-            loss_sums = totals[:4]
-            batches = int(totals[4].item())
+            loss_sums = totals[:3]
+            loss_counts = totals[3:6]
+            batches = int(totals[6].item())
 
             seconds = torch.tensor(
                 [seconds, data_seconds, compute_seconds],
@@ -341,23 +414,26 @@ class GradientTrainer:
             )
         else:
             loss_sums = loss_sums.detach()
+            loss_counts = loss_counts.detach()
+
+        mean_losses = torch.where(
+            loss_counts > 0,
+            loss_sums / loss_counts.clamp_min(1.0),
+            torch.zeros_like(loss_sums),
+        )
+        weights = self.config.loss.weights()
+        total_loss = sum(weights[name] * float(mean_losses[index].item()) for index, name in enumerate(LOSS_TERMS))
 
         metrics = EpochMetrics(
-            total_loss=float(loss_sums[0].item()),
-            energy_loss=float(loss_sums[1].item()),
-            forces_loss=float(loss_sums[2].item()),
-            virial_loss=float(loss_sums[3].item()),
+            total_loss=total_loss,
+            energy_loss=float(mean_losses[0].item()),
+            forces_loss=float(mean_losses[1].item()),
+            virial_loss=float(mean_losses[2].item()),
             batches=batches,
             seconds=seconds,
             data_seconds=data_seconds,
             compute_seconds=compute_seconds,
         )
-        if metrics.batches == 0:
-            return metrics
-        metrics.total_loss /= metrics.batches
-        metrics.energy_loss /= metrics.batches
-        metrics.forces_loss /= metrics.batches
-        metrics.virial_loss /= metrics.batches
         return metrics
 
     def _log_progress(
@@ -366,6 +442,7 @@ class GradientTrainer:
         step: int,
         total_steps: int,
         loss_sums: torch.Tensor,
+        loss_counts: torch.Tensor,
         batches: int,
         seconds: float,
         data_seconds: float,
@@ -376,6 +453,7 @@ class GradientTrainer:
             return
         metrics = self._finalize_metrics(
             loss_sums=loss_sums.clone(),
+            loss_counts=loss_counts.clone(),
             batches=batches,
             seconds=seconds,
             data_seconds=data_seconds,
@@ -534,5 +612,15 @@ def set_seed(seed: int) -> None:
         torch.cuda.manual_seed_all(seed)
 
 
-def _add_loss(current, term):
-    return term if current is None else current + term
+def _batch_loss_counts(batch) -> tuple[int, int, int]:
+    energy_count = 0
+    if "energy" in batch and "is_energy" in batch:
+        energy_count = int(torch.count_nonzero(batch["is_energy"]).item())
+
+    forces_count = int(batch["forces"].numel()) if "forces" in batch else 0
+
+    virial_count = 0
+    if "virial" in batch and "is_virial" in batch:
+        virial = batch["virial"][batch["is_virial"]]
+        virial_count = independent_virial_components(virial).numel()
+    return energy_count, forces_count, virial_count

@@ -11,6 +11,7 @@ from wizard.torchNEP.config import TrainConfig
 from wizard.torchNEP.datasets.data import build_dataset
 from wizard.torchNEP.datasets.dataset import collate_fn
 from wizard.torchNEP.nep.model import NEP
+from wizard.torchNEP.quantities import independent_virial_components
 from wizard.torchNEP.runtime.distributed import resolve_device
 
 
@@ -181,7 +182,7 @@ def accumulate_label_metrics(stats: dict[str, ScalarStats], prediction: dict, ba
         if torch.any(mask):
             n_atoms = batch["n_atoms_per_structure"][mask].float().unsqueeze(-1)
             diff = prediction["virial"][mask] / n_atoms - batch["virial"][mask] / n_atoms
-            stats["virial"].add(diff)
+            stats["virial"].add(independent_virial_components(diff))
 
 
 def accumulate_prediction_diffs(stats: dict[str, ScalarStats], left: dict, right: dict, batch: dict) -> None:
@@ -192,7 +193,8 @@ def accumulate_prediction_diffs(stats: dict[str, ScalarStats], left: dict, right
         stats["forces"].add(left["forces"] - right["forces"])
     if "virial" in left and "virial" in right:
         n_atoms = batch["n_atoms_per_structure"].float().unsqueeze(-1)
-        stats["virial"].add((left["virial"] - right["virial"]) / n_atoms)
+        diff = (left["virial"] - right["virial"]) / n_atoms
+        stats["virial"].add(independent_virial_components(diff))
 
 
 def prepare_batch(batch: dict, device: torch.device) -> dict:
