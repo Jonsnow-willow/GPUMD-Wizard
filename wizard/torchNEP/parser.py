@@ -78,7 +78,13 @@ def _build_model_config(parsed: dict[str, list[str]], run_dir: Path) -> ModelCon
     l_max = _pop_required(parsed, "l_max")
     _require_length("n_max", n_max, 2)
     _require_length("basis_size", basis_size, 2)
-    _require_length("l_max", l_max, 3)
+    if not 1 <= len(l_max) <= 7:
+        raise ValueError("l_max should contain 1 to 7 integers.")
+    l_max_values = [int(value) for value in l_max]
+    l_max_values.extend([1, 0, 0, 0, 0, 0][len(l_max_values) - 1 :])
+    l_max_3body, has_q_222, has_q_1111, has_q_112, has_q_123, has_q_233, has_q_134 = (
+        l_max_values
+    )
     neuron = parsed.pop("neuron", None)
     if neuron is None:
         neuron = parsed.pop("ann", ["30"])
@@ -97,9 +103,13 @@ def _build_model_config(parsed: dict[str, list[str]], run_dir: Path) -> ModelCon
         n_max_angular=int(n_max[1]),
         basis_size_radial=int(basis_size[0]),
         basis_size_angular=int(basis_size[1]),
-        l_max=int(l_max[0]),
-        l_max_4body=int(l_max[1]),
-        l_max_5body=int(l_max[2]),
+        l_max=l_max_3body,
+        l_max_4body=2 if has_q_222 > 0 else 0,
+        l_max_5body=1 if has_q_1111 > 0 else 0,
+        has_q_112=int(has_q_112 > 0),
+        has_q_123=int(has_q_123 > 0),
+        has_q_233=int(has_q_233 > 0),
+        has_q_134=int(has_q_134 > 0),
         hidden_dims=[int(value) for value in neuron],
         zbl=zbl,
     )

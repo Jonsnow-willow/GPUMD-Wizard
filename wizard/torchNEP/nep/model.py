@@ -40,6 +40,12 @@ class NEP(nn.Module):
         self.L_max = para["l_max"]
         self.l_max_4body = para.get("l_max_4body", 2)
         self.l_max_5body = para.get("l_max_5body", 0)
+        self.has_q_222 = int(para.get("has_q_222", self.l_max_4body > 0))
+        self.has_q_1111 = int(para.get("has_q_1111", self.l_max_5body > 0))
+        self.has_q_112 = int(para.get("has_q_112", 0))
+        self.has_q_123 = int(para.get("has_q_123", 0))
+        self.has_q_233 = int(para.get("has_q_233", 0))
+        self.has_q_134 = int(para.get("has_q_134", 0))
         self.num_L = self.descriptor.angular.num_L
         self.elements = para["elements"]
         self.n_elements = len(self.elements)
@@ -63,8 +69,77 @@ class NEP(nn.Module):
         self.shared_bias = nn.Parameter(torch.zeros(1))
 
     def forward(self, batch):
+        compute_virial = batch.get("compute_virial", True)
+        state = self.descriptor.compute_state(batch, track_geometry=False)
+
+        with torch.enable_grad():
+            q = state.values
+            if not q.requires_grad:
+                q = q.detach().requires_grad_(True)
+            e_atom = self._atomic_energies(q, batch["types"])
+            energy_gradient = torch.autograd.grad(
+                outputs=e_atom.sum(),
+                inputs=q,
+                create_graph=self.training,
+                retain_graph=True,
+            )[0]
+
+        forces, atomic_virial = self.descriptor.contract_forces(
+            energy_gradient,
+            state,
+            compute_virial=compute_virial,
+        )
+
+        if self.zbl_enabled:
+            zbl_energy, zbl_forces, zbl_virial = self._zbl_properties_from_state(
+                batch["types"],
+                state,
+                compute_virial=compute_virial,
+            )
+            e_atom = e_atom + zbl_energy
+            forces = forces + zbl_forces
+            if atomic_virial is not None:
+                atomic_virial = atomic_virial + zbl_virial
+
+        structure_ids = structure_ids_from_counts(
+            batch["n_atoms_per_structure"],
+            device=e_atom.device,
+        )
+        n_structures = int(batch["n_atoms_per_structure"].numel())
+        e_total = e_atom.new_zeros(n_structures)
+        e_total.scatter_add_(0, structure_ids, e_atom)
+
+        result = {
+            "energies": e_atom,
+            "energy": e_total,
+            "forces": forces,
+        }
+        if atomic_virial is not None:
+            virial = atomic_virial.new_zeros((n_structures, 9))
+            virial.scatter_add_(
+                0,
+                structure_ids.unsqueeze(-1).expand_as(atomic_virial),
+                atomic_virial,
+            )
+            result["virial"] = virial
+        return result
+
+    def _atomic_energies(self, descriptors, types):
+        scaled = descriptors * self.q_scaler
+        e_atom = scaled.new_zeros(scaled.shape[0])
+        for type_index, element in enumerate(self.elements):
+            mask = types == type_index
+            if mask.any():
+                e_atom[mask] = (
+                    self.element_mlps[element](scaled[mask]).squeeze(-1)
+                    - self.shared_bias
+                )
+        return e_atom
+
+    def _forward_autograd_reference(self, batch):
+        """Reference force/virial path used by numerical tests and debugging."""
         positions = batch["positions"]
-        types = batch["types"] 
+        types = batch["types"]
         
         if not positions.requires_grad:
             positions = positions.clone().detach().requires_grad_(True)
@@ -100,19 +175,11 @@ class NEP(nn.Module):
                 atom_structure_ids,
             )
         
-        descriptors = self.descriptor(descriptor_batch)
-        g_total = self._combine_descriptors(descriptors)         # [N_atoms, input_dim]
-        n_atoms = g_total.shape[0]
-        g_total = g_total * self.q_scaler
-
-        e_atom = torch.zeros(n_atoms, device=g_total.device, dtype=g_total.dtype)
-        for i, element in enumerate(self.elements):
-            mask = (types == i)  
-            if mask.any():
-                g_element = g_total[mask]  
-                e_element = self.element_mlps[element](g_element).squeeze(-1)  # [N_atoms_element]
-                e_element -= self.shared_bias
-                e_atom[mask] = e_element
+        descriptor_state = self.descriptor.compute_state(
+            descriptor_batch,
+            track_geometry=True,
+        )
+        e_atom = self._atomic_energies(descriptor_state.values, types)
 
         if self.zbl_enabled:
             e_atom = e_atom + self._zbl_atomic_energy(
@@ -164,6 +231,121 @@ class NEP(nn.Module):
         if virial is not None:
             result["virial"] = virial
         return result
+
+    def _zbl_properties_from_state(self, types, state, compute_virial):
+        pair = state.angular
+        n_atoms = types.shape[0]
+        if pair.center.numel() == 0:
+            energy = state.values.new_zeros(n_atoms)
+            forces = state.values.new_zeros((n_atoms, 3))
+            virial = state.values.new_zeros((n_atoms, 9)) if compute_virial else None
+            return energy, forces, virial
+
+        with torch.enable_grad():
+            vectors = pair.vectors.detach().requires_grad_(True)
+            energy = self._zbl_atomic_energy_pairs(
+                types,
+                pair.center,
+                pair.neighbor,
+                vectors,
+            )
+            gradient = torch.autograd.grad(
+                energy.sum(),
+                vectors,
+                create_graph=False,
+                retain_graph=False,
+            )[0]
+
+        forces = state.values.new_zeros((n_atoms, 3))
+        forces.scatter_add_(
+            0,
+            pair.center.unsqueeze(-1).expand_as(gradient),
+            gradient,
+        )
+        forces.scatter_add_(
+            0,
+            pair.neighbor.unsqueeze(-1).expand_as(gradient),
+            -gradient,
+        )
+        virial = None
+        if compute_virial:
+            virial = state.values.new_zeros((n_atoms, 9))
+            pair_virial = -(
+                pair.vectors.detach().unsqueeze(-1)
+                * gradient.detach().unsqueeze(-2)
+            ).reshape(-1, 9)
+            virial.scatter_add_(
+                0,
+                pair.neighbor.unsqueeze(-1).expand_as(pair_virial),
+                pair_virial,
+            )
+        return energy.detach(), forces.detach(), virial
+
+    def _zbl_atomic_energy_pairs(self, types, center, neighbor, vectors):
+        distances = torch.clamp(torch.linalg.norm(vectors, dim=-1), min=1.0e-12)
+        type_i = types[center]
+        type_j = types[neighbor]
+        atomic_numbers_tensor = self.zbl_atomic_numbers.to(
+            device=vectors.device,
+            dtype=vectors.dtype,
+        )
+        z_i = atomic_numbers_tensor[type_i]
+        z_j = atomic_numbers_tensor[type_j]
+        a_inv = (torch.pow(z_i, 0.23) + torch.pow(z_j, 0.23)) * ZBL_A_INV_FACTOR
+        zizj = K_C_SP * z_i * z_j
+
+        if self.zbl_config["flexible"]:
+            t1 = torch.minimum(type_i, type_j)
+            t2 = torch.maximum(type_i, type_j)
+            zbl_index = (
+                t1 * self.n_elements
+                - (t1 * (t1 - 1)) // 2
+                + (t2 - t1)
+            )
+            parameters = self.zbl_parameters.to(
+                device=vectors.device,
+                dtype=vectors.dtype,
+            )[zbl_index]
+            rc_inner = parameters[:, 0]
+            rc_outer = parameters[:, 1]
+            coefficients = parameters[:, 2:].reshape(-1, 4, 2)
+        else:
+            rc_inner = vectors.new_full(
+                distances.shape, self.zbl_config["rc_inner"]
+            )
+            rc_outer = vectors.new_full(
+                distances.shape, self.zbl_config["rc_outer"]
+            )
+            coefficients = self.universal_zbl_coeffs.to(
+                device=vectors.device,
+                dtype=vectors.dtype,
+            ).view(1, 4, 2)
+
+        x = distances * a_inv
+        phi = torch.sum(
+            coefficients[..., 0]
+            * torch.exp(-coefficients[..., 1] * x.unsqueeze(-1)),
+            dim=-1,
+        )
+        screened = zizj * phi / distances
+        width = torch.clamp(rc_outer - rc_inner, min=1.0e-12)
+        cutoff = torch.where(
+            distances < rc_inner,
+            torch.ones_like(distances),
+            torch.where(
+                distances < rc_outer,
+                0.5
+                * torch.cos(
+                    torch.pi * (distances - rc_inner) / width
+                )
+                + 0.5,
+                torch.zeros_like(distances),
+            ),
+        )
+        pair_energy = 0.5 * screened * cutoff
+        energy = vectors.new_zeros(types.shape[0])
+        energy.scatter_add_(0, center, pair_energy)
+        return energy
     
     @classmethod
     def from_checkpoint(cls, filepath, device=None):
@@ -266,9 +448,15 @@ class NEP(nn.Module):
         idx += 1
         if tokens[0] != "l_max":
             raise ValueError("Invalid nep.txt: l_max line not found.")
-        l_max = int(tokens[1])
-        l_max_4body = int(tokens[2])
-        l_max_5body = int(tokens[3])
+        l_max_values = [int(value) for value in tokens[1:]]
+        if not 1 <= len(l_max_values) <= 7:
+            raise ValueError("Invalid nep.txt: l_max should contain 1 to 7 values.")
+        l_max_values.extend([1, 0, 0, 0, 0, 0][len(l_max_values) - 1 :])
+        l_max, has_q_222, has_q_1111, has_q_112, has_q_123, has_q_233, has_q_134 = (
+            l_max_values
+        )
+        l_max_4body = 2 if has_q_222 > 0 else 0
+        l_max_5body = 1 if has_q_1111 > 0 else 0
 
         tokens = lines[idx].split()
         idx += 1
@@ -292,6 +480,12 @@ class NEP(nn.Module):
             "l_max": l_max,
             "l_max_4body": l_max_4body,
             "l_max_5body": l_max_5body,
+            "has_q_222": int(has_q_222 > 0),
+            "has_q_1111": int(has_q_1111 > 0),
+            "has_q_112": int(has_q_112 > 0),
+            "has_q_123": int(has_q_123 > 0),
+            "has_q_233": int(has_q_233 > 0),
+            "has_q_134": int(has_q_134 > 0),
             "NN_radial": NN_radial,
             "NN_angular": NN_angular,
             "hidden_dims": [num_neurons],
@@ -396,7 +590,18 @@ class NEP(nn.Module):
             f.write(f"cutoff {self.para['rcut_radial']} {self.para['rcut_angular']} {self.para['NN_radial']} {self.para['NN_angular']}\n")
             f.write(f"n_max {int(self.para['n_desc_radial']) - 1} {int(self.para['n_desc_angular']) - 1}\n")
             f.write(f"basis_size {int(self.para['k_max_radial']) - 1} {int(self.para['k_max_angular']) - 1}\n")
-            f.write(f"l_max {int(self.L_max)} {int(self.l_max_4body)} {int(self.l_max_5body)}\n")
+            l_max_values = [
+                int(self.L_max),
+                2 if self.has_q_222 else 0,
+                self.has_q_1111,
+                self.has_q_112,
+                self.has_q_123,
+                self.has_q_233,
+                self.has_q_134,
+            ]
+            while len(l_max_values) > 3 and l_max_values[-1] == 0:
+                l_max_values.pop()
+            f.write("l_max " + " ".join(str(value) for value in l_max_values) + "\n")
             f.write(f"ANN {int(self.para['hidden_dims'][0])} 0\n")
 
             for element in self.elements:

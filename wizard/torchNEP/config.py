@@ -16,7 +16,11 @@ class ModelConfig:
     basis_size_angular: int = 8
     l_max: int = 4
     l_max_4body: int = 2
-    l_max_5body: int = 1
+    l_max_5body: int = 0
+    has_q_112: int = 0
+    has_q_123: int = 0
+    has_q_233: int = 0
+    has_q_134: int = 0
     nn_radial: int = 100
     nn_angular: int = 30
     hidden_dims: list[int] = field(default_factory=lambda: [30])
@@ -36,6 +40,12 @@ class ModelConfig:
             "l_max": self.l_max,
             "l_max_4body": self.l_max_4body,
             "l_max_5body": self.l_max_5body,
+            "has_q_222": int(self.l_max_4body > 0),
+            "has_q_1111": int(self.l_max_5body > 0),
+            "has_q_112": int(self.has_q_112 > 0),
+            "has_q_123": int(self.has_q_123 > 0),
+            "has_q_233": int(self.has_q_233 > 0),
+            "has_q_134": int(self.has_q_134 > 0),
             "NN_radial": self.nn_radial,
             "NN_angular": self.nn_angular,
             "hidden_dims": list(self.hidden_dims),
