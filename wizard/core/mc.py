@@ -43,6 +43,7 @@ class MonteCarlo:
     def _update_result(self, attempts: int, accepted: int, energy: float):
         ratio = accepted / attempts if attempts else 0.0
         dE_tot = energy - self._energy
+        self._energy = energy
         msg = (
             f"MC Attempts: {attempts}, Accepted: {accepted}, "
             f"Acceptance Ratio: {ratio:.2f}, "
@@ -60,7 +61,8 @@ class MonteCarlo:
         if step % self.md_steps != 0:
             return
         
-        energy = self._energy
+        energy = float(self.atoms.get_potential_energy())
+        self._energy = energy
         attempts = self.mc_trials
         accepted = 0
         for _ in range(attempts):
@@ -151,7 +153,8 @@ class SGC(Canonical):
         if step % self.md_steps != 0:
             return
         
-        energy = self._energy
+        energy = float(self.atoms.get_potential_energy())
+        self._energy = energy
         attempts = self.mc_trials
         accepted = 0
         for _ in range(attempts):
@@ -299,7 +302,8 @@ class GC(SGC):
         if step % self.md_steps != 0:
             return
         
-        energy = self._energy
+        energy = float(self.atoms.get_potential_energy())
+        self._energy = energy
         attempts = self.mc_trials
         accepted = 0
         for _ in range(attempts):
