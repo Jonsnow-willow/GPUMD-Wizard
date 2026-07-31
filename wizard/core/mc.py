@@ -81,6 +81,14 @@ class MonteCarlo:
             if self._accept(delta_e):
                 accepted += 1
                 energy = new_energy
+                if self.atoms.has("masses"):
+                    masses = self.atoms.get_masses()
+                    masses[[i, j]] = masses[[j, i]]
+                    self.atoms.set_masses(masses)
+                if self.atoms.has("momenta"):
+                    momenta = self.atoms.get_momenta()
+                    momenta[[i, j]] = momenta[[j, i]]
+                    self.atoms.set_momenta(momenta, apply_constraint=False)
             else:
                 self.atoms[i].symbol = symbol_i
                 self.atoms[j].symbol = symbol_j
