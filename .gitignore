@@ -3,3 +3,6 @@
 *.ipynb
 benchmark
 tests
+!tests/
+tests/*
+!tests/test_torch_nep_calculator.py
