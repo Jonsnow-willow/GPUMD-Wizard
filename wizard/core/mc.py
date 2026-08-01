@@ -112,8 +112,8 @@ class Canonical(MonteCarlo):
         return self._rng.random() < probability
 
 
-class SGC(Canonical):
-    """Semi-grand canonical MC moves including chemical potential bias."""
+class _Transmutation(Canonical):
+    """Common identity-change moves for semi-grand canonical sampling."""
 
     def __init__(
         self,
@@ -121,11 +121,10 @@ class SGC(Canonical):
         md_steps: int,
         mc_trials: int,
         temperature_K: float,
-        mus: dict[str, float]
+        species
     ):
         super().__init__(atoms, md_steps, mc_trials, temperature_K)
-        self.mus = mus
-        self.species = np.array(list(mus.keys()), dtype=object)
+        self.species = np.array(list(species), dtype=object)
         self._update_indices()
         self._counts = {s: atoms.get_chemical_symbols().count(s) for s in self.species}
         self._count_sum = sum(self._counts.values())
@@ -154,9 +153,6 @@ class SGC(Canonical):
         symbols = np.array(self.atoms.get_chemical_symbols())
         self._indices = np.flatnonzero(np.isin(symbols, self.species))
     
-    def _bias(self, old_species: str, new_species: str) -> float:
-        return self.mus[new_species] - self.mus[old_species]
-    
     def compute(self, step: int):
         if step % self.md_steps != 0:
             return
@@ -174,8 +170,8 @@ class SGC(Canonical):
             self.atoms[i].symbol = symbol_j
             new_energy = float(self.atoms.get_potential_energy())
             delta_e = new_energy - energy
-            delta_mu = self._bias(symbol_i, symbol_j)
-            delta_tot = delta_e + delta_mu
+            delta_bias = self._bias(symbol_i, symbol_j)
+            delta_tot = delta_e + delta_bias
 
             if self._accept(delta_tot):
                 accepted += 1
@@ -188,7 +184,25 @@ class SGC(Canonical):
         self._update_result(attempts, accepted, energy)
 
 
-class VCSGC(SGC):
+class SGC(_Transmutation):
+    """Semi-grand canonical MC moves including chemical potential bias."""
+
+    def __init__(
+        self,
+        atoms: Atoms,
+        md_steps: int,
+        mc_trials: int,
+        temperature_K: float,
+        mus: dict[str, float]
+    ):
+        super().__init__(atoms, md_steps, mc_trials, temperature_K, mus)
+        self.mus = mus
+
+    def _bias(self, old_species: str, new_species: str) -> float:
+        return self.mus[new_species] - self.mus[old_species]
+
+
+class VCSGC(_Transmutation):
     """Variance-constrained semi-grand canonical MC swap moves that exchange atom identities within the supercell."""
 
     def __init__(
@@ -197,25 +211,26 @@ class VCSGC(SGC):
         md_steps: int,
         mc_trials: int,
         temperature_K: float,
-        mus: dict[str, float],
+        phis: dict[str, float],
         kappa: float
     ):
-        super().__init__(atoms, md_steps, mc_trials, temperature_K, mus)
+        super().__init__(atoms, md_steps, mc_trials, temperature_K, phis)
+        self.phis = phis
         if kappa <= 0.0:
             raise ValueError("kappa must be positive for VCSGC sampling.")
         self.kappa = float(kappa)
         
     def _bias(self, old_species: str, new_species: str) -> float:
-        delta_mu = super()._bias(old_species, new_species)
+        delta_phi = self.phis[new_species] - self.phis[old_species]
         count_diff = self._counts.get(new_species) - self._counts.get(old_species)
         constraint = (
             self.kappa
             * K_B
             * self.temperature_K
             / self._count_sum
-            * (self._count_sum * delta_mu + 2.0 * count_diff + 1.0)
+            * (self._count_sum * delta_phi + 2.0 * count_diff + 1.0)
         )
-        return delta_mu + constraint
+        return constraint
     
 
 class GC(SGC):
