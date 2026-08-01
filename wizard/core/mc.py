@@ -127,7 +127,6 @@ class _Transmutation(Canonical):
         self.species = np.array(list(species), dtype=object)
         self._update_indices()
         self._counts = {s: atoms.get_chemical_symbols().count(s) for s in self.species}
-        self._count_sum = sum(self._counts.values())
 
     def _update_result(self, attempts: int, accepted: int, energy: float):
         ratio = accepted / attempts if attempts else 0.0
@@ -294,7 +293,6 @@ class GC(SGC):
 
         if self._accept(delta_tot):
             self._counts[atom.symbol] -= 1
-            self._count_sum -= 1
             return True, new_energy
 
         self.atoms.append(atom)
@@ -315,7 +313,6 @@ class GC(SGC):
 
         if self._accept(delta_tot):
             self._counts[atom.symbol] += 1
-            self._count_sum += 1
             return True, new_energy
 
         self.atoms.pop(-1)
