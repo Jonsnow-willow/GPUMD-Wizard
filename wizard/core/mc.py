@@ -223,12 +223,13 @@ class VCSGC(_Transmutation):
     def _bias(self, old_species: str, new_species: str) -> float:
         delta_phi = self.phis[new_species] - self.phis[old_species]
         count_diff = self._counts.get(new_species) - self._counts.get(old_species)
+        num_atoms = len(self.atoms)
         constraint = (
             self.kappa
             * K_B
             * self.temperature_K
-            / self._count_sum
-            * (self._count_sum * delta_phi + 2.0 * count_diff + 1.0)
+            / num_atoms
+            * (num_atoms * delta_phi + 2.0 * count_diff + 1.0)
         )
         return constraint
     
