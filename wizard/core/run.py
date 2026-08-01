@@ -161,8 +161,8 @@ class MCMD(MolecularDynamics):
     def _build_sgc(self, *, md_steps: int, mc_trials: int, temperature_K: float, mus: dict[str, float], **_):
         return SGC(self.atoms, md_steps, mc_trials, temperature_K, mus)
     
-    def _build_vcsgc(self, *, md_steps: int, mc_trials: int, temperature_K: float, mus: dict[str, float], kappa: float, **_):
-        return VCSGC(self.atoms, md_steps, mc_trials, temperature_K, mus, kappa)
+    def _build_vcsgc(self, *, md_steps: int, mc_trials: int, temperature_K: float, phis: dict[str, float], kappa: float, **_):
+        return VCSGC(self.atoms, md_steps, mc_trials, temperature_K, phis, kappa)
     
     def _build_gc(self, *, md_steps: int, mc_trials: int, temperature_K: float, mus: dict[str, float], **_):
         return GC(self.atoms, md_steps, mc_trials, temperature_K, mus)
