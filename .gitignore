@@ -1,5 +1,3 @@
 *.pyc
 .DS_Store
-*.ipynb
-benchmark
-tests
+wizard/torchNEP/mobius
