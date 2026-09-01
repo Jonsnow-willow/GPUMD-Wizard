@@ -1,5 +1,2 @@
 *.pyc
 .DS_Store
-wizard/torchNEP/mobius
-wizard/kmc
-tutorials/Kinetic_Monte_Carlo
