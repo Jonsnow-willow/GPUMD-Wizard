@@ -53,7 +53,7 @@ The repository complements these publications with worked scripts and selected o
 
 # AI usage disclosure
 
-The author primarily wrote the GPUMD-Wizard software and made its core design decisions. OpenAI Codex, using GPT-5.5, GPT-5.6, and GPT-6, assisted mainly with code completion and was also used to generate test code. Codex was used to draft and revise the manuscript and to revise repository documentation. The author is responsible for reviewing, editing, and validating AI-assisted code, tests, and manuscript text, and retains responsibility for the software and this paper.
+The author primarily wrote the GPUMD-Wizard software and made its core design decisions. OpenAI Codex, using GPT-5.5, GPT-5.6, and GPT-6, assisted mainly with code completion and was also used to generate test code. Codex was used to draft and revise the manuscript and to revise repository documentation. The author has reviewed, edited, and validated all AI-assisted code, tests, repository documentation, and manuscript text, and retains responsibility for the software and this paper.
 
 # Acknowledgements
 
