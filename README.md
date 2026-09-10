@@ -1,13 +1,21 @@
 ![G-Wizard](G-Wizard.png)
 
 # GPUMD-Wizard
-Material structure processing software based on [ASE](https://wiki.fysik.dtu.dk/ase/index.html) (Atomic Simulation Environment) providing automation capabilities for calculating various properties of materials. Additionally, it aims to run and analyze molecular dynamics (MD) simulations using [GPUMD](https://github.com/brucefan1983/GPUMD).
+GPUMD-Wizard provides Python workflows for atomistic structure preparation, material-property evaluation, and simulation setup. It uses [ASE](https://wiki.fysik.dtu.dk/ase/index.html) (Atomic Simulation Environment) objects and calculators to connect alloy and defect structures with property calculations, extended-XYZ datasets, and [GPUMD](https://github.com/brucefan1983/GPUMD) runs.
 
 ## Features
-* Based on the ASE package, MetalProperties-Automator supports different calculators.
-* Allows for automated batch calculations of material properties.
-* Enables batch processing of files in the XYZ format.
-* Integrated with [GPUMD](https://github.com/brucefan1983/GPUMD) for performing molecular dynamics simulations, such as radiation damage.
+* Construct and perturb bulk, alloy, and defect structures using ASE objects.
+* Evaluate material properties with ASE-compatible calculators, including equations of state, elastic constants, phonons, surfaces, and defects.
+* Process extended-XYZ datasets and select candidate configurations for external potential-training workflows.
+* Prepare GPUMD input files and run simulations, including irradiation workflows.
+* Perform calculator-driven molecular dynamics and hybrid molecular-dynamics/Monte-Carlo sampling.
+
+## Tutorials
+
+* [Material-property calculations](tutorials/Calculatiing_Material_Properties): worked scripts and selected outputs for EAM and NEP potentials.
+* [Structure and dataset generation](tutorials/Generate_Train_set): bulk alloys, perturbations, vacancies, and interstitial configurations.
+* [GPUMD workflows](tutorials/Molecular_Dynamics): relaxation, deformation, deposition, crystallization, and irradiation examples.
+* [Data-processing tools](tutorials/tools): scripts for preparing and inspecting external calculation data.
 
 ## Installation
 

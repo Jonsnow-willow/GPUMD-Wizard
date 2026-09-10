@@ -1,2 +1,5 @@
 *.pyc
 .DS_Store
+
+# Preserve local artifacts from the retired training tutorials.
+/tutorials/Train_Torch_NEP/
