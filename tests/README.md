@@ -11,7 +11,7 @@ python -m pytest -q
 
 | File | What it checks | Independent reference |
 | --- | --- | --- |
-| `test_io.py` | Extended-XYZ frame append, geometry, selected metadata, forces, magnetic moments, and stress/virial conversion | ASE reading and writing, plus a hand-written virial fixture with a known cell volume and stress |
+| `test_io_roundtrip.py` | Extended-XYZ frame append, geometry, selected metadata, forces, magnetic moments, and stress/virial conversion | ASE reading and writing, plus a hand-written virial fixture with a known cell volume and stress |
 | `test_structure.py` | Crystal sizes and volumes, exactly representable alloy composition, interstitial insertion, and Wigner-Seitz defect counts under periodic wrapping and affine strain | Crystallographic atom counts and volumes, specified defect locations, and atom/site conservation |
 | `test_gpumd_inputs.py` | `Morph.gpumd(run=False)` file preparation, optional electron-stopping input, and preservation of an existing run directory | Exact input text and copied bytes, ASE reading of `model.xyz`, and a mocked executable call that fails if invoked |
 | `test_material_properties.py` | Clamped energy and lattice reporting, relaxation, elastic constants, and equation-of-state outputs | Direct ASE EMT evaluations, a scalar energy minimum, and total-energy curvature for comparison with stress-derived elastic constants |
