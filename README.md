@@ -1,4 +1,4 @@
-![G-Wizard](https://raw.githubusercontent.com/Jonsnow-willow/GPUMD-Wizard/v2.1.0/G-Wizard.png)
+![G-Wizard](G-Wizard.png)
 
 # GPUMD-Wizard
 GPUMD-Wizard provides Python workflows for atomistic structure preparation, material-property evaluation, and simulation setup. It uses [ASE](https://wiki.fysik.dtu.dk/ase/index.html) (Atomic Simulation Environment) objects and calculators to connect alloy and defect structures with property calculations, extended-XYZ datasets, and [GPUMD](https://github.com/brucefan1983/GPUMD) runs.
@@ -12,23 +12,15 @@ GPUMD-Wizard provides Python workflows for atomistic structure preparation, mate
 
 ## Tutorials
 
-* [Material-property calculations](https://github.com/Jonsnow-willow/GPUMD-Wizard/tree/v2.1.0/tutorials/Calculatiing_Material_Properties): worked scripts and selected outputs for EAM and NEP potentials.
-* [Structure and dataset generation](https://github.com/Jonsnow-willow/GPUMD-Wizard/tree/v2.1.0/tutorials/Generate_Train_set): bulk alloys, perturbations, vacancies, and interstitial configurations.
-* [GPUMD workflows](https://github.com/Jonsnow-willow/GPUMD-Wizard/tree/v2.1.0/tutorials/Molecular_Dynamics): relaxation, deformation, deposition, crystallization, and irradiation examples.
-* [Data-processing tools](https://github.com/Jonsnow-willow/GPUMD-Wizard/tree/v2.1.0/tutorials/tools): scripts for preparing and inspecting external calculation data.
+* [Material-property calculations](tutorials/Calculatiing_Material_Properties): worked scripts and selected outputs for EAM and NEP potentials.
+* [Structure and dataset generation](tutorials/Generate_Train_set): bulk alloys, perturbations, vacancies, and interstitial configurations.
+* [GPUMD workflows](tutorials/Molecular_Dynamics): relaxation, deformation, deposition, crystallization, and irradiation examples.
+* [Data-processing tools](tutorials/tools): scripts for preparing and inspecting external calculation data.
 
 ## Installation
 
-Python 3.10 or newer is required. Install the release from PyPI in a virtual
-environment:
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade gpumd-wizard==2.1.0
-```
-
-To install the current source from the `main` branch instead:
+Python 3.10 or newer is required. Install the current source from the
+`main` branch in a virtual environment:
 
 ```bash
 git clone --branch main https://github.com/Jonsnow-willow/GPUMD-Wizard.git
@@ -40,7 +32,7 @@ python -m pip install .
 
 On Windows, activate with `.venv\Scripts\activate` instead. Python dependencies
 (ASE, NumPy, calorine, phonopy, spglib and Matplotlib) are installed automatically;
-their version requirements are recorded in [pyproject.toml](https://github.com/Jonsnow-willow/GPUMD-Wizard/blob/v2.1.0/pyproject.toml).
+their version requirements are recorded in [pyproject.toml](pyproject.toml).
 
 GPUMD execution requires a separately installed [GPUMD executable](https://gpumd.org/).
 LAMMPS-based tutorials require LAMMPS with its Python interface. These external
