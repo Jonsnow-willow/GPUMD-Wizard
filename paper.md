@@ -12,8 +12,8 @@ authors:
     corresponding: true
 affiliations:
   - index: 1
-    name: Zhongguancun Academy, Beijing, China
-date: 10 July 2026
+    name: Zhongguancun Institute of Artificial Intelligence, Beijing, China
+date: 10 September 2026
 bibliography: paper.bib
 ---
 
