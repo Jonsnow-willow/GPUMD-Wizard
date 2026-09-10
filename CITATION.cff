@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "GPUMD-Wizard: A Python package for atomistic modeling and material-property evaluation"
+authors:
+  - family-names: "Liu"
+    given-names: "Jiahui"
+repository-code: "https://github.com/Jonsnow-willow/GPUMD-Wizard"
+# The source license is provided in LICENSE (GNU Affero GPL v3).
+version: "2.0.0"
