@@ -2,8 +2,9 @@ name: CPU tests
 
 on:
   push:
-    branches: [main, joss]
+    branches: [joss]
   pull_request:
+    branches: [joss]
   workflow_dispatch:
 
 permissions:
