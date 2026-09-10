@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gpumd-wizard"
+dynamic = ["version"]
+description = "ASE-based workflows for atomistic modeling and material-property evaluation"
+readme = "README.md"
+requires-python = ">=3.10"
+license-files = ["LICENSE"]
+authors = [{name = "Jiahui Liu", email = "liujiahui@zgci.ac.cn"}]
+dependencies = [
+    "numpy>=1.26",
+    "ase>=3.26",
+    "calorine>=3.0",
+    "phonopy>=2.43.6",
+    "spglib>=2.5",
+    "matplotlib>=3.8",
+]
+
+[project.urls]
+Repository = "https://github.com/Jonsnow-willow/GPUMD-Wizard"
+Issues = "https://github.com/Jonsnow-willow/GPUMD-Wizard/issues"
+
+[tool.setuptools.dynamic]
+version = {attr = "wizard.version"}
+
+[tool.setuptools.packages.find]
+include = ["wizard", "wizard.*"]
+namespaces = true
