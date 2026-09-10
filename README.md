@@ -11,35 +11,61 @@ Material structure processing software based on [ASE](https://wiki.fysik.dtu.dk/
 
 ## Installation
 
+Python 3.10 or newer is required. Install the version being reviewed from the
+`joss` branch in a virtual environment:
 
-### Requirements
-
-
-|  Package  | version |
-|  ----  | ----  |
-| [Python](https://www.python.org/) | >=     3.8 |
-| [ase](https://wiki.fysik.dtu.dk/ase/index.html)|>=     3.18.0|
-| [calorine](https://gitlab.com/materials-modeling/calorine)|>=     2.2.1|
-| [phonopy](http://phonopy.github.io/phonopy/)|>=     v2.43.6|
-
-
-### By pip 
-
-```shell
-$ pip install gpumd-wizard
+```bash
+git clone --branch joss https://github.com/Jonsnow-willow/GPUMD-Wizard.git
+cd GPUMD-Wizard
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install .
 ```
 
- ### From Source
+On Windows, activate with `.venv\Scripts\activate` instead. Python dependencies
+(ASE, NumPy, calorine, phonopy, spglib and Matplotlib) are installed automatically;
+their version requirements are recorded in [pyproject.toml](pyproject.toml).
 
-```shell
-$ git clone --recursive https://github.com/Jonsnow-willow/GPUMD-Wizard.git
+GPUMD execution requires a separately installed [GPUMD executable](https://gpumd.org/).
+LAMMPS-based tutorials require LAMMPS with its Python interface. These external
+programs are not needed for the quick example or the automated CPU tests below.
+NEP calculations additionally require a suitable potential file.
+
+## Quick example
+
+This four-atom Cu example uses ASE's built-in EMT calculator on a CPU. Run it in a
+scratch directory: property methods append results to `MaterialProperties.out`
+and `MaterialProperties.xyz` in the current working directory.
+
+```python
+from ase.calculators.emt import EMT
+from wizard.structure.atoms import AlloyInfo
+from wizard.calc.calculator import MaterialCalculator
+
+atoms = AlloyInfo("Cu", "fcc", 3.61).create_bulk_atoms((1, 1, 1))
+properties = MaterialCalculator(atoms, EMT(), clamped=True)
+print("\n".join(properties.lattice_constant()))
 ```
 
-Add `GPUMD-Wizard` to your [`PYTHONPATH`](https://wiki.fysik.dtu.dk/ase/install.html#envvar-PYTHONPATH) environment variable in your `~/.bashrc` file.
+With `clamped=True`, the reported lattice constants remain 3.6100 Å and the
+volume is 11.761 Å³/atom. Omit it to relax the structure before evaluation.
 
-```shell
-$ export PYTHONPATH=<path-to-GPUMD-Wizard-package>:$PYTHONPATH
+## Testing and validation
+
+From the repository root, install the test dependencies and run:
+
+```bash
+python -m pip install '.[test]'
+python -m pytest -q
 ```
+
+The CPU tests cover XYZ exchange with ASE, structure and defect operations,
+GPUMD input preparation without execution, and small-system material properties.
+They use temporary output directories and do not require a GPU or external solver.
+See [test details](tests/README.md) and [tutorial validation](tutorials/TESTING.md)
+for independent reference checks, expected results and optional solver-based runs.
+
+For bug reports, support and contributions, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Authors:
 
