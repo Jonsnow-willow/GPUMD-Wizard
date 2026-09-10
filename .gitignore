@@ -1,5 +1,11 @@
 *.pyc
 .DS_Store
+__pycache__/
+.pytest_cache/
+.venv/
+build/
+dist/
+*.egg-info/
 
 # Preserve local artifacts from the retired training tutorials.
 /tutorials/Train_Torch_NEP/

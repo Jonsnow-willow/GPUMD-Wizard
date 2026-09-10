@@ -9,7 +9,7 @@ from ase import Atom, Atoms
 from ase.build import cut, rotate, surface
 from ase.constraints import FixedLine
 from ase.calculators.calculator import Calculator
-from ase.neb import NEB
+from ase.mep import NEB
 from ase.units import J
 from calorine.tools import get_elastic_stiffness_tensor
 
