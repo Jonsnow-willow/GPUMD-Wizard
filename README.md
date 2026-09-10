@@ -58,8 +58,6 @@ print("\n".join(properties.lattice_constant()))
 With `clamped=True`, the reported lattice constants remain 3.6100 Å and the
 volume is 11.761 Å³/atom. Omit it to relax the structure before evaluation.
 
-For bug reports, support and contributions, see [CONTRIBUTING.md](CONTRIBUTING.md).
-
 ## Authors:
 
 | Name                  | contact                           |
