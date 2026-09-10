@@ -284,6 +284,8 @@ class GC(SGC):
 
     def _attempt_delete(self, energy: float) -> tuple[bool, float]:
         i = self._rng.choice(self._indices)
+        deleted_atom = self.atoms[i:i + 1]
+        constraints = [constraint.copy() for constraint in self.atoms.constraints]
         atom = self.atoms.pop(i)
         self._refresh_calc()
         new_energy = float(self.atoms.get_potential_energy())
@@ -295,7 +297,9 @@ class GC(SGC):
             self._counts[atom.symbol] -= 1
             return True, new_energy
 
-        self.atoms.append(atom)
+        restored = self.atoms[:i] + deleted_atom + self.atoms[i:]
+        self.atoms.arrays = restored.arrays
+        self.atoms.set_constraint(constraints)
         self._refresh_calc()
         return False, energy
 
