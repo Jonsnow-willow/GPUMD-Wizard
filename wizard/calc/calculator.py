@@ -7,7 +7,7 @@ import os
 
 from ase import Atom, Atoms
 from ase.build import cut, rotate, surface
-from ase.constraints import FixAtoms
+from ase.constraints import FixedLine
 from ase.calculators.calculator import Calculator
 from ase.neb import NEB
 from ase.units import J
@@ -557,7 +557,6 @@ class AlloyCalculator(MaterialCalculator):
         slab.calc = self.calc
         relax(slab, constant_cell=True, **self.kwargs)
         slab.center(axis=2)
-        slab.constraints = FixAtoms(indices=[atom.index for atom in slab if atom.position[2] < 1/2 * slab.cell[2][2]])
         box = slab.get_cell()
         S = np.linalg.norm(np.cross(box[0], box[1])) * 2
 
@@ -569,6 +568,9 @@ class AlloyCalculator(MaterialCalculator):
         for i in range(11):
             slab_shift = slab.copy()
             slab_shift.positions[shift_indices] += [slide_steps * i, 0, 0]
+            slab_shift.set_constraint(
+                FixedLine(indices=range(len(slab_shift)), direction=(0, 0, 1))
+            )
             slab_shift.calc = self.calc
             relax(slab_shift, constant_cell=True, **self.kwargs)
             defects_energy = slab_shift.get_potential_energy() / S
@@ -593,8 +595,7 @@ class AlloyCalculator(MaterialCalculator):
         final.set_chemical_symbols(initial.get_chemical_symbols())
 
         initial.calc = self.calc
-        relax(initial, **self.kwargs)
-        final.set_cell(initial.get_cell(), scale_atoms=True)
+        relax(initial, constant_cell=True, **self.kwargs)
         final.calc = self.calc
         relax(final, constant_cell=True, **self.kwargs)
 
@@ -604,13 +605,14 @@ class AlloyCalculator(MaterialCalculator):
         neb = NEB(images, climb=True, allow_shared_calculator=True)
         neb.interpolate()
         try:
-            relax(neb, constant_cell=True, **self.kwargs)
+            relax(neb, constant_cell=True, minimizer='fire', fmax=0.02,
+                  steps=500, logfile='-')
         except Exception as exc:
             raise RuntimeError(f'Failed to relax {final_model} screw NEB images.') from exc
 
-        energies = np.array([image.get_potential_energy() for image in images]) / energy_divisor
-        migration_energy = max(energies) - min(energies)
-        energies -= min(energies)
+        energies = np.array([image.get_potential_energy() for image in images])
+        energies = (energies - energies[0]) / energy_divisor
+        migration_energy = max(energies)
         for image in images:
             dump_xyz('MaterialProperties.xyz', image)  
 
