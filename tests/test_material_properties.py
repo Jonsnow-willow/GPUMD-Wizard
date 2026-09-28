@@ -57,7 +57,7 @@ def test_clamped_energy_and_lattice_report(tmp_path):
     assert match is not None
     # The public report rounds energies to four decimal places.
     assert float(match.group(1)) == pytest.approx(expected_energy, abs=5.1e-5)
-    assert (tmp_path / "MaterialProperties.out").read_text() == output + "\n"
+    assert (tmp_path / "MaterialProperties.out").read_text(encoding='UTF-8') == output + "\n"
 
     frames = read(tmp_path / "MaterialProperties.xyz", index=":")
     assert len(frames) == 1
