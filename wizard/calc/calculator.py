@@ -104,7 +104,7 @@ class MaterialCalculator():
             iso_atom_energy = atoms.get_potential_energy()
             output.append(f" {symbol:<10}Iso_Atom_Energy: {iso_atom_energy:.4f} eV")
             dump_xyz('MaterialProperties.xyz', atoms)
-        with open('MaterialProperties.out', "a") as f:
+        with open('MaterialProperties.out', "a", encoding='UTF-8') as f:
             f.write("\n".join(output) + "\n")
         return output
     
@@ -133,7 +133,7 @@ class MaterialCalculator():
         output.append(f"{'':<11}Volume: V={V:.3f} Å³  V/atom={V/N:.3f} Å³/atom")
         output.append(f"{'':<11}Ground_State_Energy: {atom_energy:.4f} eV/atom")
         dump_xyz('MaterialProperties.xyz', atoms)
-        with open('MaterialProperties.out', "a") as f:
+        with open('MaterialProperties.out', "a", encoding='UTF-8') as f:
             f.write("\n".join(output) + "\n")
         return output
     
@@ -167,7 +167,7 @@ class MaterialCalculator():
         output.append(f"{'':<11}C44: {Cij[3][3]:>7.2f} GPa")
         output.append(f"{'':<11}C66: {Cij[5][5]:>7.2f} GPa")
         dump_xyz('MaterialProperties.xyz', atoms)
-        with open('MaterialProperties.out', 'a') as f:
+        with open('MaterialProperties.out', 'a', encoding='UTF-8') as f:
             f.write("\n".join(output) + "\n")
 
         return {
@@ -337,7 +337,7 @@ class MaterialCalculator():
         hkl_str = '-'.join(map(str, hkl))
         dump_xyz('MaterialProperties.xyz', bulk)
         dump_xyz('MaterialProperties.xyz', slab)
-        with open('MaterialProperties.out', 'a') as f:
+        with open('MaterialProperties.out', 'a', encoding='UTF-8') as f:
             print(f' {self.info:<10}{hkl_str} Surface_Energy: {formation_energy / J / 1e-20 :.4f} J/m^2', file=f)
         return formation_energy * 1000
     
@@ -362,7 +362,7 @@ class MaterialCalculator():
         Morph(atoms).create_vacancy(index = index)
         formation_energy = self._formation_energy_defect(atoms)
         dump_xyz('MaterialProperties.xyz', atoms)
-        with open('MaterialProperties.out', 'a') as f:
+        with open('MaterialProperties.out', 'a', encoding='UTF-8') as f:
             print(f' {self.info:<10}Formation_Energy_Vacancy: {formation_energy:.4f} eV', file=f)
         return formation_energy
 
@@ -386,7 +386,7 @@ class MaterialCalculator():
         Morph(atoms).create_vacancy(index = index0)
         formation_energy = self._formation_energy_defect(atoms)
         dump_xyz('MaterialProperties.xyz', atoms)
-        with open('MaterialProperties.out', 'a') as f:
+        with open('MaterialProperties.out', 'a', encoding='UTF-8') as f:
             print(f' {self.info:<10}Formation_Energy_Divacancies: {formation_energy:.4f} eV', file=f)
         return formation_energy
 
@@ -448,7 +448,7 @@ class MaterialCalculator():
         fig.savefig(fig_path)   
         plt.close(fig)
 
-        with open('MaterialProperties.out', 'a') as f:
+        with open('MaterialProperties.out', 'a', encoding='UTF-8') as f:
             print(f' {self.info:<10}Migration_Energy_({symbol}-Vacancy): {migration_energy:.4f} eV', file=f)
         
         return energies
@@ -471,7 +471,7 @@ class MaterialCalculator():
         Morph(atoms).create_self_interstitial_atom(vector, index = index)
         formation_energy = self._formation_energy_defect(atoms)
         dump_xyz('MaterialProperties.xyz', atoms)
-        with open('MaterialProperties.out', 'a') as f:
+        with open('MaterialProperties.out', 'a', encoding='UTF-8') as f:
             print(f' {self.info:<10}{vector} Formation_Energy_Sia: {formation_energy:.4} eV', file=f)
         return formation_energy
     
@@ -513,7 +513,7 @@ class AlloyCalculator(MaterialCalculator):
         defect_energy = atoms.get_potential_energy()
         formation_energy = defect_energy - reference_energy - num * chemical_potential
         dump_xyz('MaterialProperties.xyz', atoms)
-        with open('MaterialProperties.out', 'a') as f:
+        with open('MaterialProperties.out', 'a', encoding='UTF-8') as f:
             print(f' {self.info:<10}{symbol}_{interstitial_type} Formation_Energy_Interstitial: {formation_energy:.4f} eV', file=f)
         return formation_energy
     
@@ -580,7 +580,7 @@ class AlloyCalculator(MaterialCalculator):
         energies = np.array(energies)
         energies -= energies[0]
         miller_str = '-'.join(map(str, miller))
-        with open('MaterialProperties.out', 'a') as f:
+        with open('MaterialProperties.out', 'a', encoding='UTF-8') as f:
             print(f' {self.info:<7}{miller_str} Stacking_Fault: {max(energies) * 1000:.4f} meV/A^2', file=f)
 
         plt.plot(np.linspace(0, 1, len(energies)), energies, marker='o', label=f'{self.info}')  
@@ -617,7 +617,7 @@ class AlloyCalculator(MaterialCalculator):
             dump_xyz('MaterialProperties.xyz', image)  
 
         coords = np.linspace(0, 1, len(energies))
-        with open('MaterialProperties.out', 'a') as f:
+        with open('MaterialProperties.out', 'a', encoding='UTF-8') as f:
             print(f' {self.info:<10}{final_model} Screw_Migration_Energy: {migration_energy:.4f} eV', file=f)
 
         plt.plot(coords, energies, marker='o', label=f'{self.info}_{final_model}')
