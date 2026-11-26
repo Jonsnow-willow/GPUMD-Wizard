@@ -128,6 +128,7 @@ class AlloyInfo():
             symbols = np.repeat(self.symbols, element_counts)
             np.random.shuffle(symbols)
             atoms.set_chemical_symbols(symbols[:len(atoms)])
+        atoms.info['nominal_formula'] = self.formula
         atoms.info['config_type'] = f'{self.lattice_type}_bulk'
         return atoms
 
@@ -163,6 +164,8 @@ class AlloyInfo():
                 used_sites.add(tuple(scaled_position))
                 atoms.append(Atom(symbol = symbol, position = np.dot(scaled_position, cell)))
         atoms.wrap()
+        if used_sites:
+            del atoms.info['nominal_formula']  # The host formula excludes the added atoms.
         atoms.info['config_type'] = f'{self.lattice_type}_bulk_interstitial'
         return atoms
     
@@ -205,6 +208,7 @@ class AlloyInfo():
         else:
             symbols = [self.symbols[0] for _ in range(len(positions))]
         atoms = Atoms(symbols = symbols, positions = positions, cell = cell, pbc = True)
+        atoms.info['nominal_formula'] = self.formula
         atoms.info['config_type'] = f'bcc_{model}_screw'
         return atoms
 

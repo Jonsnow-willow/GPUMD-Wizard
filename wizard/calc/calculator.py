@@ -9,13 +9,14 @@ from ase import Atom, Atoms
 from ase.build import cut, rotate, surface
 from ase.constraints import FixedLine
 from ase.calculators.calculator import Calculator
+from ase.formula import Formula
 from ase.mep import NEB
 from ase.units import J
 from calorine.tools import get_elastic_stiffness_tensor
 
 from .phono import PhonoCalc
 from ..core.minimize import relax
-from ..structure.atoms import Morph, AlloyInfo
+from ..structure.atoms import SUPPORTED_LATTICE_TYPES, Morph, AlloyInfo
 from ..utils.io import dump_xyz
 from ..utils.tools import plot_band_structure
 
@@ -38,8 +39,8 @@ class MaterialCalculator():
         - ``MaterialProperties.out``  
         Contains textual property summaries such as lattice constants,
         ground-state energy, defect formation energies, elastic constants,
-        and other scalar quantities. Each call appends new results in a
-        human-readable format.
+        and other scalar quantities. Consecutive results for this calculator
+        share a heading with the material, configuration and input atom count.
 
         Parameters
         ----------
@@ -87,6 +88,57 @@ class MaterialCalculator():
         config_type = atoms.info.get('config_type')
         self.info = f'{formula}_{config_type}' if config_type else formula
         self.symbols = sorted(set(atoms.get_chemical_symbols()))
+        self._report_tail = None
+
+    def _report_heading(self) -> list[str]:
+        atoms = self.atoms
+        actual = atoms.get_chemical_formula(empirical=True)
+        material = atoms.info.get('formula') or atoms.info.get('nominal_formula') or actual
+        try:
+            declared = Formula(str(material), strict=True)
+        except ValueError:
+            declared = None  # User-supplied formula labels can be free text.
+        if declared:
+            declared, _ = declared.reduce()
+            if len(declared.count()) == 1:
+                material = str(declared)
+
+        parts = [str(material)]
+        config = atoms.info.get('config_type')
+        if config:
+            lattice, *details = str(config).split('_')
+            if lattice.lower() in SUPPORTED_LATTICE_TYPES:
+                config = ' '.join([lattice.upper(), *details])
+            parts.append(str(config))
+        parts.append(f"{len(atoms)} {'atom' if len(atoms) == 1 else 'atoms'}")
+        heading = [' · '.join(parts)]
+        if declared != actual:
+            heading.append(f"  Actual composition        {atoms.get_chemical_formula()}")
+        return heading
+
+    def _write_report(self, lines: list[str]) -> list[str]:
+        with open('MaterialProperties.out', 'a', encoding='utf-8') as report:
+            # Keep the check and append together when calculators share a file.
+            # Closing the descriptor releases the lock on both platforms.
+            if os.name == 'nt':
+                import msvcrt
+                report.seek(0)
+                msvcrt.locking(report.fileno(), msvcrt.LK_LOCK, 1)
+            else:
+                import fcntl
+                fcntl.flock(report, fcntl.LOCK_EX)
+
+            stat = os.fstat(report.fileno())
+            identity = (stat.st_dev, stat.st_ino)
+            block = [''] if stat.st_size else []
+            if self._report_tail != (identity, stat.st_size):
+                block.extend(self._report_heading())
+                block.append('')
+            block.extend(lines)
+            report.write('\n'.join(block) + '\n')
+            report.flush()
+            self._report_tail = (identity, report.tell())
+        return lines
     
     def isolate_atom_energy(self) -> list[str]:
         """
@@ -95,18 +147,16 @@ class MaterialCalculator():
         Returns
         -------
         list[str]
-            Lines with per-atom reference energies, e.g. "Fe Iso_Atom_Energy: -4.1234 eV".
+            Report lines with the isolated-atom reference energy for each element.
         """
-        output = []
+        output = ["  Isolated atom energies (eV)"]
         for symbol in self.symbols:
             atoms = Atoms([symbol], positions=[(0, 0, 0)], cell=[20, 20, 20], pbc=True)
             atoms.calc = self.calc
             iso_atom_energy = atoms.get_potential_energy()
-            output.append(f" {symbol:<10}Iso_Atom_Energy: {iso_atom_energy:.4f} eV")
+            output.append(f"    {symbol:<2}  {iso_atom_energy:.4f}")
             dump_xyz('MaterialProperties.xyz', atoms)
-        with open('MaterialProperties.out', "a") as f:
-            f.write("\n".join(output) + "\n")
-        return output
+        return self._write_report(output)
     
     def lattice_constant(self) -> list[str]:
         """
@@ -126,16 +176,15 @@ class MaterialCalculator():
         b_over_a = b / a if a > 1e-12 else float('nan')
         c_over_a = c / a if a > 1e-12 else float('nan')
         a_mean = (a + b + c) / 3.0
-        output = []
-        output.append(f" {self.info:<10}Lattice_Constants: a={a:.4f} Å  b={b:.4f} Å  c={c:.4f} Å")
-        output.append(f"{'':<11}Angles: α={alpha:.2f}°  β={beta:.2f}°  γ={gamma:.2f}°")
-        output.append(f"{'':<11}Ratios: b/a={b_over_a:.6f}  c/a={c_over_a:.6f}  a_mean={a_mean:.4f} Å")
-        output.append(f"{'':<11}Volume: V={V:.3f} Å³  V/atom={V/N:.3f} Å³/atom")
-        output.append(f"{'':<11}Ground_State_Energy: {atom_energy:.4f} eV/atom")
+        output = [
+            f"  Cell lengths (Å)        a = {a:.4f}    b = {b:.4f}    c = {c:.4f}    mean = {a_mean:.4f}",
+            f"  Cell angles (°)         α = {alpha:.2f}    β = {beta:.2f}    γ = {gamma:.2f}",
+            f"  Cell ratios             b/a = {b_over_a:.6f}    c/a = {c_over_a:.6f}",
+            f"  Volume                  {V:.3f} Å³    {V/N:.3f} Å³/atom",
+            f"  Energy per atom         {atom_energy:.4f} eV/atom",
+        ]
         dump_xyz('MaterialProperties.xyz', atoms)
-        with open('MaterialProperties.out', "a") as f:
-            f.write("\n".join(output) + "\n")
-        return output
+        return self._write_report(output)
     
     def elastic_constant(self, epsilon: float = 1e-3) -> dict:
         """
@@ -159,19 +208,14 @@ class MaterialCalculator():
         atoms.calc = self.calc
         Cij = get_elastic_stiffness_tensor(atoms, epsilon=epsilon)
         
-        output = []
-        output.append(f" {self.info:<10}C11: {Cij[0][0]:>7.2f} GPa")
-        output.append(f"{'':<11}C12: {Cij[0][1]:>7.2f} GPa")
-        output.append(f"{'':<11}C13: {Cij[0][2]:>7.2f} GPa")
-        output.append(f"{'':<11}C33: {Cij[2][2]:>7.2f} GPa")
-        output.append(f"{'':<11}C44: {Cij[3][3]:>7.2f} GPa")
-        output.append(f"{'':<11}C66: {Cij[5][5]:>7.2f} GPa")
+        output = [
+            "  Elastic constants (GPa)",
+            f"    C11 = {Cij[0][0]:7.2f}    C12 = {Cij[0][1]:7.2f}    C13 = {Cij[0][2]:7.2f}",
+            f"    C33 = {Cij[2][2]:7.2f}    C44 = {Cij[3][3]:7.2f}    C66 = {Cij[5][5]:7.2f}",
+        ]
         dump_xyz('MaterialProperties.xyz', atoms)
-        with open('MaterialProperties.out', 'a') as f:
-            f.write("\n".join(output) + "\n")
-
         return {
-            'output': output,
+            'output': self._write_report(output),
             'Cij': Cij
         }
     
@@ -334,11 +378,10 @@ class MaterialCalculator():
         slab_energy = slab.get_potential_energy()
         formation_energy = (slab_energy - bulk_energy) / S / 2
 
-        hkl_str = '-'.join(map(str, hkl))
+        plane = ' '.join(map(str, hkl))
         dump_xyz('MaterialProperties.xyz', bulk)
         dump_xyz('MaterialProperties.xyz', slab)
-        with open('MaterialProperties.out', 'a') as f:
-            print(f' {self.info:<10}{hkl_str} Surface_Energy: {formation_energy / J / 1e-20 :.4f} J/m^2', file=f)
+        self._write_report([f"  Surface energy ({plane})    {formation_energy / J / 1e-20:.4f} J/m²"])
         return formation_energy * 1000
     
     def _formation_energy_defect(self, atoms: Atoms) -> float:
@@ -362,8 +405,8 @@ class MaterialCalculator():
         Morph(atoms).create_vacancy(index = index)
         formation_energy = self._formation_energy_defect(atoms)
         dump_xyz('MaterialProperties.xyz', atoms)
-        with open('MaterialProperties.out', 'a') as f:
-            print(f' {self.info:<10}Formation_Energy_Vacancy: {formation_energy:.4f} eV', file=f)
+        site = f"{self.atoms[index].symbol}[{index}]"
+        self._write_report([f"  Vacancy formation energy    {formation_energy:.4f} eV    {site}"])
         return formation_energy
 
     def formation_energy_divacancies(self, index0: int = 0, index1: int = 1) -> float:
@@ -382,12 +425,17 @@ class MaterialCalculator():
         """
         atoms = self.atoms.copy()
         index0, index1 = sorted((index0, index1))
+        first_site = range(len(atoms))[index1]
         Morph(atoms).create_vacancy(index = index1)
+        # Map the second deletion back to its site in the original structure.
+        second_site = range(len(atoms))[index0]
+        if second_site >= first_site:
+            second_site += 1
         Morph(atoms).create_vacancy(index = index0)
         formation_energy = self._formation_energy_defect(atoms)
         dump_xyz('MaterialProperties.xyz', atoms)
-        with open('MaterialProperties.out', 'a') as f:
-            print(f' {self.info:<10}Formation_Energy_Divacancies: {formation_energy:.4f} eV', file=f)
+        sites = f"{self.atoms[second_site].symbol}[{second_site}], {self.atoms[first_site].symbol}[{first_site}]"
+        self._write_report([f"  Divacancy formation energy    {formation_energy:.4f} eV    {sites}"])
         return formation_energy
 
     def migration_energy_vacancy(self, index0: int = 0, index1: int = 1) -> list[float]:
@@ -448,8 +496,9 @@ class MaterialCalculator():
         fig.savefig(fig_path)   
         plt.close(fig)
 
-        with open('MaterialProperties.out', 'a') as f:
-            print(f' {self.info:<10}Migration_Energy_({symbol}-Vacancy): {migration_energy:.4f} eV', file=f)
+        self._write_report([
+            f"  Vacancy migration energy    {migration_energy:.4f} eV    {symbol}, sites {index0} → {index1}"
+        ])
         
         return energies
     
@@ -471,8 +520,11 @@ class MaterialCalculator():
         Morph(atoms).create_self_interstitial_atom(vector, index = index)
         formation_energy = self._formation_energy_defect(atoms)
         dump_xyz('MaterialProperties.xyz', atoms)
-        with open('MaterialProperties.out', 'a') as f:
-            print(f' {self.info:<10}{vector} Formation_Energy_Sia: {formation_energy:.4} eV', file=f)
+        vector_label = ' '.join(map(str, vector))
+        self._write_report([
+            f"  Self-interstitial formation energy    {formation_energy:.4f} eV    "
+            f"{self.atoms[index].symbol}[{index}], vector ({vector_label})"
+        ])
         return formation_energy
     
 class AlloyCalculator(MaterialCalculator):
@@ -513,8 +565,10 @@ class AlloyCalculator(MaterialCalculator):
         defect_energy = atoms.get_potential_energy()
         formation_energy = defect_energy - reference_energy - num * chemical_potential
         dump_xyz('MaterialProperties.xyz', atoms)
-        with open('MaterialProperties.out', 'a') as f:
-            print(f' {self.info:<10}{symbol}_{interstitial_type} Formation_Energy_Interstitial: {formation_energy:.4f} eV', file=f)
+        self._write_report([
+            f"  Interstitial formation energy    {formation_energy:.4f} eV    "
+            f"{symbol}, site {interstitial_type}, count {num}"
+        ])
         return formation_energy
     
     def stacking_fault(self, a: tuple, b: tuple, miller: tuple, distance: float) -> np.ndarray:
@@ -580,8 +634,8 @@ class AlloyCalculator(MaterialCalculator):
         energies = np.array(energies)
         energies -= energies[0]
         miller_str = '-'.join(map(str, miller))
-        with open('MaterialProperties.out', 'a') as f:
-            print(f' {self.info:<7}{miller_str} Stacking_Fault: {max(energies) * 1000:.4f} meV/A^2', file=f)
+        plane = ' '.join(map(str, miller))
+        self._write_report([f"  Peak stacking fault energy ({plane})    {max(energies) * 1000:.4f} meV/Å²"])
 
         plt.plot(np.linspace(0, 1, len(energies)), energies, marker='o', label=f'{self.info}')  
         plt.legend()
@@ -617,8 +671,8 @@ class AlloyCalculator(MaterialCalculator):
             dump_xyz('MaterialProperties.xyz', image)  
 
         coords = np.linspace(0, 1, len(energies))
-        with open('MaterialProperties.out', 'a') as f:
-            print(f' {self.info:<10}{final_model} Screw_Migration_Energy: {migration_energy:.4f} eV', file=f)
+        model_label = final_model.replace('_', ' ')
+        self._write_report([f"  Screw migration energy ({model_label})    {migration_energy:.4f} eV"])
 
         plt.plot(coords, energies, marker='o', label=f'{self.info}_{final_model}')
         plt.legend()
